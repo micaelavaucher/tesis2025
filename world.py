@@ -4,8 +4,10 @@ The world class includes references to the several components (Items, Locations,
 and methods to update according to the detected changes by a language model.
 """
 
+import json
 import re
 
+from models import GeminiModel
 
 class Component:
   """A class to represent a component of the world.
@@ -173,6 +175,48 @@ class World:
     """Add a set of characters to the world."""
     for character in characters:
       self.add_character(character)
+
+  def checkToAddItem (self, model: GeminiModel) -> None:
+    player_location = self.player.location
+
+    # Check if the player is in the cabin
+    if player_location.name == "Cabin":
+        prompt = f"""
+        Respond only with a JSON object containing these attributes. You are managing a fictional world, and the player can interact with it. 
+        The player is currently in {player_location.name}.
+        The item should have the following attributes:
+        - name: A short, unique name for the item.
+        - descriptions: A list of 1-3 natural language descriptions of the item.
+        - gettable: A boolean indicating if the item can be picked up by the player (default is True).
+        Respond ONLY with a JSON object containing these attributes.
+        """
+        try:
+            # Get the response from Gemini
+            response = model.prompt_model(prompt)
+            if response.startswith("```json"):
+                response = response.replace("```json", "", 1)
+            if response.endswith("```"):
+                response = response.replace("```", "", 1)
+            response = response.strip()
+            # Parse the response as JSON
+            item_data = json.loads(response)
+
+            # Format the name if it contains underscores
+            if "_" in item_data["name"]:
+                item_data["name"] = " ".join(word.capitalize() for word in item_data["name"].split("_"))
+
+            # Create the new item
+            new_item = Item(
+                name=item_data["name"],
+                descriptions=item_data["descriptions"],
+                gettable=item_data.get("gettable", True)
+            )
+            player_location.items.append(new_item)
+            print(f"🔑 A new item '{new_item.name}' has been added to the cabin!")
+        except json.JSONDecodeError as e:
+          print(f"Error parsing JSON from Gemini: {e}")
+        except Exception as e:
+          print(f"Error generating item with Gemini: {e}")
 
   def render_world(self, *,  detail_components:bool = True) -> str:
     """Return the fictional world as a natural language description, using simple sentences.
