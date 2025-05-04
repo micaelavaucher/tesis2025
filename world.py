@@ -218,6 +218,54 @@ class World:
         except Exception as e:
           print(f"Error generating item with Gemini: {e}")
 
+  def checkToAddLocation(self, model: GeminiModel) -> None:
+    player_location = self.player.location
+
+    # Check if the player is in the cabin
+    if player_location.name == "Cabin":
+        prompt = f"""
+        Respond only with a JSON object containing these attributes. You are managing a fictional world, and the player can interact with it.
+        The player is currently in a small cabin in a natural setting. Create a new location that would logically connect to this cabin.
+        The new location should:
+        1. Be realistic and fitting for a cabin's surroundings (like a cellar, attic, backyard, shed, etc.)
+        2. Not be something fantastical or out of context
+
+        The location should have the following attributes:
+        - name: A short, unique name for the location.
+        - descriptions: A list of 1-3 natural language descriptions that make this location interesting.
+
+        Respond ONLY with a JSON object containing these attributes.
+        """
+        try:
+            # Get the response from Gemini
+            response = model.prompt_model(prompt)
+            if response.startswith("```json"):
+                response = response.replace("```json", "", 1)
+            if response.endswith("```"):
+                response = response.replace("```", "", 1)
+            response = response.strip()
+            
+            # Parse the response as JSON
+            location_data = json.loads(response)
+
+            # Create the new location
+            new_location = Location(
+                name=location_data["name"],
+                descriptions=location_data["descriptions"],
+                items=[] # No items
+            )
+            
+            # Add the location to the world and connect it
+            self.add_location(new_location)
+            player_location.connecting_locations.append(new_location)
+            new_location.connecting_locations.append(player_location)
+            
+            print(f"🏠 A new location '{new_location.name}' has been discovered connected to the cabin!")
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON from Gemini: {e}")
+        except Exception as e:
+            print(f"Error generating location with Gemini: {e}")
+
   def render_world(self, *,  detail_components:bool = True) -> str:
     """Return the fictional world as a natural language description, using simple sentences.
 

@@ -37,6 +37,7 @@ while(True):
     # Show the state of the world
     if last_player_position is not world.player.location:
         world.checkToAddItem(model)
+        world.checkToAddLocation(model)
     print(f"🌎 World state 🌍\n{world.render_world()}\n")
     # If the player is in a different place, narrate the scene
     if last_player_position is not world.player.location:
