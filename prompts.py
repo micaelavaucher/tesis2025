@@ -60,3 +60,59 @@ def prompt_world_update (world_state: str, input: str) -> str:
     """
 
     return prompt
+
+def prompt_generate_world() -> str:
+    """Prompt for generating a new world from scratch."""
+    prompt = """You are a creative world architect for an interactive fiction game. Generate a small, coherent world with:
+
+    1. 3-4 locations (each with a name and 2-3 descriptive sentences)
+    2. 5-7 unique items (with names and 2-3 descriptive sentences)
+    3. 2-3 non-player characters (with names, descriptions, and placed in specific locations)
+    4. One player character (with a name, description, starting inventory, and starting location)
+
+    Make everything interconnected and logical. Locations should connect to at least one other location. Some locations can have blocked passages requiring specific items to unblock.
+
+    Ensure the world has an interesting theme or premise with potential for exploration and simple puzzles.
+    """
+    return prompt
+
+def prompt_expand_world(world_state: str, player_location: str) -> str:
+    """Prompt for expanding the world based on the current state."""
+    prompt = f"""You are a creative world architect for an interactive fiction game. Based on the current world state, expand the world organically by adding:
+
+    1. 1-2 new locations connected to {player_location} (with names and 2-3 descriptive sentences)
+    2. 2-3 new items placed in these new locations (with names and 2-3 descriptive sentences) 
+    3. 0-1 new non-player characters in one of the new locations (with a name, description, and possibly inventory)
+
+    Make your additions coherent with the existing world state:
+    {world_state}
+
+    Consider creating:
+    - Hidden areas that extend the current location
+    - New passages that were previously not noticed
+    - Items that fit the theme of the new areas
+    - Characters that have interesting relationships with existing elements
+
+    The expansion should feel natural, as if these elements were always there but just now discovered.
+    """
+    return prompt
+
+def should_expand_world(player_input: str) -> bool:
+    """Determine if the world should be expanded based on player input.
+    
+    Expansion triggers:
+    - Player explicitly explores or searches
+    - Player tries to go somewhere not currently available
+    - Player has visited all available locations
+    - Player has interacted with most available items
+    """
+    exploration_keywords = [
+        "explore", "search", "look around", "investigate", 
+        "examine surroundings", "check area", "discover"
+    ]
+    
+    for keyword in exploration_keywords:
+        if keyword in player_input.lower():
+            return True
+    
+    return False
