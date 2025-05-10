@@ -72,7 +72,16 @@ def prompt_generate_world() -> str:
 
     Make everything interconnected and logical. Locations should connect to at least one other location. Some locations can have blocked passages requiring specific items to unblock.
 
-    Ensure the world has an interesting theme or premise with potential for exploration and simple puzzles.
+    IMPORTANT: When creating blocked passages, ensure that the two locations are already connected (listed in connecting_locations). A passage can only be blocked between two connected locations.
+
+    Format for blocked passages:
+    {
+    "location": "name of connected location",
+    "obstacle": "name of item blocking passage",
+    "symmetric": true/false
+    }
+
+    IMPORTANT: Follow this structure precisely. Do not add any additional fields to any object.
     """
     return prompt
 
