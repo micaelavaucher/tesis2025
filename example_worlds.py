@@ -1,7 +1,198 @@
 """Includes two example worlds to experiment with different scenarios."""
 
+import json
+from models import GeminiModel
 from world import Character, Item, Location, World
 
+
+def generate_initial_world(theme: str, model: GeminiModel) -> World:
+    """Generate the initial world based on the selected theme using the Gemini model."""
+    prompt = f"""
+    You are tasked with creating a fictional world for an interactive storytelling game. 
+    The theme of the world is '{theme}'. 
+    The world must have:
+    - A minimum of 4 locations and a maximum of 10 locations.
+    - Each location must have at least 1 item.
+    - All locations must be connected, meaning every location must be reachable from at least one other location.
+    - If any location is blocked, there must be a way to unblock it.
+    - Each location should have a short, unique name and 1-3 natural language descriptions.
+    - Each item should have a short, unique name, 1-3 natural language descriptions, and a boolean indicating if it is gettable (default is True).
+    - At least two notable characters (NPCs) should be present in the world, each with a unique name and 1-3 natural language descriptions.
+
+    Respond ONLY with a JSON object containing:
+    - player: An object with the player's name, descriptions, inventory (list of items).
+    - locations: A list of locations, where each location has:
+        - name: The name of the location.
+        - descriptions: A list of descriptions for the location.
+        - items: A list of items, where each item has:
+            - name: The name of the item.
+            - descriptions: A list of descriptions for the item.
+            - gettable: A boolean indicating if the item is gettable. 
+        - npcs: A list of NPCs present in this location, where each NPC has:
+            - name: The name of the NPC.
+            - descriptions: A list of descriptions for the NPC.
+        - blocked_locations: A dictionary where the key is the name of a blocked location, and the value is an object with:
+            - obstacle: The name of the obstacle blocking the location, it's name must be unique from the others.
+            - symmetric: A boolean indicating if the block is symmetric.
+        - connected_locations: A list of names of locations that are directly connected to this location. Including blocked ones.
+
+    Respond ONLY with the JSON object.
+    """
+    try:
+        # Get the response from Gemini
+        response = model.prompt_model(prompt)
+        if response.startswith("```json"):
+            response = response.replace("```json", "", 1)
+        if response.endswith("```"):
+            response = response.replace("```", "", 1)
+        response = response.strip()
+
+        # Parse the response as JSON
+        world_data = json.loads(response)
+
+        # Create the world
+        # Create the world
+        # First create all items to reference them later
+        all_items = {}
+        for location_data in world_data["locations"]:
+            for item_data in location_data["items"]:
+                item = Item(
+                    name=item_data["name"],
+                    descriptions=item_data["descriptions"],
+                    gettable=item_data.get("gettable", True)
+                )
+                all_items[item.name] = item
+        
+        # Create player inventory items first
+        player_inventory = []
+        for item_name in world_data["player"].get("inventory", []):
+            if isinstance(item_name, dict):
+                # Handle case where inventory contains full item objects instead of just names
+                item = Item(
+                    name=item_name["name"],
+                    descriptions=item_name["descriptions"],
+                    gettable=item_name.get("gettable", True)
+                )
+                all_items[item.name] = item
+                player_inventory.append(item)
+            else:
+                # Handle case where inventory contains just item names
+                # We'll need to create these items later if they don't exist yet
+                if item_name not in all_items:
+                    # Create a default item if not found
+                    item = Item(name=item_name, descriptions=[f"A {item_name}"])
+                    all_items[item_name] = item
+                player_inventory.append(all_items[item_name])
+        
+        # Create all locations (without connections yet)
+        locations = {}
+        for location_data in world_data["locations"]:
+            location_items = []
+            for item_data in location_data["items"]:
+                if item_data["name"] in all_items:
+                    location_items.append(all_items[item_data["name"]])
+                else:
+                    item = Item(
+                        name=item_data["name"],
+                        descriptions=item_data["descriptions"],
+                        gettable=item_data.get("gettable", True)
+                    )
+                    all_items[item.name] = item
+                    location_items.append(item)
+            
+            location = Location(
+                name=location_data["name"],
+                descriptions=location_data["descriptions"],
+                items=location_items
+            )
+            locations[location.name] = location
+        
+        # Set the starting location for the player (first location if not specified)
+        player_location = locations[world_data["locations"][0]["name"]]
+        
+        # Create the player and the world
+        player = Character(
+            name=world_data["player"]["name"],
+            descriptions=world_data["player"]["descriptions"],
+            inventory=player_inventory,
+            location=player_location
+        )
+        
+        the_world = World(player)
+        
+        # Add all locations to the world first
+        for location in locations.values():
+            the_world.add_location(location)
+        
+        # Add all items to the world
+        for item in all_items.values():
+            the_world.add_item(item)
+        
+        # Create NPCs and add them to their locations
+        for location_data in world_data["locations"]:
+            if "npcs" in location_data:
+                for npc_data in location_data["npcs"]:
+                    npc_inventory = []
+                    if "inventory" in npc_data:
+                        for item_name in npc_data["inventory"]:
+                            if isinstance(item_name, dict):
+                                item = Item(
+                                    name=item_name["name"],
+                                    descriptions=item_name["descriptions"],
+                                    gettable=item_name.get("gettable", True)
+                                )
+                                all_items[item.name] = item
+                                npc_inventory.append(item)
+                            else:
+                                if item_name in all_items:
+                                    npc_inventory.append(all_items[item_name])
+                    
+                    npc = Character(
+                        name=npc_data["name"],
+                        descriptions=npc_data["descriptions"],
+                        inventory=npc_inventory,
+                        location=locations[location_data["name"]]
+                    )
+                    the_world.add_character(npc)
+        
+        # Connect locations
+        for location_data in world_data["locations"]:
+            location = locations[location_data["name"]]
+            
+            # Handle regular connections
+            for connected_name in location_data.get("connected_locations", []):
+                if connected_name in locations:
+                    location.connecting_locations.append(locations[connected_name])
+            
+            # Handle blocked passages
+            for blocked_name, block_data in location_data.get("blocked_locations", {}).items():
+                if blocked_name in locations:
+                    obstacle_name = block_data["obstacle"]
+                    symmetric = block_data.get("symmetric", True)
+                    
+                    # Create the obstacle item if it doesn't exist
+                    if obstacle_name not in all_items:
+                        obstacle = Item(
+                            name=obstacle_name,
+                            descriptions=[f"An obstacle blocking the way to {blocked_name}"],
+                            gettable=False
+                        )
+                        all_items[obstacle_name] = obstacle
+                        the_world.add_item(obstacle)
+                    else:
+                        obstacle = all_items[obstacle_name]
+                    
+                    # Add the blocked location to connecting_locations first
+                    location.connecting_locations.append(locations[blocked_name])
+                    # Then block it
+                    location.block_passage(locations[blocked_name], obstacle, symmetric)
+        
+        return the_world
+    
+    except Exception as e:
+        print(f"Error generating world: {e}")
+        return None
+        
 
 def get_world(arg: str) -> World:
     if arg=='2':

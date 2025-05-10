@@ -12,7 +12,7 @@ def prompt_world_update (world_state: str, input: str) -> str:
     {world_state}\n\n
     Explain the changes in the world after the player actions in this input "{input}". 
     
-    Here are some clarifications. If a passage is blocked, then the player must unblock it before being able to reach the place. Pay atenttion to the description of the components and their capabilities.
+    Here are some clarifications. If a passage is blocked, then the player must unblock it before being able to reach the place. If an item is not gettable, player can't take it. Pay atenttion to the description of the components and their capabilities.
     Do not assume that the given input always make sense; maybe those actions try to do something that the world does not allow.
     Follow always the following format with the three categories, using "None" in each case if there are no changes and repeat the category for each case (there may be more than 3 items in the list):
     - Moved object: <object> now is in <new_location>

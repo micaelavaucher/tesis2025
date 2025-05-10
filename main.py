@@ -14,11 +14,25 @@ from models import GeminiModel
 from prompts import prompt_narrate_current_scene, prompt_world_update
 
 # Instantiate the world
-world_id = sys.argv[1] if len(sys.argv) > 1 else "1"
-world = example_worlds.get_world(world_id)
+# world_id = sys.argv[1] if len(sys.argv) > 1 else "1"
+# world = example_worlds.get_world(world_id)
 
 # Initialize the model and disable the safety settings
 model = GeminiModel("API_key")
+
+# Ask the user to pick a theme
+themes = ["Cyberpunk", "Medieval", "Horror", "Contemporary", "Post-Apocalyptic", "2000s", "Twilight Saga"]
+print("Choose a theme for your world:")
+for i, theme in enumerate(themes, 1):
+    print(f"{i}. {theme}")
+theme_choice = int(input("Enter the number of your choice: ")) - 1
+if theme_choice < 0 or theme_choice >= len(themes):
+    print("Invalid choice. Defaulting to 'Contemporary'.")
+    theme_choice = themes.index("Contemporary")
+selected_theme = themes[theme_choice]
+
+# Generate the initial world using Gemini
+world = example_worlds.generate_initial_world(selected_theme, model)
 
 # Welcome the user
 print ("""
@@ -34,10 +48,6 @@ Enter "q" to quit.
 last_player_position = None
 
 while(True):
-    # Show the state of the world
-    if last_player_position is not world.player.location:
-        world.checkToAddItem(model)
-        world.checkToAddLocation(model)
     print(f"🌎 World state 🌍\n{world.render_world()}\n")
     # If the player is in a different place, narrate the scene
     if last_player_position is not world.player.location:
