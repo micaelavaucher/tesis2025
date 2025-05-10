@@ -26,7 +26,7 @@ def create_world_from_llm_response(response: str) -> World:
                 name=item_data.name,
                 descriptions=item_data.descriptions,
                 gettable=item_data.gettable)
-            items_dict[item_data.name] = Item
+            items_dict[item_data.name] = item
         
         # Create locations (without connections yet)
         locations_dict: Dict[str, Location] = {}
@@ -48,11 +48,23 @@ def create_world_from_llm_response(response: str) -> World:
             
             # Handle blocked passages
             for blocked in loc_data.blocked_passages:
-                if blocked['location'] in locations_dict and blocked['obstacle'] in items_dict:
-                    locations_dict[loc_data.name].block_passage(
-                        locations_dict[blocked['location']],
-                        items_dict[blocked['obstacle']],
-                        blocked.get('symmetric', True))
+                if (blocked.location in locations_dict and 
+                    blocked.obstacle in items_dict):
+                    location = locations_dict[loc_data.name]
+                    blocked_location = locations_dict[blocked.location]
+                    
+                    # Check if the locations are connected before blocking
+                    if blocked_location not in location.connecting_locations:
+                        # Connect the locations first
+                        location.connecting_locations.append(blocked_location)
+                        if blocked.symmetric:
+                            blocked_location.connecting_locations.append(location)
+                    
+                    # Now block the passage
+                    location.block_passage(
+                        blocked_location, 
+                        items_dict[blocked.obstacle],
+                        blocked.symmetric)
         
         # Create the player character
         player_data = generated_world.player
@@ -118,7 +130,7 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
         world_expansion = WorldExpansion.model_validate(expansion_data)
 
         # Create new items
-        items_dict: Dict[str, Item] = []
+        items_dict: Dict[str, Item] = {}
         for item_data in world_expansion.new_items:
             item = Item(
                 name=item_data.name,
@@ -155,11 +167,23 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
         # Handle blocked passages
         for loc_data in world_expansion.new_locations:
             for blocked in loc_data.blocked_passages:
-                if blocked["location"] in locations_dict and blocked["obstacle"] in items_dict:
-                    locations_dict[loc_data.name].block_passage(
-                        locations_dict[blocked["location"]], 
-                        items_dict[blocked["obstacle"]],
-                        blocked.get("symmetric", True))
+                if (blocked.location in locations_dict and
+                    blocked.obstacle in items_dict):
+                    location = locations_dict[loc_data.name]
+                    blocked_location = locations_dict[blocked.location]
+                    
+                    # Check if the locations are connected before blocking
+                    if blocked_location not in location.connecting_locations:
+                        # Connect the locations first
+                        location.connecting_locations.append(blocked_location)
+                        if blocked.symmetric:
+                            blocked_location.connecting_locations.append(location)
+                    
+                    # Now block the passage
+                    location.block_passage(
+                        blocked_location, 
+                        items_dict[blocked.obstacle],
+                        blocked.symmetric)
         
         # Create new characters
         for char_data in world_expansion.new_characters:

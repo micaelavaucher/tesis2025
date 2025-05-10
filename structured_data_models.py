@@ -14,12 +14,18 @@ class GeneratedItem(BaseModel):
     descriptions: List[str]
     gettable: bool = True
 
+class BlockedPassage(BaseModel):
+    """Model for a blocked passage between locations."""
+    location: str
+    obstacle: str
+    symmetric: bool = True
+
 class GeneratedLocation(BaseModel):
     name: str
     descriptions: List[str]
     items: List[str] = []
     connecting_locations: List[str] = []
-    blocked_passages: List[dict] = []
+    blocked_passages: List[BlockedPassage] = []
 
 class GeneratedCharacter(BaseModel):
     name: str
