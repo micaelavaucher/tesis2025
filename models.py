@@ -33,6 +33,22 @@ class GeminiModel():
     def prompt_model(self,prompt: str) -> str:
         """Prompt the Gemini model."""
         return self.model.generate_content(prompt, safety_settings=self.safety_settings).text
+    
+    def prompt_model_structured(self, prompt: str, response_schema):
+        """Prompt the Gemini model with structured output."""
+        try:
+            response = self.model.generate_content(
+                prompt,
+                safety_settings=self.safety_settings,
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": response_schema
+                }
+            )
+            return response.text
+        except Exception as e:
+            print(f"Error generation structured content: {e}")
+            return "{}" # Empty JSON
 
 def get_api_key(path: str) -> str:
     """Load an API key from path."""
