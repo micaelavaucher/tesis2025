@@ -20,19 +20,12 @@ from prompts import prompt_narrate_current_scene, prompt_world_update
 # Initialize the model and disable the safety settings
 model = GeminiModel("API_key")
 
-# Ask the user to pick a theme
-themes = ["Cyberpunk", "Medieval", "Horror", "Contemporary", "Post-Apocalyptic", "2000s", "Twilight Saga"]
-print("Choose a theme for your world:")
-for i, theme in enumerate(themes, 1):
-    print(f"{i}. {theme}")
-theme_choice = int(input("Enter the number of your choice: ")) - 1
-if theme_choice < 0 or theme_choice >= len(themes):
-    print("Invalid choice. Defaulting to 'Contemporary'.")
-    theme_choice = themes.index("Contemporary")
-selected_theme = themes[theme_choice]
+# Ask the user for inspiration
+print("\nPlease share a personal anecdote, feeling, or quote to inspire your world:")
+user_inspiration = input("Your inspiration: ")
 
 # Generate the initial world using Gemini
-world = example_worlds.generate_initial_world(selected_theme, model)
+world = example_worlds.generate_initial_world(user_inspiration, model)
 
 # Welcome the user
 print ("""

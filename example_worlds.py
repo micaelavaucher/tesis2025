@@ -5,11 +5,12 @@ from models import GeminiModel
 from world import Character, Item, Location, World
 
 
-def generate_initial_world(theme: str, model: GeminiModel) -> World:
+def generate_initial_world(inspiration: str, model: GeminiModel) -> World:
     """Generate the initial world based on the selected theme using the Gemini model."""
     prompt = f"""
     You are tasked with creating a fictional world for an interactive storytelling game. 
-    The theme of the world is '{theme}'. 
+    The user has provided the following as inspiration for the world:
+    "{inspiration}"
     The world must have:
     - A minimum of 4 locations and a maximum of 10 locations.
     - Each location must have at least 1 item.
