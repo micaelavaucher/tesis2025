@@ -1,6 +1,9 @@
 # API key file
 API_key
 
+.env
+logs/*.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
