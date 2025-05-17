@@ -1,3 +1,5 @@
+from structured_data_models import WorldUpdate, SceneNarration, ObjectiveDescription
+
 def prompt_describe_objective (objective, language:str = 'en'):
     system_msg = ""
     user_msg = ""
@@ -8,6 +10,14 @@ def prompt_describe_objective (objective, language:str = 'en'):
         system_msg, user_msg = prompt_describe_objective_english(objective)
     
     return system_msg, user_msg 
+
+def prompt_describe_objective_structured(objective_tuple, language: str = 'en'):
+    """Create an objective description prompt that will return structured data based on Pydantic models."""
+    
+    # Get the base system and user messages
+    system_msg, user_msg = prompt_describe_objective(objective_tuple, language)
+    
+    return system_msg, user_msg, ObjectiveDescription
 
 def prompt_describe_objective_english (objective):
 
@@ -63,6 +73,14 @@ def prompt_narrate_current_scene (world_state: str, previous_narrations: 'list[s
 
     return system_msg, user_msg
 
+def prompt_narrate_current_scene_structured(world_state: str, previous_narrations=None, language: str = 'en', starting_scene: bool = False):
+    """Create a scene narration prompt that will return structured data based on Pydantic models."""
+    
+    # Get the base system and user messages
+    system_msg, user_msg = prompt_narrate_current_scene(world_state, previous_narrations, language, starting_scene)
+    
+    return system_msg, user_msg, SceneNarration
+
 def prompt_narrate_current_scene_english (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
 
     system_msg = "You are a storyteller. Take the state of the world given to you and narrate it in a few sentences. Be careful not to include details that contradict the current state of the world or that move the story forward. Also, try to use simple sentences and do not overuse poetic language"
@@ -116,6 +134,33 @@ def prompt_world_update (world_state: str, input: str, language: str = 'en'):
 
 
     return system_msg, user_msg
+
+def prompt_world_update_structured(world_state: str, input: str, language: str = 'en'):
+    """Create a world update prompt that will return structured data based on Pydantic models."""
+    if language == 'es':
+        system_msg = """Eres un narrador. Estás manejando un mundo ficticio, y el jugador puede interactuar con él. 
+        Tu tarea es determinar los cambios en el mundo a raíz de las acciones del jugador.
+        
+        Debes considerar:
+        - Objetos que cambiaron de lugar
+        - Pasajes entre lugares que se desbloquearon
+        - Si el jugador se movió de lugar
+        - Una breve narración de los cambios"""
+    else:
+        system_msg = """You are a narrator. You are managing a fictional world, and the player can interact with it.
+        Your task is to determine the changes in the world due to the player's actions.
+        
+        You should consider:
+        - Objects that changed location
+        - Passages between locations that were unblocked
+        - If the player moved to a new location
+        - A brief narration of the changes"""
+    
+    user_msg = f"""Determine the changes in the world based on the player's input "{input}" and the current world state:
+    
+    {world_state}"""
+    
+    return system_msg, user_msg, WorldUpdate
 
 def prompt_world_update_spanish (world_state: str, input: str):
     system_msg = f"""Eres un narrador. Estás manejando un mundo ficticio, y el jugador puede interactuar con él. Siguiendo un formato específico, que voy a explicarte más abajo, tu tarea es encontrar los cambios en el mundo a raíz de las acciones del jugador. En específico, tendrás que encontrar qué objetos cambiaron de lugar, qué pasajes entre lugares se desbloquearon y si el jugador se movió de lugar.
