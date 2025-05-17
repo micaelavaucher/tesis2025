@@ -1,8 +1,9 @@
 """Load models to use them as a narrator and a common-sense oracle in the PAYADOR pipeline."""
-import google.generativeai as genai
-import requests
+import google.genai as genai
+from google.genai import types
 import replicate
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,33 +46,52 @@ class ReplicateModel():
         return "".join(output)
 
 class GeminiModel():
-    def __init__ (self, API_key:str, model_name:str = "gemini-1.0-pro") -> None:
+    def __init__ (self, API_key:str, model_name:str = "gemini-1.5-flash") -> None:
         """"Initialize the Gemini model using an API key."""
         self.safety_settings = [
-            {
-                "category": "HARM_CATEGORY_DANGEROUS",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_NONE",
-            },
+            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE")
         ]
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-        self.model = genai.GenerativeModel(model_name)
+        self.api_key = os.getenv("GOOGLE_API_KEY")
+        self.client = genai.Client(api_key=self.api_key)
+        self.model_name = model_name
 
-    def prompt_model(self,system_msg: str, user_msg:str) -> str:
+    def prompt_model(self, system_msg: str, user_msg:str) -> str:
         """Prompt the Gemini model."""
-        return self.model.generate_content(system_msg + "\n\n" + user_msg, safety_settings=self.safety_settings).text
+        full_prompt = system_msg + "\n\n" + user_msg
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=full_prompt,
+            generation_config=types.GenerationConfig(
+                temperature=0.5,
+                top_p=0.9,
+                max_output_tokens=1024,
+            ),
+            safety_settings=self.safety_settings
+        )
+        return response.text
+
+    def prompt_model_structured(self, system_msg: str, user_msg:str, response_schema: dict) -> dict:
+        """Prompt the Gemini model with structured output."""
+        try:
+            full_prompt = system_msg + "\n\n" + user_msg
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                generation_config=types.GenerationConfig(
+                    temperature=0.5,
+                    top_p=0.9,
+                    max_output_tokens=1024,
+                ),
+                safety_settings=self.safety_settings,
+                response_mime_type="application/json",
+                response_schema=response_schema
+            )
+            # Parse the JSON response
+            return json.loads(response.text)
+        except Exception as e:
+            print(f"Error in structured output generation: {e}")
+            # Return an empty result conforming to the schema structure
+            return {}

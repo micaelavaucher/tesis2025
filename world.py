@@ -6,6 +6,7 @@ and methods to update according to the detected changes by a language model.
 
 import re
 from typing import Type
+from structured_processors import process_structured_world_update
 
 
 class Component:
@@ -388,6 +389,13 @@ class World:
     self.parse_moved_objects(updates)
     self.parse_blocked_passages(updates)
     self.parse_location_change(updates)
+
+  def update_structured(self, update_data: dict) -> None:
+    """Update the world using structured data from the language model.
+    
+    This method uses the structured data format instead of parsing text.
+    """
+    process_structured_world_update(self, update_data)
 
   def parse_moved_objects (self, updates: str) -> None:
     """Parse the output of the language model to update the position of objects.
