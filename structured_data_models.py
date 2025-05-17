@@ -1,0 +1,70 @@
+"""Structured data models for the PAYADOR world system."""
+
+#---- Imports -----------------------------------------------------------------
+from pydantic import BaseModel
+from typing import List, Optional
+
+#---- Schema definitions ------------------------------------------------------
+# Basic world component models
+class MovedObject(BaseModel):
+    object_name: str
+    new_location: str
+
+class BlockedPassage(BaseModel):
+    location_name: str
+    is_available: bool = True
+
+class LocationChange(BaseModel):
+    new_location: Optional[str] = None
+
+# World update model
+class WorldUpdate(BaseModel):
+    """Model for structured world updates from language model."""
+    moved_objects: List[MovedObject] = []
+    blocked_passages_available: List[BlockedPassage] = []
+    location_changed: LocationChange = LocationChange()
+    narration: str = ""
+
+# Narration models
+class SceneNarration(BaseModel):
+    """Model for structured scene narrations."""
+    narration: str
+    mood: str = "neutral"  # could be "tense", "peaceful", "mysterious", etc.
+    
+class ObjectiveDescription(BaseModel):
+    """Model for structured objective descriptions."""
+    description: str
+    difficulty: str = "medium"  # could be "easy", "medium", "hard"
+
+# Optional: World generation models
+class GeneratedItem(BaseModel):
+    name: str
+    descriptions: List[str]
+    gettable: bool = True
+
+class GeneratedPuzzle(BaseModel):
+    name: str
+    descriptions: List[str]
+    problem: str
+    answer: str
+
+class GeneratedLocation(BaseModel):
+    name: str
+    descriptions: List[str]
+    items: List[str] = []
+    connecting_locations: List[str] = []
+    blocked_passages: List[dict] = []  # {location, obstacle, symmetric}
+
+class GeneratedCharacter(BaseModel):
+    name: str
+    descriptions: List[str]
+    location: str
+    inventory: List[str] = []
+
+class GeneratedWorld(BaseModel):
+    locations: List[GeneratedLocation]
+    items: List[GeneratedItem]
+    characters: List[GeneratedCharacter]
+    puzzles: List[GeneratedPuzzle] = []
+    player: GeneratedCharacter
+    objective: dict = {}  # {type: "character_meet_character", components: ["char1", "char2"]}
