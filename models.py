@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_llm(model_name: str = "gemini-1.5-flash") -> object:
+def get_llm(model_name: str = "gemini-2.0-flash") -> object:
 
-    google_models = ["gemini-1.0-pro", "gemini-1.5-pro", "gemini-1.5-flash"]
+    google_models = ["gemini-1.0-pro", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"]
     replicate_models = ["meta/meta-llama-3-70b", "meta/meta-llama-3-70b-instruct"]
 
     model = None
@@ -46,14 +46,14 @@ class ReplicateModel():
         return "".join(output)
 
 class GeminiModel():
-    def __init__ (self, API_key:str, model_name:str = "gemini-1.5-flash") -> None:
+    def __init__ (self, API_key:str, model_name:str = "gemini-2.0-flash") -> None:
         """"Initialize the Gemini model using an API key."""
-        self.safety_settings = [
-            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
-            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
-            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE")
-        ]
+        # self.safety_settings = [
+        #     types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+        #     types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+        #     types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+        #     types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE")
+        # ]
         self.api_key = os.getenv("GOOGLE_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = model_name
@@ -64,30 +64,23 @@ class GeminiModel():
         response = self.client.models.generate_content(
             model=self.model_name,
             contents=full_prompt,
-            generation_config=types.GenerationConfig(
-                temperature=0.5,
-                top_p=0.9,
-                max_output_tokens=1024,
-            ),
-            safety_settings=self.safety_settings
         )
         return response.text
 
-    def prompt_model_structured(self, system_msg: str, user_msg:str, response_schema: dict) -> dict:
+    def prompt_model_structured(self, prompt:str, response_schema: dict) -> dict:
         """Prompt the Gemini model with structured output."""
         try:
-            full_prompt = system_msg + "\n\n" + user_msg
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=full_prompt,
-                generation_config=types.GenerationConfig(
-                    temperature=0.5,
+                contents=prompt,
+                config=types.GenerationConfig(
+                    temperature=0.7,
+                    response_mime_type="application/json",
                     top_p=0.9,
                     max_output_tokens=1024,
+                    response_schema=response_schema,
+                    # safety_settings=self.safety_settings,
                 ),
-                safety_settings=self.safety_settings,
-                response_mime_type="application/json",
-                response_schema=response_schema
             )
             # Parse the JSON response
             return json.loads(response.text)
