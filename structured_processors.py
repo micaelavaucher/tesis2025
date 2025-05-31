@@ -1,13 +1,12 @@
 """Process structured data from language models for PAYADOR."""
 
 #---- Imports -----------------------------------------------------------------
-from world import World
 from structured_data_models import (
     WorldUpdate, SceneNarration,ObjectiveDescription
 )
 
 #---- Structured processors ---------------------------------------------------
-def process_structured_world_update(world: World, update_data: dict) -> None:
+def process_structured_world_update(world, update_data: dict) -> None:
     """Process a structured world update and apply changes to the world."""
     try:
         # Parse the update data
