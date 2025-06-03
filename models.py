@@ -67,19 +67,18 @@ class GeminiModel():
         )
         return response.text
 
-    def prompt_model_structured(self, prompt:str, response_schema: dict) -> dict:
+    def prompt_model_structured(self, prompt:str, response_schema):
         """Prompt the Gemini model with structured output."""
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
-                config=types.GenerationConfig(
+                config=types.GenerateContentConfig(
                     temperature=0.7,
                     response_mime_type="application/json",
                     top_p=0.9,
                     max_output_tokens=1024,
                     response_schema=response_schema,
-                    # safety_settings=self.safety_settings,
                 ),
             )
             # Parse the JSON response
