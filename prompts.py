@@ -328,52 +328,113 @@ def prompt_world_update_english (world_state: str, input: str):
 
     return system_msg, user_msg
 
-def prompt_generate_world() -> str:
+def prompt_generate_world(language: str = 'en') -> str:
     """Prompt for generating a new world from scratch."""
-    prompt = """You are a creative world architect for an interactive fiction game. Generate a small, coherent world with:
+    if language == 'es':
+        prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Genera un mundo pequeño y coherente con:
 
-    1. 3-4 locations (each with a name and 2-3 descriptive sentences)
-    2. 5-7 unique items (with names and 2-3 descriptive sentences)
-    3. 2-3 non-player characters (with names, descriptions, and placed in specific locations)
-    4. One player character (with a name, description, starting inventory, and starting location)
+        1. 3-4 ubicaciones (cada una con un nombre y 2-3 oraciones descriptivas)
+        2. 5-7 objetos únicos (con nombres y 2-3 oraciones descriptivas)
+        3. 2-3 personajes no jugadores (con nombres, descripciones, y ubicados en lugares específicos)
+        4. Un personaje jugador (con nombre, descripción, inventario inicial, y ubicación inicial)
+        5. 1-2 puzzles simples (con nombres, descripciones, problema y respuesta/solución)
+        6. Un objetivo principal para el jugador
 
-    Make everything interconnected and logical. Locations should connect to at least one other location. Some locations can have blocked passages requiring specific items to unblock.
+        OBJETIVOS POSIBLES:
+        - Llevar un objeto a una ubicación específica
+        - Encontrar a un personaje específico
+        - Conseguir un objeto específico
+        - Ir a una ubicación específica
 
-    IMPORTANT: When creating blocked passages, ensure that the two locations are already connected (listed in connecting_locations). A passage can only be blocked between two connected locations.
+        PUZZLES:
+        Los puzzles pueden ser:
+        - Adivinanzas simples
+        - Problemas lógicos básicos
+        - Preguntas sobre el mundo del juego
+        - Combinaciones de objetos
 
-    Format for blocked passages:
-    {
-    "location": "name of connected location",
-    "obstacle": "name of item blocking passage",
-    "symmetric": true/false
-    }
+        Haz que todo esté interconectado y sea lógico. Las ubicaciones deben conectar con al menos otra ubicación. Algunas ubicaciones pueden tener pasajes bloqueados que requieren objetos específicos o resolver puzzles para desbloquear.
 
-    IMPORTANT: Follow this structure precisely. Do not add any additional fields to any object.
-    """
+        IMPORTANTE: Al crear pasajes bloqueados, asegúrate de que las dos ubicaciones ya estén conectadas (listadas en connecting_locations). Un pasaje solo puede ser bloqueado entre dos ubicaciones conectadas.
+
+        IMPORTANTE: El objetivo debe ser alcanzable con los elementos que creates en el mundo.
+        """
+    else:
+        prompt = """You are a creative world architect for an interactive fiction game. Generate a small, coherent world with:
+
+        1. 3-4 locations (each with a name and 2-3 descriptive sentences)
+        2. 5-7 unique items (with names and 2-3 descriptive sentences)
+        3. 2-3 non-player characters (with names, descriptions, and placed in specific locations)
+        4. One player character (with a name, description, starting inventory, and starting location)
+        5. 1-2 simple puzzles (with names, descriptions, problem and answer/solution)
+        6. A main objective for the player
+
+        POSSIBLE OBJECTIVES:
+        - Take an item to a specific location
+        - Find a specific character
+        - Get a specific item
+        - Go to a specific location
+
+        PUZZLES:
+        Puzzles can be:
+        - Simple riddles
+        - Basic logic problems
+        - Questions about the game world
+        - Object combinations
+
+        Make everything interconnected and logical. Locations should connect to at least one other location. Some locations can have blocked passages requiring specific items or solving puzzles to unblock.
+
+        IMPORTANT: When creating blocked passages, ensure that the two locations are already connected (listed in connecting_locations). A passage can only be blocked between two connected locations.
+
+        IMPORTANT: The objective must be achievable with the elements you create in the world.
+        """
     return prompt
 
-def prompt_expand_world(world_state: str, player_location: str) -> str:
+def prompt_expand_world(world_state: str, player_location: str, language: str = 'en') -> str:
     """Prompt for expanding the world based on the current state."""
-    prompt = f"""You are a creative world architect for an interactive fiction game. Based on the current world state, expand the world organically by adding:
+    if language == 'es':
+        prompt = f"""Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Basándote en el estado actual del mundo, expande el mundo orgánicamente añadiendo:
 
-    1. 1-2 new locations connected to {player_location} (with names and 2-3 descriptive sentences)
-    2. 2-3 new items placed in these new locations (with names and 2-3 descriptive sentences) 
-    3. 0-1 new non-player characters in one of the new locations (with a name, description, and possibly inventory)
+        1. 1-2 nuevas ubicaciones conectadas a {player_location} (con nombres y 2-3 oraciones descriptivas)
+        2. 2-3 nuevos objetos colocados en estas nuevas ubicaciones (con nombres y 2-3 oraciones descriptivas) 
+        3. 0-1 nuevos personajes no jugadores en una de las nuevas ubicaciones (con nombre, descripción, y posiblemente inventario)
+        4. 0-1 nuevos puzzles simples que encajen con las nuevas áreas
 
-    Make your additions coherent with the existing world state:
-    {world_state}
+        Haz que tus adiciones sean coherentes con el estado actual del mundo:
+        {world_state}
 
-    Consider creating:
-    - Hidden areas that extend the current location
-    - New passages that were previously not noticed
-    - Items that fit the theme of the new areas
-    - Characters that have interesting relationships with existing elements
+        Considera crear:
+        - Áreas ocultas que extienden la ubicación actual
+        - Nuevos pasajes que previamente no se habían notado
+        - Objetos que encajan con el tema de las nuevas áreas
+        - Personajes que tienen relaciones interesantes con elementos existentes
+        - Puzzles que utilicen objetos o conocimientos del mundo existente
 
-    The expansion should feel natural, as if these elements were always there but just now discovered.
-    """
+        La expansión debe sentirse natural, como si estos elementos siempre hubieran estado ahí pero recién ahora se descubrieran.
+        """
+    else:
+        prompt = f"""You are a creative world architect for an interactive fiction game. Based on the current world state, expand the world organically by adding:
+
+        1. 1-2 new locations connected to {player_location} (with names and 2-3 descriptive sentences)
+        2. 2-3 new items placed in these new locations (with names and 2-3 descriptive sentences) 
+        3. 0-1 new non-player characters in one of the new locations (with a name, description, and possibly inventory)
+        4. 0-1 new simple puzzles that fit with the new areas
+
+        Make your additions coherent with the existing world state:
+        {world_state}
+
+        Consider creating:
+        - Hidden areas that extend the current location
+        - New passages that were previously not noticed
+        - Items that fit the theme of the new areas
+        - Characters that have interesting relationships with existing elements
+        - Puzzles that use objects or knowledge from the existing world
+
+        The expansion should feel natural, as if these elements were always there but just now discovered.
+        """
     return prompt
 
-def should_expand_world(player_input: str) -> bool:
+def should_expand_world(player_input: str, language: str = 'en') -> bool:
     """Determine if the world should be expanded based on player input.
     
     Expansion triggers:
@@ -382,10 +443,17 @@ def should_expand_world(player_input: str) -> bool:
     - Player has visited all available locations
     - Player has interacted with most available items
     """
-    exploration_keywords = [
-        "explore", "search", "look around", "investigate", 
-        "examine surroundings", "check area", "discover"
-    ]
+    if language == 'es':
+        exploration_keywords = [
+            "explorar", "buscar", "mirar alrededor", "investigar", 
+            "examinar alrededores", "revisar área", "descubrir",
+            "buscar", "encontrar", "ver más", "explorar más"
+        ]
+    else:
+        exploration_keywords = [
+            "explore", "search", "look around", "investigate", 
+            "examine surroundings", "check area", "discover"
+        ]
     
     for keyword in exploration_keywords:
         if keyword in player_input.lower():
