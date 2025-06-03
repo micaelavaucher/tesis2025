@@ -8,9 +8,10 @@ The main steps in the loop are:
 
 import re
 import sys
+import configparser
 
 import example_worlds
-from models import GeminiModel
+from models import get_llm
 from prompts import (
     prompt_narrate_current_scene,
     prompt_world_update,
@@ -21,14 +22,36 @@ from structured_data_models import GeneratedWorld, WorldExpansion
 from world_builder import (
     create_world_from_llm_response, expand_world_from_llm_response)
 
-# Check if we should use a preset world or generate a new one
-use_preset = len(sys.argv) > 1 and sys.argv[1] in ["1", "2"]
 
-# Initialize the model and disable the safety settings
-model = GeminiModel("API_key")
+# Load configuration
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# Get language and model settings from config
+language = config['Options']['Language']
+reasoning_model_name = config['Models']['ReasoningModel']
+narrative_model_name = config['Models']['NarrativeModel']
+
+# Check if we should use a preset world or generate a new one
+use_preset = len(sys.argv) > 1 and sys.argv[1] in ["0", "1", "2"]
+
+# Initialize the models
+reasoning_model = get_llm(reasoning_model_name)
+narrative_model = get_llm(narrative_model_name)
 
 # Welcome the user
-print ("""
+if language == 'es':
+    print("""
+PAYADOR es un enfoque para abordar el problema de actualización del mundo en Narrativa Interactiva.
+Esta prueba de concepto está destinada a facilitar la investigación en el problema mencionado y otras tareas relacionadas.
+
+El sistema imprimirá el 🌎 Estado del mundo 🌍 actual y una posible 📖 narración 📖 para él.
+Luego se te pedirá que ingreses alguna(s) acción(es), y el sistema tratará de predecir los resultados.
+
+Ingresa "q" para salir.
+""")
+else:
+    print("""
 PAYADOR is an approach to tackle the world-update problem in Interactive Storytelling.
 This proof of concept is intended to ease research on the aforementioned problem and other related tasks. 
 
@@ -41,23 +64,56 @@ Enter "q" to quit.
 # Generate or load a world
 if use_preset:
     world_id = sys.argv[1]
-    world = example_worlds.get_world(world_id)
-    print("Using preset world...")
+    world = example_worlds.get_world(world_id, language=language)
+    if language == 'es':
+        print("Usando mundo predefinido...")
+    else:
+        print("Using preset world...")
 else:
-    print("Generating a new world...")
-    world_prompt = prompt_generate_world()
-    world_response = model.prompt_model_structured(world_prompt, GeneratedWorld)
+    if language == 'es':
+        print("Generando un nuevo mundo...")
+    else:
+        print("Generating a new world...")
+    
+    world_prompt = prompt_generate_world(language=language)
+    
+    # Try structured generation first, fallback to regular if it fails
+    try:
+        if hasattr(reasoning_model, 'prompt_model_structured'):
+            world_response = reasoning_model. \
+                prompt_model_structured(world_prompt, GeneratedWorld)
+        else:
+            # Fallback for models that don't support structured output
+            world_response = reasoning_model.prompt_model("Generate a fictional world for an interactive story.", world_prompt)
+    except Exception as e:
+        print(f"Error with structured generation: {e}")
+        world_response = reasoning_model.prompt_model("Generate a fictional world for an interactive story.", world_prompt)
 
     # For debugging
-    print("World generation reponse received, creating world...")
+    if language == 'es':
+        print("Respuesta de generación de mundo recibida, creando mundo...")
+    else:
+        print("World generation response received, creating world...")
 
     try:
-        world = create_world_from_llm_response(world_response)
-        print("New world created successfully!")
+        # Handle both structured and unstructured responses
+        if isinstance(world_response, dict):
+            world = create_world_from_llm_response(world_response)
+        else:
+            world = create_world_from_llm_response(world_response)
+        
+        if language == 'es':
+            print("¡Nuevo mundo creado exitosamente!")
+        else:
+            print("New world created successfully!")
     except Exception as e:
         print(f"Error creating world: {e}")
-        print("\nFalling back to preset world...")
-        world = example_worlds.get_world("1")
+        if language == 'es':
+            print("\nRecurriendo a mundo predefinido...")
+        else:
+            print("\nFalling back to preset world...")
+        world = example_worlds.get_world("1", language=language)
+
 
 # Track player's position and visited locations
 last_player_position = None
@@ -66,7 +122,7 @@ expansion_cooldown = 0 #-- prevent too frequent exapnsion
 
 while(True):
     # Show the state of the world
-    print(f"🌎 World state 🌍\n{world.render_world()}\n")
+    print(f"🌎 World state 🌍\n{world.render_world(language=language)}\n")
 
     # Track visited locations
     visited_locations.add(world.player.location.name)
@@ -74,45 +130,102 @@ while(True):
     # If the player is in a different place, narrate the scene
     if last_player_position is not world.player.location:
         last_player_position = world.player.location
-        prompt_scene = prompt_narrate_current_scene(world.render_world())
-        response_scene = model.prompt_model(prompt_scene)
-        print("\n📖 Narration of the scene 📖")
+        system_msg_scene, user_msg_scene = prompt_narrate_current_scene(
+            world.render_world(language=language), 
+            previous_narrations=world.player.visited_locations[world.player.location.name],
+            language=language
+        )
+        response_scene = narrative_model.prompt_model(system_msg=system_msg_scene, user_msg=user_msg_scene)
+        
+        if language == 'es':
+            print("\n📖 Narración de la escena 📖")
+        else:
+            print("\n📖 Narration of the scene 📖")
+        
         try:
             print(f"{response_scene}\n")
+            world.player.visited_locations[world.player.location.name].append(response_scene)
         except Exception as e:
-            print (f"Error: {e}")
+            print(f"Error: {e}")
 
     # Take the input from the user
-    user_input = input("\nWhat do you want to do?\n\t\t\t👉 ")
+    if language == 'es':
+        user_input = input("\n¿Qué quieres hacer?\n\t\t\t👉 ")
+    else:
+        user_input = input("\nWhat do you want to do?\n\t\t\t👉 ")
+    
     if user_input == "q":
         break
 
-    # Create the prompt and run the model
-    prompt_update = prompt_world_update(world.render_world(), user_input)
-    response_update = model.prompt_model(prompt_update)
-
-    # Show the detected changes in the fictional world
-    print("\n🛠️ Predicted outcomes of the player input 🛠️")
+    # Create the prompt and run the model - try structured first
     try:
-        print(f"{re.sub(r'#([^#]*?)#','',response_update)}\n")
+        if hasattr(reasoning_model, 'prompt_model_structured'):
+            system_msg_update, user_msg_update, schema = prompt_world_update_structured(
+                world.render_world(language=language), user_input, language=language)
+            
+            # Create full prompt for structured call
+            full_prompt = system_msg_update + "\n\n" + user_msg_update
+            response_update = reasoning_model.prompt_model_structured(full_prompt, schema)
+            
+            # Use structured processing
+            if response_update:
+                # Extract narration from structured data
+                narration = response_update.get("narration", "")
+                
+                if language == 'es':
+                    print("\n🛠️ Resultados predichos de la entrada del jugador 🛠️")
+                else:
+                    print("\n🛠️ Predicted outcomes of the player input 🛠️")
+                print(f"{narration}\n")
+                
+                # Update world with structured data
+                world.update_structured(response_update)
+            else:
+                raise Exception("Empty structured response")
+                
+        else:
+            raise Exception("Model doesn't support structured output")
+            
     except Exception as e:
-        print (f"Error: {e}")
+        # Fallback to traditional text-based approach
+        print(f"Structured approach failed ({e}), using traditional approach...")
+        
+        system_msg_update, user_msg_update = prompt_world_update(
+            world.render_world(language=language), user_input, language=language)
+        response_update = reasoning_model.prompt_model(system_msg=system_msg_update, user_msg=user_msg_update)
 
-    # Show a narration for those changes
-    print("\n📖 Narration of the predicted outcomes 📖")
-    try:
-        print(f"{re.findall(r'#([^#]*?)#',response_update)[0]}\n")
-    except Exception as e:
-        print (f"Error: {e}")
+        # Show the detected changes in the fictional world
+        if language == 'es':
+            print("\n🛠️ Resultados predichos de la entrada del jugador 🛠️")
+        else:
+            print("\n🛠️ Predicted outcomes of the player input 🛠️")
+        
+        try:
+            predicted_outcomes = re.sub(r'#([^#]*?)#','',response_update)
+            print(f"{predicted_outcomes}\n")
+        except Exception as e:
+            print(f"Error: {e}")
 
-    # Parse the response and update the world
-    world.parse_updates(response_update)
+        # Show a narration for those changes
+        if language == 'es':
+            print("\n📖 Narración de los resultados predichos 📖")
+        else:
+            print("\n📖 Narration of the predicted outcomes 📖")
+        
+        try:
+            narration = re.findall(r'#([^#]*?)#',response_update)[0]
+            print(f"{narration}\n")
+        except Exception as e:
+            print(f"Error: {e}")
+
+        # Parse the response and update the world
+        world.update(response_update)
 
     # Check if we should expand the world
     expansion_cooldown -= 1
 
     # Expansion conditions:
-    # 1. Player explicitly request exploration
+    # 1. Player explicitly requests exploration
     # 2. Player has visited all available locations
     # 3. Cooldown period has passed
     should_expand = (
@@ -121,19 +234,33 @@ while(True):
     ) and expansion_cooldown <= 0
 
     if should_expand:
-        print("\n🌱 Expanding the world...🌱")
+        if language == 'es':
+            print("\n🌱 Expandiendo el mundo...🌱")
+        else:
+            print("\n🌱 Expanding the world...🌱")
 
         expansion_prompt = prompt_expand_world(
-            world.render_world(),
-            world.player.location.name)
+            world.render_world(language=language),
+            world.player.location.name,
+            language=language)
         
-        expansion_response = model.prompt_model_structured(expansion_prompt, WorldExpansion)
-
         try:
+            if hasattr(reasoning_model, 'prompt_model_structured'):
+                expansion_response = reasoning_model.prompt_model_structured(expansion_prompt, WorldExpansion.model_json_schema())
+            else:
+                expansion_response = reasoning_model.prompt_model("Expand the world.", expansion_prompt)
+            
             expand_world_from_llm_response(world, expansion_response)
-            print("World expanded with new areas to explore!\n")
+            
+            if language == 'es':
+                print("¡Mundo expandido con nuevas áreas para explorar!\n")
+            else:
+                print("World expanded with new areas to explore!\n")
 
             # Set cooldown to prevent too frequent expansions
             expansion_cooldown = 5
         except Exception as e:
-            print(f"Error expanding world: {e}")
+            if language == 'es':
+                print(f"Error expandiendo mundo: {e}")
+            else:
+                print(f"Error expanding world: {e}")
