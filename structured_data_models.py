@@ -10,7 +10,7 @@ class MovedObject(BaseModel):
     object_name: str
     new_location: str
 
-class BlockedPassage(BaseModel):
+class BlockedPassageAvailable(BaseModel):
     location_name: str
     is_available: bool = True
 
@@ -21,7 +21,7 @@ class LocationChange(BaseModel):
 class WorldUpdate(BaseModel):
     """Model for structured world updates from language model."""
     moved_objects: List[MovedObject] = []
-    blocked_passages_available: List[BlockedPassage] = []
+    blocked_passages_available: List[BlockedPassageAvailable] = []
     location_changed: LocationChange = LocationChange()
     narration: str = ""
 
@@ -31,6 +31,12 @@ class SceneNarration(BaseModel):
     narration: str
     mood: str = "neutral"  # could be "tense", "peaceful", "mysterious", etc.
     
+class GeneratedObjective(BaseModel):
+    """Model for a generated objective."""
+    type: str  # "item_to_location", "find_character", "get_item", "reach_location"
+    components: List[str]  # Names of the components involved
+    description: str  # Human-readable description
+
 class ObjectiveDescription(BaseModel):
     """Model for structured objective descriptions."""
     description: str
@@ -73,11 +79,11 @@ class GeneratedWorld(BaseModel):
     characters: List[GeneratedCharacter]
     puzzles: List[GeneratedPuzzle] = []
     player: GeneratedCharacter
-    objective: dict = {}  # {type: "character_meet_character", components: ["char1", "char2"]}
-    player: GeneratedCharacter
+    objective: GeneratedObjective
 
 class WorldExpansion(BaseModel):
     new_locations: List[GeneratedLocation]
     new_items: List[GeneratedItem]
     new_characters: List[GeneratedCharacter]
+    new_puzzles: List[GeneratedPuzzle] = []
     connect_to_current: bool = True

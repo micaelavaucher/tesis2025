@@ -12,11 +12,11 @@ from structured_data_models import GeneratedWorld, WorldExpansion
 # ----------------------------------------- #
 # Main functions for creating the world     #
 # ----------------------------------------- #
-def create_world_from_llm_response(response: str) -> World:
+def create_world_from_llm_response(world_data: str) -> World:
     """Parse structured LLM response and create a World object."""
     try:
         # Parse the JSON response
-        world_data = json.loads(response)
+        # world_data = json.loads(response)
         generated_world = GeneratedWorld.model_validate(world_data)
 
         # Create items first so they can be referenced
