@@ -8,7 +8,18 @@ import configparser
 import example_worlds
 
 from models import get_llm
-from prompts import prompt_narrate_current_scene, prompt_world_update, prompt_describe_objective
+from prompts import (
+    prompt_narrate_current_scene, 
+    prompt_world_update, 
+    prompt_describe_objective,
+    prompt_generate_world
+)
+
+from pydantic import BaseModel
+from typing import List
+
+from structured_data_models import GeneratedWorld
+from world_builder import create_world_from_llm_response
 
 PATH_GAMELOGS = 'logs'
 
@@ -67,19 +78,18 @@ def game_loop(message, history):
     game_log_dictionary[number_of_turns]["updated_rendered_world_state"] = world.render_world(language=language)
     
     if last_player_position is not world.player.location:
-    #Narrate new scene
+        #Narrate new scene
         last_player_position = world.player.location
         system_msg_new_scene, user_msg_new_scene = prompt_narrate_current_scene(
             world.render_world(language=language),
             previous_narrations = world.player.visited_locations[world.player.location.name],
-            language=language
-            )
+            language=language)
 
         new_scene_narration = narrative_model.prompt_model(system_msg=system_msg_new_scene, user_msg=user_msg_new_scene)
         world.player.visited_locations[world.player.location.name]+=[new_scene_narration] 
         answer += f"\n{new_scene_narration}\n\n"
     else:
-    #Narrate actions in the current scene
+        #Narrate actions in the current scene
         try:
             answer+= f"{re.findall(r'#([^#]*?)#',response_update)[0]}\n"
         except Exception as e:
@@ -102,9 +112,52 @@ def game_loop(message, history):
     
     return answer.replace("<",r"\<").replace(">", r"\>")
 
-# Instantiate the world
-world_id = config["Options"]["WorldID"]
-world = example_worlds.get_world(world_id, language=language)
+generation_mode = config['Options'].get('GenerationMode', 'preset') # 'preset' es el valor por defecto si no existe la clave
+
+if generation_mode == 'generate':
+    if language == 'es':
+        print("⚙️ Modo de generación: Generando un nuevo mundo desde cero...")
+    else:
+        print("⚙️ Generation mode: Generating a new world from scratch...")
+
+    world_prompt = prompt_generate_world(language=language)
+
+    try:
+        if hasattr(reasoning_model, 'prompt_model_structured'):
+            world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
+        else:
+            print("⚠️ El modelo de razonamiento no soporta 'prompt_model_structured'. Usando generación de texto plano.")
+            world_id = config["Options"]["WorldID"]
+            world = example_worlds.get_world(world_id, language=language)
+            
+    except Exception as e:
+        print(f"⚠️ La generación estructurada falló ({e}), usando generación de texto plano como fallback.")
+        world_id = config["Options"]["WorldID"]
+        world = example_worlds.get_world(world_id, language=language)
+
+    try:
+        world = create_world_from_llm_response(world_response)
+        if language == 'es':
+            print("✅ ¡Nuevo mundo creado exitosamente!")
+        else:
+            print("✅ New world created successfully!")
+            
+    except Exception as e:
+        print(f"🛑 Error crítico al crear el mundo desde la respuesta del LLM: {e}")
+        if language == 'es':
+            print("\n‼️ Recurriendo a un mundo predefinido de emergencia (ID: 0)...")
+        else:
+            print("\n‼️ Falling back to an emergency preset world (ID: 0)...")
+        world_id = config["Options"]["WorldID"]
+        world = example_worlds.get_world(world_id, language=language)
+
+else: # generation_mode == 'preset'
+    if language == 'es':
+        print("⚙️ Modo de generación: Usando mundo predefinido...")
+    else:
+        print("⚙️ Generation mode: Using preset world...")
+    world_id = config["Options"]["WorldID"]
+    world = example_worlds.get_world(world_id, language=language)
 
 # Initialize variables
 last_player_position = world.player.location
@@ -112,7 +165,7 @@ number_of_turns = 0
 game_log_dictionary = {}
 game_log_dictionary["nickname"] = "anonymous"
 game_log_dictionary["language"] = language
-game_log_dictionary["world_id"] = world_id
+game_log_dictionary["world_id"] = f"generated_{int(time.time())}" if generation_mode.lower() == 'generate' else config["Options"]["WorldID"]
 game_log_dictionary["narrative_model_name"] = narrative_model_name
 game_log_dictionary["reasoning_model_name"] = reasoning_model_name
 
@@ -122,7 +175,7 @@ game_log_dictionary[0]["date"] = time.ctime(time.time())
 game_log_dictionary[0]["initial_symbolic_world_state"] = jsonpickle.encode(world, unpicklable=True)
 game_log_dictionary[0]["initial_rendered_world_state"] = world.render_world(language=language)
 
-#Generate a description of the starting scene
+# Generate a description of the starting scene
 system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
     world.render_world(language=language),
     previous_narrations = world.player.visited_locations[world.player.location.name],
@@ -132,16 +185,25 @@ system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
 starting_narration = narrative_model.prompt_model(system_msg=system_msg_current_scene, user_msg=user_msg_current_scene)
 world.player.visited_locations[world.player.location.name]+=[starting_narration]
 
-#Generate a description of the main objective
-system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
-narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
-starting_narration += f"\n\n🎯 {re.findall(r'#([^#]*?)#',narrated_objective)[0]}"
+# Generate a description of the main objective
+if hasattr(world, 'objective') and world.objective:
+    system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
+    narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
+    try:
+        objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
+        starting_narration += f"\n\n🎯 {objective_text}"
+    except (IndexError, TypeError):
+        print("⚠️ No se pudo extraer el objetivo narrado con el formato #...#, usando la respuesta completa.")
+        starting_narration += f"\n\n🎯 {narrated_objective}"
+else:
+    print("ℹ️ No se encontró un objetivo principal en el mundo generado/cargado.")
+
 game_log_dictionary[0]["starting_narration"] = starting_narration
 
 with open(os.path.join(PATH_GAMELOGS,log_filename), 'w', encoding='utf-8') as f:
     json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
 
-#Instantiate the Gradio app
+# Instantiate the Gradio app
 gradio_interface = gr.ChatInterface(
     fn=game_loop,
     chatbot = gr.Chatbot(height=500, value=[{"role": "assistant", "content": starting_narration.replace("<",r"\<").replace(">", r"\>")}], 
