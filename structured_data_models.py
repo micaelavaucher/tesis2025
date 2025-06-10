@@ -42,7 +42,6 @@ class ObjectiveDescription(BaseModel):
     description: str
     difficulty: str = "medium"  # could be "easy", "medium", "hard"
 
-# Optional: World generation models
 class GeneratedItem(BaseModel):
     name: str
     descriptions: List[str]

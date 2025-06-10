@@ -193,6 +193,40 @@ class World:
 
     return done
 
+  def set_objective_from_generated(self, objective_data, items_dict, locations_dict, characters_list, player):
+      """Set the world objective from generated data."""
+      try:
+          if objective_data.type == "item_to_location":
+              item_name, location_name = objective_data.components
+              if item_name in items_dict and location_name in locations_dict:
+                  self.objective = (items_dict[item_name], locations_dict[location_name])
+          
+          elif objective_data.type == "find_character":
+              char_name = objective_data.components[0]
+              character = next((c for c in characters_list if c.name == char_name), None)
+              if character:
+                  self.objective = (player, character)
+          
+          elif objective_data.type == "get_item":
+              item_name = objective_data.components[0]
+              if item_name in items_dict:
+                  self.objective = (player, items_dict[item_name])
+          
+          elif objective_data.type == "reach_location":
+              location_name = objective_data.components[0]
+              if location_name in locations_dict:
+                  self.objective = (player, locations_dict[location_name])
+                  
+      except Exception as e:
+          print(f"Error setting objective: {e}")
+          self.objective = None
+
+  def add_puzzle(self, puzzle):
+      """Add a puzzle to the world."""
+      if not hasattr(self, 'puzzles'):
+          self.puzzles = []
+      self.puzzles.append(puzzle)
+
   def add_location (self,location: Location) -> None:
     """Add a location to the world."""
     if location.name in self.locations:
