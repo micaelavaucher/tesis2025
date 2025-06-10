@@ -29,12 +29,7 @@ class GeneratedObjective(BaseModel):
     """Model for a generated objective."""
     type: str  # "item_to_location", "find_character", "get_item", "reach_location"
     components: List[str]  # Names of the components involved
-    description: str  # Human-readable description
-
-class ObjectiveDescription(BaseModel):
-    """Model for structured objective descriptions."""
     description: str
-    difficulty: str = "medium"  # could be "easy", "medium", "hard"
 
 class GeneratedItem(BaseModel):
     name: str

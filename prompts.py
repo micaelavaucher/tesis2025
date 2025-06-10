@@ -1,4 +1,4 @@
-from structured_data_models import WorldUpdate, ObjectiveDescription
+from structured_data_models import WorldUpdate
 
 def prompt_describe_objective (objective, language:str = 'en'):
     system_msg = ""
@@ -10,14 +10,6 @@ def prompt_describe_objective (objective, language:str = 'en'):
         system_msg, user_msg = prompt_describe_objective_english(objective)
     
     return system_msg, user_msg 
-
-def prompt_describe_objective_structured(objective_tuple, language: str = 'en'):
-    """Create an objective description prompt that will return structured data based on Pydantic models."""
-    
-    # Get the base system and user messages
-    system_msg, user_msg = prompt_describe_objective(objective_tuple, language)
-    
-    return system_msg, user_msg, ObjectiveDescription
 
 def prompt_describe_objective_english (objective):
 
