@@ -12,14 +12,15 @@ from prompts import (
     prompt_narrate_current_scene, 
     prompt_world_update, 
     prompt_describe_objective,
-    prompt_generate_world
+    prompt_generate_world,
+    prompt_expand_world,
+    should_expand_world
 )
 
-from pydantic import BaseModel
-from typing import List
-
-from structured_data_models import GeneratedWorld
-from world_builder import create_world_from_llm_response
+from structured_data_models import GeneratedWorld, WorldExpansion
+from world_builder import (
+    create_world_from_llm_response, expand_world_from_llm_response
+)
 
 PATH_GAMELOGS = 'logs'
 
@@ -41,11 +42,17 @@ timestamp = time.time()
 today =  time.gmtime(timestamp)
 log_filename =  f"{today[0]}_{today[1]}_{today[2]}_{str(int(time.time()))[-5:]}.json"
 
+# Initialize world expansion variables
+visited_locations = set()
+expansion_cooldown = 0
+
 # The game loop
 def game_loop(message, history):
     global last_player_position
     global number_of_turns
     global game_log_dictionary
+    global expansion_cooldown
+    global visited_locations
 
     number_of_turns+=1
     game_log_dictionary[number_of_turns] = {}
@@ -54,6 +61,11 @@ def game_loop(message, history):
     game_log_dictionary[number_of_turns]["previous_rendered_world_state"] = world.render_world(language=language)
     game_log_dictionary[number_of_turns]["user_input"] = message
 
+    # Track visited locations
+    visited_locations.add(world.player.location.name)
+
+    # Update expansion cooldown
+    expansion_cooldown = max(0, expansion_cooldown - 1)
 
     answer = ""
 
@@ -78,7 +90,7 @@ def game_loop(message, history):
     game_log_dictionary[number_of_turns]["updated_rendered_world_state"] = world.render_world(language=language)
     
     if last_player_position is not world.player.location:
-        #Narrate new scene
+        # Narrate new scene
         last_player_position = world.player.location
         system_msg_new_scene, user_msg_new_scene = prompt_narrate_current_scene(
             world.render_world(language=language),
@@ -89,20 +101,64 @@ def game_loop(message, history):
         world.player.visited_locations[world.player.location.name]+=[new_scene_narration] 
         answer += f"\n{new_scene_narration}\n\n"
     else:
-        #Narrate actions in the current scene
+        # Narrate actions in the current scene
         try:
             answer+= f"{re.findall(r'#([^#]*?)#',response_update)[0]}\n"
         except Exception as e:
             print (f"Error: {e}")
 
-
-    print(f"\n🌎 World state 🌍\n>Player input: {message}\n{world.render_world(language=language)}\n")
-
+    # Check if objective is completed
     if world.check_objective():
         if language=='es':
             answer += "\n\n🎯¡Completaste el objetivo!"
         else:
             answer += "\n\n🎯You have completed your quest!"
+    
+    # Check if we should expand the world
+    # Expansion conditions:
+    # 1. Player explicitly requests exploration
+    # 2. Player has visited all available locations
+    # 3. Cooldown period has passed
+    should_expand_world_now = (
+        should_expand_world(message) or
+        (len(visited_locations) >= len(world.locations))
+    ) and expansion_cooldown <= 0
+
+    if should_expand_world_now:
+        expansion_message = "🌱 " + ("Expandiendo el mundo..." if language == 'es' else "Expanding the world...") + " 🌱"
+        print(f"\n{expansion_message}")
+        answer += f"\n\n{expansion_message}\n"
+
+        expansion_prompt = prompt_expand_world(
+            world.render_world(language=language),
+            world.player.location.name,
+            language=language)
+        
+        try:
+            if hasattr(reasoning_model, 'prompt_model_structured'):
+                expansion_response = reasoning_model.prompt_model_structured(expansion_prompt, WorldExpansion)
+            else:
+                expansion_response = reasoning_model.prompt_model("Expand the world.", expansion_prompt)
+            
+            expand_world_from_llm_response(world, expansion_response)
+            
+            success_message = "¡Mundo expandido con nuevas áreas para explorar!" if language == 'es' else "World expanded with new areas to explore!"
+            print(f"{success_message}\n")
+            answer += f"{success_message}\n"
+
+            # Set cooldown to prevent too frequent expansions
+            expansion_cooldown = 5
+            
+            # Update the game log with expanded world state
+            game_log_dictionary[number_of_turns]["expanded_world_state"] = jsonpickle.encode(world, unpicklable=True)
+            game_log_dictionary[number_of_turns]["expanded_rendered_world_state"] = world.render_world(language=language)
+            
+        except Exception as e:
+            error_message = f"Error expandiendo mundo: {e}" if language == 'es' else f"Error expanding world: {e}"
+            print(error_message)
+            answer += f"\n{error_message}\n"
+
+    print(f"\n🌎 World state 🌍\n>Player input: {message}\n{world.render_world(language=language)}\n")
 
     game_log_dictionary[number_of_turns]["narration"] = answer
 
@@ -206,8 +262,14 @@ with open(os.path.join(PATH_GAMELOGS,log_filename), 'w', encoding='utf-8') as f:
 # Instantiate the Gradio app
 gradio_interface = gr.ChatInterface(
     fn=game_loop,
-    chatbot = gr.Chatbot(height=500, value=[{"role": "assistant", "content": starting_narration.replace("<",r"\<").replace(">", r"\>")}], 
-                         bubble_full_width = False, show_copy_button = False, type='messages'),
+    chatbot = gr.Chatbot(
+        height="85vh",
+        value=[{"role": "assistant", "content": starting_narration.replace("<",r"\<").replace(">", r"\>")}],
+        bubble_full_width = False, 
+        show_copy_button = False,
+        type='messages',
+        autoscroll=True,
+    ),
     textbox=gr.Textbox(placeholder="What do you want to do?", container=False, scale=5),
     title="PAYADOR",
     theme="Soft",
