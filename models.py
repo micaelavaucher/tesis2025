@@ -74,7 +74,7 @@ class GeminiModel():
                 model=self.model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    temperature=0.7,
+                    temperature=0.9,
                     response_mime_type="application/json",
                     top_p=0.9,
                     max_output_tokens=1024,
