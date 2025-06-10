@@ -24,12 +24,6 @@ class WorldUpdate(BaseModel):
     blocked_passages_available: List[BlockedPassageAvailable] = []
     location_changed: LocationChange = LocationChange()
     narration: str = ""
-
-# Narration models
-class SceneNarration(BaseModel):
-    """Model for structured scene narrations."""
-    narration: str
-    mood: str = "neutral"  # could be "tense", "peaceful", "mysterious", etc.
     
 class GeneratedObjective(BaseModel):
     """Model for a generated objective."""
