@@ -15,8 +15,10 @@ from models import get_llm
 from prompts import (
     prompt_narrate_current_scene,
     prompt_world_update,
+    prompt_world_update_structured,
     prompt_generate_world,
     prompt_expand_world,
+    prompt_describe_objective,
     should_expand_world)
 from structured_data_models import GeneratedWorld, WorldExpansion
 from world_builder import (
@@ -114,11 +116,50 @@ else:
             print("\nFalling back to preset world...")
         world = example_worlds.get_world("1", language=language)
 
+last_player_position = None
+
+# Generate a description of the starting scene
+if not use_preset or last_player_position is None:
+    last_player_position = world.player.location
+    
+    system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
+        world.render_world(language=language),
+        previous_narrations=world.player.visited_locations[world.player.location.name],
+        language=language, 
+        starting_scene=True
+    )
+    starting_narration = narrative_model.prompt_model(system_msg=system_msg_current_scene, user_msg=user_msg_current_scene)
+    world.player.visited_locations[world.player.location.name].append(starting_narration)
+    
+    if language == 'es':
+        print("\n📖 Narración inicial 📖")
+    else:
+        print("\n📖 Starting narration 📖")
+    print(f"{starting_narration}\n")
+
+# In the objective narration section:
+if hasattr(world, 'objective') and world.objective:
+    system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
+    narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
+    
+    try:
+        objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
+        if language == 'es':
+            print(f"🎯 Objetivo: {objective_text}\n")
+        else:
+            print(f"🎯 Objective: {objective_text}\n")
+    except Exception as e:
+        if language == 'es':
+            print(f"🎯 Objetivo: {narrated_objective}\n")
+        else:
+            print(f"🎯 Objective: {narrated_objective}\n")
+else:
+    print("DEBUG: No objective found in world")
 
 # Track player's position and visited locations
-last_player_position = None
+last_player_position = world.player.location
 visited_locations = set()
-expansion_cooldown = 0 #-- prevent too frequent exapnsion
+expansion_cooldown = 0
 
 while(True):
     # Show the state of the world
@@ -220,6 +261,24 @@ while(True):
 
         # Parse the response and update the world
         world.update(response_update)
+
+    # Check if objective is completed
+    if hasattr(world, 'check_objective') and world.check_objective():
+        if language == 'es':
+            print("\n🎯 ¡Completaste el objetivo! 🎯")
+            print("¡Felicidades! Has completado tu misión.")
+        else:
+            print("\n🎯 You have completed your quest! 🎯")
+            print("Congratulations! You have finished your mission.")
+        
+        # Ask if player wants to continue exploring
+        if language == 'es':
+            continue_choice = input("\n¿Quieres continuar explorando? (s/n): ")
+        else:
+            continue_choice = input("\nDo you want to continue exploring? (y/n): ")
+        
+        if continue_choice.lower() in ['n', 'no']:
+            break
 
     # Check if we should expand the world
     expansion_cooldown -= 1

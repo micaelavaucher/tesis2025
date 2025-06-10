@@ -6,18 +6,23 @@
 import json
 from typing import Dict
 
-from world import World, Location, Item, Character
+from world import World, Location, Item, Character, Puzzle
 from structured_data_models import GeneratedWorld, WorldExpansion
 
 # ----------------------------------------- #
 # Main functions for creating the world     #
 # ----------------------------------------- #
-def create_world_from_llm_response(world_data: str) -> World:
+def create_world_from_llm_response(world_data) -> World:
     """Parse structured LLM response and create a World object."""
     try:
+        # Handle both dict and string inputs
+        if isinstance(world_data, dict):
+            data = world_data
+        else:
+            data = json.loads(world_data)
+            
         # Parse the JSON response
-        # world_data = json.loads(response)
-        generated_world = GeneratedWorld.model_validate(world_data)
+        generated_world = GeneratedWorld.model_validate(data)
 
         # Create items first so they can be referenced
         items_dict: Dict[str, Item] = {}
@@ -27,6 +32,16 @@ def create_world_from_llm_response(world_data: str) -> World:
                 descriptions=item_data.descriptions,
                 gettable=item_data.gettable)
             items_dict[item_data.name] = item
+        
+        # Create puzzles
+        puzzles_dict: Dict[str, Puzzle] = {}
+        for puzzle_data in generated_world.puzzles:
+            puzzle = Puzzle(
+                name=puzzle_data.name,
+                descriptions=puzzle_data.descriptions,
+                problem=puzzle_data.problem,
+                answer=puzzle_data.answer)
+            puzzles_dict[puzzle_data.name] = puzzle
         
         # Create locations (without connections yet)
         locations_dict: Dict[str, Location] = {}
@@ -114,14 +129,88 @@ def create_world_from_llm_response(world_data: str) -> World:
 
         for character in characters_list:
             world.add_character(character)
+            
+        for puzzle in puzzles_dict.values():
+            world.add_puzzle(puzzle)
+
+        # Set the objective if it exists
+        if hasattr(generated_world, 'objective') and generated_world.objective:
+            world.objective = set_objective_from_generated(
+                generated_world.objective, 
+                items_dict, 
+                locations_dict, 
+                characters_list, 
+                player)
+            print(f"Objective set: {world.objective}")
 
         return world
     except Exception as e:
         print(f"Error creating world from LLM response: {e}")
+        import traceback
+        traceback.print_exc()
         # Fallback to the default world
-        from example_worlds import get_world_1
-        return get_world_1()
-    
+        import example_worlds
+        return example_worlds.get_world("1")
+
+def set_objective_from_generated(objective_data, items_dict, locations_dict, characters_list, player):
+    """Create an objective tuple from generated data."""
+    try:
+        obj_type = objective_data.type.lower()
+        components = objective_data.components
+        
+        print(f"Setting objective: type={obj_type}, components={components}")
+        
+        # Handle Spanish and English objective types
+        if obj_type in ["get_item", "encontrar", "conseguir"]:
+            if len(components) > 0:
+                item_name = components[0]
+                if item_name in items_dict:
+                    return (player, items_dict[item_name])
+        
+        elif obj_type in ["find_character", "encontrar_personaje"]:
+            if len(components) > 0:
+                char_name = components[0]
+                character = next((c for c in characters_list if c.name == char_name), None)
+                if character:
+                    return (player, character)
+        
+        elif obj_type in ["reach_location", "ir_a", "llegar_a"]:
+            if len(components) > 0:
+                location_name = components[0]
+                if location_name in locations_dict:
+                    return (player, locations_dict[location_name])
+        
+        elif obj_type in ["item_to_location", "llevar_objeto"]:
+            if len(components) >= 2:
+                item_name, location_name = components[0], components[1]
+                if item_name in items_dict and location_name in locations_dict:
+                    return (items_dict[item_name], locations_dict[location_name])
+        
+        # If no specific match, try to infer from description
+        description = objective_data.description.lower()
+        
+        # Check if it's about finding an item
+        for item_name in items_dict:
+            if item_name.lower() in description:
+                return (player, items_dict[item_name])
+        
+        # Check if it's about reaching a location
+        for location_name in locations_dict:
+            if location_name.lower() in description:
+                return (player, locations_dict[location_name])
+        
+        # Check if it's about finding a character
+        for character in characters_list:
+            if character.name.lower() in description:
+                return (player, character)
+                
+        print(f"Could not parse objective: {objective_data}")
+        return None
+        
+    except Exception as e:
+        print(f"Error setting objective: {e}")
+        return None
+
 def expand_world_from_llm_response(world: World, response: str) -> None:
     """Parse structured LLM response and expand an existing World object."""
     try:
@@ -138,6 +227,17 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 gettable=item_data.gettable)
             items_dict[item_data.name] = item
             world.add_item(item)
+        
+        # Create new puzzles
+        puzzles_dict: Dict[str, Puzzle] = {}
+        for puzzle_data in world_expansion.new_puzzles:
+            puzzle = Puzzle(
+                name=puzzle_data.name,
+                descriptions=puzzle_data.descriptions,
+                problem=puzzle_data.problem,
+                answer=puzzle_data.answer)
+            puzzles_dict[puzzle_data.name] = puzzle
+            world.add_puzzle(puzzle)
         
         # Create new locations
         locations_dict: Dict[str, Location] = {}
