@@ -84,12 +84,12 @@ else:
         if hasattr(reasoning_model, 'prompt_model_structured'):
             world_response = reasoning_model. \
                 prompt_model_structured(world_prompt, GeneratedWorld)
-        else:
+        # else:
             # Fallback for models that don't support structured output
-            world_response = reasoning_model.prompt_model("Generate a fictional world for an interactive story.", world_prompt)
+            # world_response = reasoning_model.prompt_model("Generate a fictional world for an interactive story.", world_prompt)
     except Exception as e:
         print(f"Error with structured generation: {e}")
-        world_response = reasoning_model.prompt_model("Generate a fictional world for an interactive story.", world_prompt)
+        # world_response = reasoning_model.prompt_model("Generate a fictional world for an interactive story.", world_prompt)
 
     # For debugging
     if language == 'es':
