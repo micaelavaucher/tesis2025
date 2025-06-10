@@ -1,9 +1,7 @@
 """Process structured data from language models for PAYADOR."""
 
 #---- Imports -----------------------------------------------------------------
-from structured_data_models import (
-    WorldUpdate, SceneNarration,ObjectiveDescription
-)
+from structured_data_models import WorldUpdate
 
 #---- Structured processors ---------------------------------------------------
 def process_structured_world_update(world, update_data: dict) -> None:
@@ -66,21 +64,3 @@ def process_structured_world_update(world, update_data: dict) -> None:
                 
     except Exception as e:
         print(f"Error processing structured world update: {e}")
-
-def process_structured_narration(narration_data: dict) -> str:
-    """Process a structured narration and return formatted text."""
-    try:
-        narration = SceneNarration.model_validate(narration_data)
-        return narration.narration
-    except Exception as e:
-        print(f"Error processing structured narration: {e}")
-        return ""
-
-def process_structured_objective(objective_data: dict) -> str:
-    """Process a structured objective description and return formatted text."""
-    try:
-        objective = ObjectiveDescription.model_validate(objective_data)
-        return objective.description
-    except Exception as e:
-        print(f"Error processing structured objective: {e}")
-        return ""

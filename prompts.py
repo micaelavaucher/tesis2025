@@ -1,4 +1,4 @@
-from structured_data_models import WorldUpdate, SceneNarration, ObjectiveDescription
+from structured_data_models import WorldUpdate, ObjectiveDescription
 
 def prompt_describe_objective (objective, language:str = 'en'):
     system_msg = ""
@@ -72,14 +72,6 @@ def prompt_narrate_current_scene (world_state: str, previous_narrations: 'list[s
 
 
     return system_msg, user_msg
-
-def prompt_narrate_current_scene_structured(world_state: str, previous_narrations=None, language: str = 'en', starting_scene: bool = False):
-    """Create a scene narration prompt that will return structured data based on Pydantic models."""
-    
-    # Get the base system and user messages
-    system_msg, user_msg = prompt_narrate_current_scene(world_state, previous_narrations, language, starting_scene)
-    
-    return system_msg, user_msg, SceneNarration
 
 def prompt_narrate_current_scene_english (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
 
