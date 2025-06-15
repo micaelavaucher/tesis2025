@@ -67,23 +67,68 @@ class GeminiModel():
         )
         return response.text
 
-    def prompt_model_structured(self, prompt:str, response_schema):
+    def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3):
         """Prompt the Gemini model with structured output."""
+        for attempt in range(max_retries):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.7,
+                        response_mime_type="application/json",
+                        top_p=0.9,
+                        max_output_tokens=2048,
+                        response_schema=response_schema,
+                    ),
+                )
+                
+                # Clean the response text before parsing
+                response_text = response.text.strip()
+                
+                # Remove any markdown code block markers if present
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:]
+                if response_text.startswith('```'):
+                    response_text = response_text[3:]
+                if response_text.endswith('```'):
+                    response_text = response_text[:-3]
+                
+                response_text = response_text.strip()
+                
+                # Parse the JSON response
+                parsed_response = json.loads(response_text)
+                return parsed_response
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error on attempt {attempt + 1}: {e}")
+                print(f"Raw response: {response.text[:500]}...")  # Print first 500 chars for debugging
+                
+                if attempt == max_retries - 1:
+                    print("Max retries reached. Returning empty result.")
+                    # Return a minimal valid structure based on common schema patterns
+                    return self._get_empty_response_for_schema(response_schema)
+                else:
+                    print(f"Retrying... ({attempt + 2}/{max_retries})")
+                    
+            except Exception as e:
+                print(f"Unexpected error in structured output generation: {e}")
+                if attempt == max_retries - 1:
+                    return self._get_empty_response_for_schema(response_schema)
+                else:
+                    print(f"Retrying... ({attempt + 2}/{max_retries})")
+
+    def _get_empty_response_for_schema(self, response_schema):
+        """Generate an empty response that matches the expected schema structure."""
+        # This is a fallback method - you might want to customize this based on your specific schemas
         try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.9,
-                    response_mime_type="application/json",
-                    top_p=0.9,
-                    max_output_tokens=1024,
-                    response_schema=response_schema,
-                ),
-            )
-            # Parse the JSON response
-            return json.loads(response.text)
-        except Exception as e:
-            print(f"Error in structured output generation: {e}")
-            # Return an empty result conforming to the schema structure
+            # If the schema has a 'properties' field (typical for JSON schema)
+            if hasattr(response_schema, 'properties') or (isinstance(response_schema, dict) and 'properties' in response_schema):
+                return {}
+            # For Pydantic models, try to create an empty instance
+            elif hasattr(response_schema, 'model_validate'):
+                return response_schema().model_dump()
+            else:
+                return {}
+        except:
             return {}
