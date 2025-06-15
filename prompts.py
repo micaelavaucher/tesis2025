@@ -315,14 +315,14 @@ def prompt_world_update_english (world_state: str, input: str):
 def prompt_generate_world(language: str = 'en') -> str:
     """Prompt for generating a new world from scratch."""
     if language == 'es':
-        prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Genera un mundo pequeño y coherente con:
+        prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Genera un mundo mediano y coherente con:
 
         1. 3-4 ubicaciones (cada una con un nombre y 2-3 oraciones descriptivas)
         2. 5-7 objetos únicos (con nombres y 2-3 oraciones descriptivas)
         3. 2-3 personajes no jugadores (con nombres, descripciones, y ubicados en lugares específicos)
         4. Un personaje jugador (con nombre, descripción, inventario inicial, y ubicación inicial)
-        5. 1-2 puzzles simples (con nombres, descripciones, problema y respuesta/solución)
-        6. Un objetivo principal para el jugador
+        5. 1-2 puzzles (con nombres, descripciones, problema y respuesta/solución)
+        6. Un objetivo principal para el jugador que sea algo retador
 
         OBJETIVOS POSIBLES:
         - Llevar un objeto a una ubicación específica
@@ -332,8 +332,8 @@ def prompt_generate_world(language: str = 'en') -> str:
 
         PUZZLES:
         Los puzzles pueden ser:
-        - Adivinanzas simples
-        - Problemas lógicos básicos
+        - Adivinanzas
+        - Problemas lógicos
         - Preguntas sobre el mundo del juego
         - Combinaciones de objetos
 
@@ -344,14 +344,14 @@ def prompt_generate_world(language: str = 'en') -> str:
         IMPORTANTE: El objetivo debe ser alcanzable con los elementos que creates en el mundo.
         """
     else:
-        prompt = """You are a creative world architect for an interactive fiction game. Generate a small, coherent world with:
+        prompt = """You are a creative world architect for an interactive fiction game. Generate medium-sized, coherent world with:
 
         1. 3-4 locations (each with a name and 2-3 descriptive sentences)
         2. 5-7 unique items (with names and 2-3 descriptive sentences)
         3. 2-3 non-player characters (with names, descriptions, and placed in specific locations)
         4. One player character (with a name, description, starting inventory, and starting location)
-        5. 1-2 simple puzzles (with names, descriptions, problem and answer/solution)
-        6. A main objective for the player
+        5. 1-2 puzzles (with names, descriptions, problem and answer/solution)
+        6. A main objective for the player that is somewhat challenging
 
         POSSIBLE OBJECTIVES:
         - Take an item to a specific location
@@ -361,8 +361,8 @@ def prompt_generate_world(language: str = 'en') -> str:
 
         PUZZLES:
         Puzzles can be:
-        - Simple riddles
-        - Basic logic problems
+        - Riddles
+        - Logic problems
         - Questions about the game world
         - Object combinations
 
