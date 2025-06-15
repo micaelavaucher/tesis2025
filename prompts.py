@@ -312,12 +312,12 @@ def prompt_world_update_english (world_state: str, input: str):
 
     return system_msg, user_msg
 
-def prompt_generate_world(language: str = 'en') -> str:
+def prompt_generate_world(language: str = 'es') -> str:
     """Prompt for generating a new world from scratch."""
     if language == 'es':
         prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Genera un mundo mediano y coherente con:
 
-        1. 3-4 ubicaciones (cada una con un nombre y 2-3 oraciones descriptivas)
+        1. 3-4 ubicaciones conectadas (cada una con un nombre y 2-3 oraciones descriptivas)
         2. 5-7 objetos únicos (con nombres y 2-3 oraciones descriptivas)
         3. 2-3 personajes no jugadores (con nombres, descripciones, y ubicados en lugares específicos)
         4. Un personaje jugador (con nombre, descripción, inventario inicial, y ubicación inicial)
@@ -330,12 +330,18 @@ def prompt_generate_world(language: str = 'en') -> str:
         - Conseguir un objeto específico
         - Ir a una ubicación específica
 
-        PUZZLES:
+        IMPORTANTE PARA OBJETIVOS DE "IR A UN LUGAR": Si el objetivo es llegar a una ubicación específica, DEBES asegurar que el camino esté bloqueado por al menos un puzzle o que requiera obtener un objeto específico primero. El jugador no debe poder completar el objetivo simplemente moviéndose directamente al lugar.
+
+        PUZZLES Y PASAJES BLOQUEADOS:
         Los puzzles pueden ser:
         - Adivinanzas
         - Problemas lógicos
         - Preguntas sobre el mundo del juego
         - Combinaciones de objetos
+
+        IMPORTANTE: Cuando crees un pasaje bloqueado (blocked_passages), el campo "obstacle" debe contener EXACTAMENTE el nombre de un puzzle o item que hayas creado. Por ejemplo:
+        - Si creas un puzzle llamado "Acertijo de la puerta", usa exactamente "Acertijo de la puerta" en el campo obstacle
+        - Si creas un item llamado "Llave dorada", usa exactamente "Llave dorada" en el campo obstacle
 
         Haz que todo esté interconectado y sea lógico. Las ubicaciones deben conectar con al menos otra ubicación. Algunas ubicaciones pueden tener pasajes bloqueados que requieren objetos específicos o resolver puzzles para desbloquear.
 
@@ -346,7 +352,7 @@ def prompt_generate_world(language: str = 'en') -> str:
     else:
         prompt = """You are a creative world architect for an interactive fiction game. Generate medium-sized, coherent world with:
 
-        1. 3-4 locations (each with a name and 2-3 descriptive sentences)
+        1. 3-4 connected locations (each with a name and 2-3 descriptive sentences)
         2. 5-7 unique items (with names and 2-3 descriptive sentences)
         3. 2-3 non-player characters (with names, descriptions, and placed in specific locations)
         4. One player character (with a name, description, starting inventory, and starting location)
@@ -359,12 +365,18 @@ def prompt_generate_world(language: str = 'en') -> str:
         - Get a specific item
         - Go to a specific location
 
-        PUZZLES:
+        IMPORTANT FOR "GO TO LOCATION" OBJECTIVES: If the objective is to reach a specific location, you MUST ensure that the path is blocked by at least one puzzle or requires obtaining a specific item first. The player should not be able to complete the objective by simply moving directly to the location.
+
+        PUZZLES AND BLOCKED PASSAGES:
         Puzzles can be:
         - Riddles
         - Logic problems
         - Questions about the game world
         - Object combinations
+
+        IMPORTANT: When creating a blocked passage (blocked_passages), the "obstacle" field must contain EXACTLY the name of a puzzle or item you've created. For example:
+        - If you create a puzzle named "Door Riddle", use exactly "Door Riddle" in the obstacle field
+        - If you create an item named "Golden Key", use exactly "Golden Key" in the obstacle field
 
         Make everything interconnected and logical. Locations should connect to at least one other location. Some locations can have blocked passages requiring specific items or solving puzzles to unblock.
 

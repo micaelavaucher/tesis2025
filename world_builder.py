@@ -42,6 +42,13 @@ def create_world_from_llm_response(world_data) -> World:
                 problem=puzzle_data.problem,
                 answer=puzzle_data.answer)
             puzzles_dict[puzzle_data.name] = puzzle
+            
+            # DEBUG: Print puzzle information
+            print(f"🧩 Puzzle creado: {puzzle.name}")
+            print(f"   Descripción: {puzzle.descriptions}")
+            print(f"   Problema: {puzzle.problem}")
+            print(f"   Respuesta: {puzzle.answer}")
+            print()
         
         # Create locations (without connections yet)
         locations_dict: Dict[str, Location] = {}
@@ -56,35 +63,51 @@ def create_world_from_llm_response(world_data) -> World:
             locations_dict[loc_data.name] = location
 
         # Connect locations
-        for loc_data in generated_world.locations:
-            for connected_loc_name in loc_data.connecting_locations:
-                if connected_loc_name in locations_dict:
-                    locations_dict[loc_data.name].connecting_locations.append(locations_dict[connected_loc_name])
-            
-            # Handle blocked passages
-            for blocked in loc_data.blocked_passages:
-                if blocked.location in locations_dict:
-                    location = locations_dict[loc_data.name]
-                    blocked_location = locations_dict[blocked.location]
+        for blocked in loc_data.blocked_passages:
+            if blocked.location in locations_dict:
+                location = locations_dict[loc_data.name]
+                blocked_location = locations_dict[blocked.location]
+                
+                # Check if the locations are connected before blocking
+                if blocked_location not in location.connecting_locations:
+                    # Connect the locations first
+                    location.connecting_locations.append(blocked_location)
+                    if blocked.symmetric:
+                        blocked_location.connecting_locations.append(location)
+                
+                # DEBUG: Print blocking information
+                print(f"🚪 Intentando bloquear pasaje: {location.name} -> {blocked_location.name}")
+                print(f"   Obstáculo: {blocked.obstacle}")
+                
+                # Now block the passage - check if obstacle is a puzzle or an item
+                blocking_element = None
+                if blocked.obstacle in puzzles_dict:
+                    blocking_element = puzzles_dict[blocked.obstacle]
+                    print(f"   ✅ Puzzle encontrado: {blocking_element.name}")
+                elif blocked.obstacle in items_dict:
+                    blocking_element = items_dict[blocked.obstacle]
+                    print(f"   ✅ Item encontrado: {blocking_element.name}")
+                else:
+                    print(f"   ❌ Obstáculo no encontrado en puzzles ni items")
+                    # Try to find by partial name match
+                    for puzzle_name, puzzle in puzzles_dict.items():
+                        if blocked.obstacle.lower() in puzzle_name.lower() or puzzle_name.lower() in blocked.obstacle.lower():
+                            blocking_element = puzzle
+                            print(f"   ✅ Puzzle encontrado por coincidencia parcial: {puzzle_name}")
+                            break
                     
-                    # Check if the locations are connected before blocking
-                    if blocked_location not in location.connecting_locations:
-                        # Connect the locations first
-                        location.connecting_locations.append(blocked_location)
-                        if blocked.symmetric:
-                            blocked_location.connecting_locations.append(location)
-                    
-                    # Now block the passage - check if obstacle is a puzzle or an item
-                    if blocked.obstacle in puzzles_dict:
-                        location.block_passage(
-                            blocked_location, 
-                            puzzles_dict[blocked.obstacle],
-                            blocked.symmetric)
-                    elif blocked.obstacle in items_dict:
-                        location.block_passage(
-                            blocked_location, 
-                            items_dict[blocked.obstacle],
-                            blocked.symmetric)
+                    if not blocking_element:
+                        for item_name, item in items_dict.items():
+                            if blocked.obstacle.lower() in item_name.lower() or item_name.lower() in blocked.obstacle.lower():
+                                blocking_element = item
+                                print(f"   ✅ Item encontrado por coincidencia parcial: {item_name}")
+                                break
+                
+                if blocking_element:
+                    location.block_passage(blocked_location, blocking_element, blocked.symmetric)
+                    print(f"   ✅ Pasaje bloqueado exitosamente")
+                else:
+                    print(f"   ❌ No se pudo bloquear el pasaje - obstáculo no válido")
         
         # Create the player character
         player_data = generated_world.player
@@ -215,6 +238,137 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
     except Exception as e:
         print(f"Error setting objective: {e}")
         return None
+
+def inspect_generated_world(world: World, language: str = 'es') -> str:
+    """Generate a concise inspection report of the generated world."""
+    
+    if language == 'es':
+        report = "🌍 **INSPECCIÓN DEL MUNDO GENERADO** 🌍\n\n"
+        
+        # Basic world stats
+        puzzles_count = 0
+        if hasattr(world, 'puzzles'):
+            if isinstance(world.puzzles, dict):
+                puzzles_count = len(world.puzzles)
+            elif isinstance(world.puzzles, list):
+                puzzles_count = len(world.puzzles)
+        
+        report += f"📊 **Estadísticas básicas:**\n"
+        report += f"• Ubicaciones: {len(world.locations)}\n"
+        report += f"• Objetos: {len(world.items)}\n"
+        report += f"• Personajes (NPCs): {len([c for c in world.characters.values() if c != world.player])}\n"
+        report += f"• Puzzles: {puzzles_count}\n\n"
+        
+        # Locations with connections
+        report += f"🏠 **Ubicaciones y conexiones:**\n"
+        for loc_name, location in world.locations.items():
+            connections = [conn.name for conn in location.connecting_locations]
+            report += f"• {loc_name} → conecta con: {', '.join(connections) if connections else 'ninguna'}\n"
+        report += "\n"
+        
+        # Blocked passages
+        blocked_count = 0
+        report += f"🚪 **Pasajes bloqueados:**\n"
+        for location in world.locations.values():
+            if hasattr(location, 'blocked_locations') and location.blocked_locations:
+                for blocked_loc, blocking_element in location.blocked_locations.items():
+                    blocked_count += 1
+                    blocking_type = "🧩" if hasattr(blocking_element[1], 'problem') else "🔑"
+                    report += f"• {location.name} → {blocked_loc} ({blocking_type} {blocking_element[1].name})\n"
+        
+        if blocked_count == 0:
+            report += "• No hay pasajes bloqueados\n"
+        report += "\n"
+        
+        # Puzzles summary
+        if hasattr(world, 'puzzles') and world.puzzles:
+            report += f"🧩 **Puzzles disponibles:**\n"
+            
+            # Handle both dict and list formats
+            if isinstance(world.puzzles, dict):
+                for puzzle_name, puzzle in world.puzzles.items():
+                    problem_preview = puzzle.problem[:50] + "..." if len(puzzle.problem) > 50 else puzzle.problem
+                    report += f"• {puzzle_name}: {problem_preview}\n"
+            elif isinstance(world.puzzles, list):
+                for puzzle in world.puzzles:
+                    problem_preview = puzzle.problem[:50] + "..." if len(puzzle.problem) > 50 else puzzle.problem
+                    report += f"• {puzzle.name}: {problem_preview}\n"
+        else:
+            report += f"🧩 **Puzzles:** No hay puzzles en el mundo\n"
+        report += "\n"
+        
+        # Objective
+        if hasattr(world, 'objective') and world.objective:
+            obj_type = type(world.objective[1]).__name__
+            obj_name = world.objective[1].name
+            report += f"🎯 **Objetivo:** {world.objective[0].name} debe interactuar con {obj_name} ({obj_type})\n"
+        else:
+            report += f"🎯 **Objetivo:** No definido\n"
+        
+    else:
+        report = "🌍 **GENERATED WORLD INSPECTION** 🌍\n\n"
+        
+        # Basic world stats
+        puzzles_count = 0
+        if hasattr(world, 'puzzles'):
+            if isinstance(world.puzzles, dict):
+                puzzles_count = len(world.puzzles)
+            elif isinstance(world.puzzles, list):
+                puzzles_count = len(world.puzzles)
+        
+        report += f"📊 **Basic stats:**\n"
+        report += f"• Locations: {len(world.locations)}\n"
+        report += f"• Items: {len(world.items)}\n"
+        report += f"• Characters (NPCs): {len([c for c in world.characters.values() if c != world.player])}\n"
+        report += f"• Puzzles: {puzzles_count}\n\n"
+        
+        # Locations with connections
+        report += f"🏠 **Locations and connections:**\n"
+        for loc_name, location in world.locations.items():
+            connections = [conn.name for conn in location.connecting_locations]
+            report += f"• {loc_name} → connects to: {', '.join(connections) if connections else 'none'}\n"
+        report += "\n"
+        
+        # Blocked passages
+        blocked_count = 0
+        report += f"🚪 **Blocked passages:**\n"
+        for location in world.locations.values():
+            if hasattr(location, 'blocked_locations') and location.blocked_locations:
+                for blocked_loc, blocking_element in location.blocked_locations.items():
+                    blocked_count += 1
+                    blocking_type = "🧩" if hasattr(blocking_element[1], 'problem') else "🔑"
+                    report += f"• {location.name} → {blocked_loc} ({blocking_type} {blocking_element[1].name})\n"
+        
+        if blocked_count == 0:
+            report += "• No blocked passages\n"
+        report += "\n"
+        
+        # Puzzles summary
+        if hasattr(world, 'puzzles') and world.puzzles:
+            report += f"🧩 **Available puzzles:**\n"
+            
+            # Handle both dict and list formats
+            if isinstance(world.puzzles, dict):
+                for puzzle_name, puzzle in world.puzzles.items():
+                    problem_preview = puzzle.problem[:50] + "..." if len(puzzle.problem) > 50 else puzzle.problem
+                    report += f"• {puzzle_name}: {problem_preview}\n"
+            elif isinstance(world.puzzles, list):
+                for puzzle in world.puzzles:
+                    problem_preview = puzzle.problem[:50] + "..." if len(puzzle.problem) > 50 else puzzle.problem
+                    report += f"• {puzzle.name}: {problem_preview}\n"
+        else:
+            report += f"🧩 **Puzzles:** No puzzles in the world\n"
+        report += "\n"
+        
+        # Objective
+        if hasattr(world, 'objective') and world.objective:
+            obj_type = type(world.objective[1]).__name__
+            obj_name = world.objective[1].name
+            report += f"🎯 **Objective:** {world.objective[0].name} must interact with {obj_name} ({obj_type})\n"
+        else:
+            report += f"🎯 **Objective:** Not defined\n"
+    
+    return report
 
 def expand_world_from_llm_response(world: World, response: str) -> None:
     """Parse structured LLM response and expand an existing World object."""
