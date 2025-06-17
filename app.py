@@ -44,15 +44,12 @@ log_filename =  f"{today[0]}_{today[1]}_{today[2]}_{str(int(time.time()))[-5:]}.
 
 # Initialize world expansion variables
 visited_locations = set()
-expansion_cooldown = 0
 
 # The game loop
 def game_loop(message, history):
     global last_player_position
     global number_of_turns
     global game_log_dictionary
-    global expansion_cooldown
-    global visited_locations
 
     # DEBUG: Comando especial para inspeccionar puzzles
     if message.lower() in ["inspect puzzles", "inspeccionar puzzles", "debug puzzles", "debug", "inspect"]:
@@ -96,9 +93,6 @@ def game_loop(message, history):
 
     # Track visited locations
     visited_locations.add(world.player.location.name)
-
-    # Update expansion cooldown
-    expansion_cooldown = max(0, expansion_cooldown - 1)
 
     answer = ""
 
@@ -146,50 +140,6 @@ def game_loop(message, history):
             answer += "\n\n🎯¡Completaste el objetivo!"
         else:
             answer += "\n\n🎯You have completed your quest!"
-    
-    # Check if we should expand the world
-    # Expansion conditions:
-    # 1. Player explicitly requests exploration
-    # 2. Player has visited all available locations
-    # 3. Cooldown period has passed
-    should_expand_world_now = (
-        should_expand_world(message) or
-        (len(visited_locations) >= len(world.locations))
-    ) and expansion_cooldown <= 0
-
-    if should_expand_world_now:
-        expansion_message = "🌱 " + ("Expandiendo el mundo..." if language == 'es' else "Expanding the world...") + " 🌱"
-        print(f"\n{expansion_message}")
-        answer += f"\n\n{expansion_message}\n"
-
-        expansion_prompt = prompt_expand_world(
-            world.render_world(language=language),
-            world.player.location.name,
-            language=language)
-        
-        try:
-            if hasattr(reasoning_model, 'prompt_model_structured'):
-                expansion_response = reasoning_model.prompt_model_structured(expansion_prompt, WorldExpansion)
-            else:
-                expansion_response = reasoning_model.prompt_model("Expand the world.", expansion_prompt)
-            
-            expand_world_from_llm_response(world, expansion_response)
-            
-            success_message = "¡Mundo expandido con nuevas áreas para explorar!" if language == 'es' else "World expanded with new areas to explore!"
-            print(f"{success_message}\n")
-            answer += f"{success_message}\n"
-
-            # Set cooldown to prevent too frequent expansions
-            expansion_cooldown = 5
-            
-            # Update the game log with expanded world state
-            game_log_dictionary[number_of_turns]["expanded_world_state"] = jsonpickle.encode(world, unpicklable=True)
-            game_log_dictionary[number_of_turns]["expanded_rendered_world_state"] = world.render_world(language=language)
-            
-        except Exception as e:
-            error_message = f"Error expandiendo mundo: {e}" if language == 'es' else f"Error expanding world: {e}"
-            print(error_message)
-            answer += f"\n{error_message}\n"
 
     print(f"\n🌎 World state 🌍\n>Player input: {message}\n{world.render_world(language=language)}\n")
 
