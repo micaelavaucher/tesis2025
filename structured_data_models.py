@@ -7,68 +7,89 @@ from enum import Enum
 
 #---- Enums and Types ---------------------------------------------------------
 class PuzzleType(str, Enum):
-    RIDDLE = "riddle"  # Adivinanza
-    LOGIC = "logic"    # Problema lógico
-    WORDPLAY = "wordplay"  # Juego de palabras
-    OBSERVATION = "observation"  # Observar detalles del entorno
-    SEQUENCE = "sequence"  # Ordenar cosas en secuencia
-    CODE = "code"  # Descifrar códigos
-    MEMORY = "memory"  # Recordar información previa
+    RIDDLE = "riddle"           # Adivinanza
+    LOGIC = "logic"             # Problema lógico
+    WORDPLAY = "wordplay"       # Juego de palabras
+    OBSERVATION = "observation" # Observar detalles del entorno
+    SEQUENCE = "sequence"       # Ordenar cosas en secuencia
+    CODE = "code"               # Descifrar códigos
+    MEMORY = "memory"           # Recordar información previa
 
 class ObjectiveType(str, Enum):
-    REACH_LOCATION = "reach_location"  # Llegar a un lugar
-    GET_ITEM = "get_item"  # Conseguir un objeto
-    DELIVER_ITEM = "deliver_item"  # Entregar objeto a alguien/algún lugar
-    FIND_CHARACTER = "find_character"  # Encontrar a un personaje
-    SOLVE_MYSTERY = "solve_mystery"  # Resolver un misterio general
+    REACH_LOCATION = "reach_location"   # Llegar a un lugar
+    GET_ITEM = "get_item"               # Conseguir un objeto
+    DELIVER_ITEM = "deliver_item"       # Entregar objeto a alguien/algún lugar
+    FIND_CHARACTER = "find_character"   # Encontrar a un personaje
+    SOLVE_MYSTERY = "solve_mystery"     # Resolver un misterio general
 
-class ConnectionType(str, Enum):
-    BLOCKS_PASSAGE = "blocks_passage"  # Bloquea el paso a una ubicación
-    GIVES_ITEM = "gives_item"  # Da un objeto
-    UNLOCKS_INFORMATION = "unlocks_information"  # Revela información importante
-    ENABLES_OBJECTIVE = "enables_objective"  # Habilita completar el objetivo directamente
+class RewardType(str, Enum):
+    PASSAGE = "passage"                 # Desbloquea un pasaje
+    ITEM = "item"                       # Otorga un objeto
+    INFORMATION = "information"         # Revela información importante
+    OBJECTIVE_COMPLETION = "objective_completion"  # Completa directamente el objetivo
 
-#---- Core Connection Models -------------------------------------------------
-class WorldConnection(BaseModel):
-    """Base model for connections between world elements."""
-    connection_type: ConnectionType = Field(description="Type of connection this represents")
-    description: str = Field(description="Human-readable description of why this connection exists")
+class RequirementType(str, Enum):
+    ITEM = "item"                       # Necesita un objeto específico
+    PUZZLE = "puzzle"                   # Necesita resolver un puzzle
+    LOCATION = "location"               # Necesita estar en un lugar específico
+    CHARACTER = "character"             # Necesita interactuar con un personaje
 
-class PassageConnection(WorldConnection):
-    """Connection that blocks/unblocks a passage."""
-    connection_type: ConnectionType = Field(default=ConnectionType.BLOCKS_PASSAGE)
-    from_location: str = Field(description="Location where the passage originates")
-    to_location: str = Field(description="Destination location that gets unblocked")
+class ComponentType(str, Enum):
+    ITEM = "item"                       # Componente es un objeto
+    CHARACTER = "character"             # Componente es un personaje
+    LOCATION = "location"               # Componente es una ubicación
+
+#---- Reward Models (lo que se obtiene al resolver puzzles) ------------------
+class PuzzleReward(BaseModel):
+    """Base model for what you get when solving a puzzle."""
+    reward_type: RewardType = Field(description="Type of reward obtained")
+    description: str = Field(description="What exactly is gained")
+
+class PassageReward(PuzzleReward):
+    """Unlocks a blocked passage."""
+    reward_type: RewardType = Field(default=RewardType.PASSAGE)
+    from_location: str = Field(description="Location where passage starts")
+    to_location: str = Field(description="Location that becomes accessible")
     
-class ItemConnection(WorldConnection):
-    """Connection that provides an item."""
-    connection_type: ConnectionType = Field(default=ConnectionType.GIVES_ITEM)
-    item_name: str = Field(description="Name of the item this connection provides")
+class ItemReward(PuzzleReward):
+    """Provides an item."""
+    reward_type: RewardType = Field(default=RewardType.ITEM)
+    item_name: str = Field(description="Name of the item obtained")
     
-class InformationConnection(WorldConnection):
-    """Connection that provides crucial information."""
-    connection_type: ConnectionType = Field(default=ConnectionType.UNLOCKS_INFORMATION)
-    information: str = Field(description="The important information revealed")
+class InformationReward(PuzzleReward):
+    """Reveals important information."""
+    reward_type: RewardType = Field(default=RewardType.INFORMATION)
+    information: str = Field(description="The crucial information revealed")
     
-class ObjectiveConnection(WorldConnection):
-    """Connection that directly enables objective completion."""
-    connection_type: ConnectionType = Field(default=ConnectionType.ENABLES_OBJECTIVE)
+class ObjectiveReward(PuzzleReward):
+    """Directly completes the objective."""
+    reward_type: RewardType = Field(default=RewardType.OBJECTIVE_COMPLETION)
 
-#---- Requirement Models -----------------------------------------------------
+#---- Requirement Models (lo que se necesita para activar algo) --------------
 class Requirement(BaseModel):
     """Base model for requirements to unlock connections."""
-    requirement_type: str = Field(description="Type of requirement")
+    requirement_type: RequirementType = Field(description="Type of requirement")
     description: str = Field(description="What needs to be done to fulfill this requirement")
 
 class ItemRequirement(Requirement):
     """Requirement to bring a specific item."""
-    requirement_type: str = Field(default="item")
+    requirement_type: RequirementType = Field(default=RequirementType.ITEM)
     item_name: str = Field(description="Name of the required item")
     
 class PuzzleRequirement(Requirement):
     """Requirement to solve a puzzle."""
-    requirement_type: str = Field(default="puzzle")
+    requirement_type: RequirementType = Field(default=RequirementType.PUZZLE)
     puzzle_name: str = Field(description="Name of the puzzle that must be solved")
+
+class LocationRequirement(Requirement):
+    """Requirement to be in a specific location."""
+    requirement_type: RequirementType = Field(default=RequirementType.LOCATION)
+    location_name: str = Field(description="Name of the required location")
+
+class CharacterRequirement(Requirement):
+    """Requirement to interact with a specific character."""
+    requirement_type: RequirementType = Field(default=RequirementType.CHARACTER)
+    character_name: str = Field(description="Name of the character to interact with")
 
 #---- Enhanced Models --------------------------------------------------------
 class GeneratedPuzzle(BaseModel):
@@ -79,8 +100,8 @@ class GeneratedPuzzle(BaseModel):
     answer: str = Field(description="The solution to the puzzle")
     location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character")
     proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental")
-    connections: List[Union[PassageConnection, ItemConnection, InformationConnection, ObjectiveConnection]] = Field(
-        description="What this puzzle unlocks when solved"
+    rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
+        description="What you get when you solve this puzzle"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
 
@@ -95,7 +116,9 @@ class CharacterInteraction(BaseModel):
     """Defines how a character interacts with the player."""
     gives_information: Optional[str] = Field(default=None, description="Important information the character provides")
     gives_item: Optional[str] = Field(default=None, description="Item the character gives")
-    requires: List[Union[ItemRequirement, PuzzleRequirement]] = Field(default=[], description="What the character needs before helping")
+    requires: List[Union[ItemRequirement, PuzzleRequirement, LocationRequirement, CharacterRequirement]] = Field(
+        default=[], description="What the character needs before helping"
+    )
     relevance_to_objective: str = Field(description="How this character helps achieve the main objective")
 
 class GeneratedCharacter(BaseModel):
@@ -108,7 +131,9 @@ class GeneratedCharacter(BaseModel):
 class BlockedPassage(BaseModel):
     location: str = Field(description="Destination location that is blocked")
     obstacle_description: str = Field(description="Description of the physical obstacle")
-    required_to_unblock: Union[ItemRequirement, PuzzleRequirement] = Field(description="What's needed to unblock this passage")
+    required_to_unblock: Union[ItemRequirement, PuzzleRequirement, LocationRequirement, CharacterRequirement] = Field(
+        description="What's needed to unblock this passage"
+    )
     relevance_to_objective: str = Field(description="Why accessing this location is important for the objective")
 
 class GeneratedLocation(BaseModel):
@@ -122,7 +147,7 @@ class GeneratedLocation(BaseModel):
 class ObjectiveComponent(BaseModel):
     """Represents a component involved in the objective."""
     name: str = Field(description="Name of the component (item, character, or location)")
-    component_type: str = Field(description="Type: 'item', 'character', or 'location'")
+    component_type: ComponentType = Field(description="Type of component")
     role_in_objective: str = Field(description="What role this component plays in completing the objective")
 
 class GeneratedObjective(BaseModel):

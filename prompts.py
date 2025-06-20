@@ -456,3 +456,65 @@ def should_expand_world(player_input: str, language: str = 'en') -> bool:
             return True
     
     return False
+
+# For testing
+def prompt_generate_turtle_world_validation(language: str = 'es') -> str:
+    """Generate a prompt for creating the turtle world to validate structured data models."""
+    return """Crea un mundo estructurado basado en esta historia específica:
+
+**HISTORIA: "El Rescate de Hojita"**
+
+Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que está perdida en el jardín de su casa. Para llegar al jardín debe pasar por la cocina, pero hay un candado que bloquea la puerta hacia el jardín.
+
+**ESTRUCTURA ESPECÍFICA REQUERIDA:**
+
+**UBICACIONES (3):**
+- Taller de pintura: Donde Emma comienza, con su madre Laura
+- Cocina: Conecta el taller con el jardín, PERO la puerta al jardín está bloqueada por un candado
+- Jardín: Donde está Hojita la tortuga (objetivo final)
+
+**OBJETIVO PRINCIPAL:**
+- Tipo: GET_ITEM
+- Descripción: "Emma debe rescatar a su tortuga Hojita del jardín"
+- Componentes: Tortuga (item) en Jardín (location)
+
+**PERSONAJES (2):**
+- Emma (jugador): Adolescente, inventario vacío, ubicación inicial = Taller de pintura
+- Laura (madre): Artista, tiene la llave dorada, ubicación = Taller de pintura
+- Laura DEBE requerir algo para dar la llave (ej: que Emma complete un puzzle o le traiga algo)
+
+**OBJETOS REQUERIDOS:**
+- Tortuga "Hojita": En el jardín (objetivo principal)
+- Llave dorada: Con Laura, necesaria para abrir el candado
+- Candado: Bloqueando el paso de Cocina → Jardín
+- Martillo gris: En el taller, útil para romper el candado (alternativa)
+- Martillo verde: En el taller, es solo decorativo (juguete inútil)
+
+**CONEXIONES SEMÁNTICAS OBLIGATORIAS:**
+1. Para llegar al jardín → necesitas abrir el candado
+2. Para abrir el candado → necesitas la llave dorada O romperlo con el martillo gris
+3. Para conseguir la llave → debes cumplir el requisito de Laura
+4. Laura debe pedir algo razonable (resolver puzzle, traer objeto, etc.)
+
+**CADENA DE DEPENDENCIAS EJEMPLO:**
+1. Emma quiere rescatar a Hojita del jardín
+2. El jardín está bloqueado por un candado en la cocina
+3. Laura tiene la llave, pero necesita que Emma [DEFINE TÚ QUÉ]
+4. Emma cumple el requisito de Laura
+5. Laura le da la llave
+6. Emma abre el candado y rescata a Hojita
+
+**VALIDACIONES CRÍTICAS:**
+- TODOS los elementos deben tener relevance_to_objective explicado
+- Los puzzles deben tener rewards específicos y tipos definidos
+- Los personajes con interaction deben tener requires claros
+- Las dependency_chains deben ser lógicas y completas
+- Los blocked_passages deben tener requisitos específicos
+
+**CREATIVIDAD PERMITIDA:**
+- Define qué requiere Laura exactamente
+- Agrega un puzzle si es necesario
+- Mejora las descripciones
+- Añade detalles narrativos coherentes
+
+Genera el JSON completo siguiendo el schema de GeneratedWorld. Asegúrate de que TODO esté semánticamente conectado al objetivo de rescatar a Hojita."""
