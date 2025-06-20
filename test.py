@@ -433,25 +433,38 @@ def run_simple_validation_test():
                 "interaction": {
                     "gives_information": None,
                     "gives_item": "Llave dorada",
+                    "proposes_puzzle": "Orden de pinceles",
+                    "interaction_text": "Hola Emma, veo que necesitas algo. Tengo la llave del jardín, pero primero necesito que me ayudes con algo. ¿Puedes ordenar mis pinceles por tamaño?",
                     "requires": [
                         {
-                            "requirement_type": "ITEM",
-                            "item_name": "Martillo verde",
-                            "description": "Laura quiere que Emma le traiga el martillo verde como prueba de confianza"
+                            "requirement_type": "PUZZLE",
+                            "puzzle_name": "Orden de pinceles",
+                            "description": "Laura necesita que resuelvas el puzzle de ordenar los pinceles"
                         }
                     ],
                     "relevance_to_objective": "Tiene la llave necesaria para acceder al jardín donde está Hojita"
                 }
             }
         ],
-        "puzzles": [],
-        "player": {
-            "name": "Emma",
-            "descriptions": ["Una adolescente preocupada por su mascota"],
-            "location": "Taller de pintura",
-            "inventory": [],
-            "interaction": None
-        },
+        "puzzles": [
+            {
+                "name": "Orden de pinceles",
+                "puzzle_type": "SEQUENCE",
+                "descriptions": ["Un conjunto de pinceles de diferentes tamaños"],
+                "problem": "Laura tiene 5 pinceles desordenados. Ordénalos del más pequeño al más grande: Grande, Mediano, Pequeño, Extra Grande, Muy Pequeño",
+                "answer": "Muy Pequeño, Pequeño, Mediano, Grande, Extra Grande",
+                "location": None,
+                "proposed_by_character": "Laura",
+                "rewards": [
+                    {
+                        "reward_type": "ITEM",
+                        "description": "Laura te da la llave dorada",
+                        "item_name": "Llave dorada"
+                    }
+                ],
+                "relevance_to_objective": "Resolver este puzzle permite obtener la llave para acceder al jardín donde está Hojita"
+            }
+        ],
         "objective": {
             "type": "GET_ITEM",
             "components": [

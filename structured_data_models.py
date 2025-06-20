@@ -116,9 +116,11 @@ class CharacterInteraction(BaseModel):
     """Defines how a character interacts with the player."""
     gives_information: Optional[str] = Field(default=None, description="Important information the character provides")
     gives_item: Optional[str] = Field(default=None, description="Item the character gives")
+    proposes_puzzle: Optional[str] = Field(default=None, description="Name of puzzle this character proposes when interacted with")
     requires: List[Union[ItemRequirement, PuzzleRequirement, LocationRequirement, CharacterRequirement]] = Field(
         default=[], description="What the character needs before helping"
     )
+    interaction_text: Optional[str] = Field(default=None, description="What the character says when first interacted with")
     relevance_to_objective: str = Field(description="How this character helps achieve the main objective")
 
 class GeneratedCharacter(BaseModel):
