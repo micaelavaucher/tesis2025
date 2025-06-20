@@ -481,40 +481,44 @@ Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que est�
 **PERSONAJES (2):**
 - Emma (jugador): Adolescente, inventario vacío, ubicación inicial = Taller de pintura
 - Laura (madre): Artista, tiene la llave dorada, ubicación = Taller de pintura
-- Laura DEBE requerir algo para dar la llave (ej: que Emma complete un puzzle o le traiga algo)
+- Laura DEBE proponer un puzzle cuando hables con ella
+- Laura debe requerir resolver el puzzle para dar la llave
 
 **OBJETOS REQUERIDOS:**
 - Tortuga "Hojita": En el jardín (objetivo principal)
 - Llave dorada: Con Laura, necesaria para abrir el candado
-- Candado: Bloqueando el paso de Cocina → Jardín
 - Martillo gris: En el taller, útil para romper el candado (alternativa)
 - Martillo verde: En el taller, es solo decorativo (juguete inútil)
+
+**PUZZLE REQUERIDO:**
+- Laura debe proponer un puzzle cuando interactúes con ella
+- El puzzle debe ser sencillo pero lógico
+- Resolver el puzzle debe ser requisito para obtener la llave
 
 **CONEXIONES SEMÁNTICAS OBLIGATORIAS:**
 1. Para llegar al jardín → necesitas abrir el candado
 2. Para abrir el candado → necesitas la llave dorada O romperlo con el martillo gris
-3. Para conseguir la llave → debes cumplir el requisito de Laura
-4. Laura debe pedir algo razonable (resolver puzzle, traer objeto, etc.)
+3. Para conseguir la llave → debes resolver el puzzle de Laura
+4. Para acceder al puzzle → debes hablar con Laura
+
+**INTERACCIÓN CON LAURA:**
+- Cuando hables con Laura por primera vez, debe proponer el puzzle
+- Laura debe explicar que necesitas resolver el puzzle para obtener la llave
+- El puzzle debe estar relacionado con el arte/pintura (tema del taller)
 
 **CADENA DE DEPENDENCIAS EJEMPLO:**
 1. Emma quiere rescatar a Hojita del jardín
 2. El jardín está bloqueado por un candado en la cocina
-3. Laura tiene la llave, pero necesita que Emma [DEFINE TÚ QUÉ]
-4. Emma cumple el requisito de Laura
-5. Laura le da la llave
-6. Emma abre el candado y rescata a Hojita
+3. Emma habla con Laura
+4. Laura propone el puzzle de los pinceles
+5. Emma resuelve el puzzle
+6. Laura le da la llave dorada
+7. Emma abre el candado y rescata a Hojita
 
 **VALIDACIONES CRÍTICAS:**
-- TODOS los elementos deben tener relevance_to_objective explicado
-- Los puzzles deben tener rewards específicos y tipos definidos
-- Los personajes con interaction deben tener requires claros
-- Las dependency_chains deben ser lógicas y completas
-- Los blocked_passages deben tener requisitos específicos
+- Laura debe tener proposes_puzzle definido
+- El puzzle debe tener rewards que incluyan dar la llave
+- La interacción de Laura debe tener interaction_text
+- Laura debe requerir resolver el puzzle para dar la llave
 
-**CREATIVIDAD PERMITIDA:**
-- Define qué requiere Laura exactamente
-- Agrega un puzzle si es necesario
-- Mejora las descripciones
-- Añade detalles narrativos coherentes
-
-Genera el JSON completo siguiendo el schema de GeneratedWorld. Asegúrate de que TODO esté semánticamente conectado al objetivo de rescatar a Hojita."""
+Genera el JSON completo siguiendo el schema de GeneratedWorld. Asegúrate de que Laura PROPONGA el puzzle automáticamente al interactuar."""
