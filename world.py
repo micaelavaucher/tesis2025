@@ -514,25 +514,39 @@ class World:
         print(e)
 
   def parse_puzzle_solution(self, updates: str) -> None:
-      """Parse the output of the language model to detect puzzle solutions."""
-      parsed_puzzle_solutions = re.findall(r".*Puzzle solved:\s*(.+)", updates)
-      if 'None' not in parsed_puzzle_solutions and parsed_puzzle_solutions:
-          # Formato esperado: "Puzzle solved: <puzzle_name> with answer <answer>"
-          puzzle_info = parsed_puzzle_solutions[0]
-          
-          # Extraer nombre del puzzle y respuesta
-          puzzle_match = re.findall(r"<([^<>]*?)>.*?answer\s+(.+)", puzzle_info)
-          if puzzle_match:
-              puzzle_name = puzzle_match[0][0]
-              user_answer = puzzle_match[0][1].strip()
-              
-              try:
-                  if self.solve_puzzle(puzzle_name, user_answer):
-                      print(f"✅ Puzzle {puzzle_name} resuelto correctamente!")
-                  else:
-                      print(f"❌ Respuesta incorrecta para puzzle {puzzle_name}")
-              except Exception as e:
-                  print(f"Error processing puzzle solution: {e}")
+    """Parse the output of the language model to detect puzzle solutions."""
+    parsed_puzzle_solutions = re.findall(r".*Puzzle solved:\s*(.+)", updates)
+    if 'None' not in parsed_puzzle_solutions and parsed_puzzle_solutions:
+        # Formato esperado: "Puzzle solved: <puzzle_name> with answer <answer>"
+        puzzle_info = parsed_puzzle_solutions[0]
+        
+        # Extraer nombre del puzzle y respuesta - REGEX CORREGIDO
+        puzzle_match = re.findall(r"<([^<>]*?)>.*?with\s+answer\s+<([^<>]*?)>", puzzle_info)
+        if puzzle_match:
+            puzzle_name = puzzle_match[0][0]
+            user_answer = puzzle_match[0][1].strip()
+            
+            try:
+                if self.solve_puzzle(puzzle_name, user_answer):
+                    print(f"✅ Puzzle {puzzle_name} resuelto correctamente!")
+                else:
+                    print(f"❌ Respuesta incorrecta para puzzle {puzzle_name}")
+            except Exception as e:
+                print(f"Error processing puzzle solution: {e}")
+        else:
+            # Fallback para formato sin brackets en la respuesta
+            puzzle_match_fallback = re.findall(r"<([^<>]*?)>.*?with\s+answer\s+(.+)", puzzle_info)
+            if puzzle_match_fallback:
+                puzzle_name = puzzle_match_fallback[0][0]
+                user_answer = puzzle_match_fallback[0][1].strip()
+                
+                try:
+                    if self.solve_puzzle(puzzle_name, user_answer):
+                        print(f"✅ Puzzle {puzzle_name} resuelto correctamente!")
+                    else:
+                        print(f"❌ Respuesta incorrecta para puzzle {puzzle_name}")
+                except Exception as e:
+                    print(f"Error processing puzzle solution: {e}")
 
   def solve_puzzle(self, puzzle_name: str, answer: str) -> bool:
       """Attempt to solve a puzzle and apply rewards if successful."""
