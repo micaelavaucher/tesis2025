@@ -48,13 +48,13 @@ class PuzzleReward(BaseModel):
 class PassageReward(PuzzleReward):
     """Unlocks a blocked passage."""
     reward_type: RewardType = Field(default=RewardType.PASSAGE)
-    from_location: str = Field(description="Location where passage starts")
-    to_location: str = Field(description="Location that becomes accessible")
+    from_location: str = Field(description="Location where passage starts. Note: this location must exist in the world")
+    to_location: str = Field(description="Location that becomes accessible. Note: this location must exist in the world")
     
 class ItemReward(PuzzleReward):
     """Provides an item."""
     reward_type: RewardType = Field(default=RewardType.ITEM)
-    item_name: str = Field(description="Name of the item obtained")
+    item_name: str = Field(description="Name of the item obtained. Note: this item must exist in the world and be in someone's inventory or a location")
     
 class InformationReward(PuzzleReward):
     """Reveals important information."""
@@ -74,22 +74,22 @@ class Requirement(BaseModel):
 class ItemRequirement(Requirement):
     """Requirement to bring a specific item."""
     requirement_type: RequirementType = Field(default=RequirementType.ITEM)
-    item_name: str = Field(description="Name of the required item")
+    item_name: str = Field(description="Name of the required item. Note: this item must exist in the world and be gettable=True")
     
 class PuzzleRequirement(Requirement):
     """Requirement to solve a puzzle."""
     requirement_type: RequirementType = Field(default=RequirementType.PUZZLE)
-    puzzle_name: str = Field(description="Name of the puzzle that must be solved")
+    puzzle_name: str = Field(description="Name of the puzzle that must be solved. Note: this puzzle must exist in the world")
 
 class LocationRequirement(Requirement):
     """Requirement to be in a specific location."""
     requirement_type: RequirementType = Field(default=RequirementType.LOCATION)
-    location_name: str = Field(description="Name of the required location")
+    location_name: str = Field(description="Name of the required location. Note: this location must exist in the world")
 
 class CharacterRequirement(Requirement):
     """Requirement to interact with a specific character."""
     requirement_type: RequirementType = Field(default=RequirementType.CHARACTER)
-    character_name: str = Field(description="Name of the character to interact with")
+    character_name: str = Field(description="Name of the character to interact with. Note: this character must exist in the world")
 
 #---- Enhanced Models --------------------------------------------------------
 class GeneratedPuzzle(BaseModel):
@@ -98,10 +98,10 @@ class GeneratedPuzzle(BaseModel):
     descriptions: List[str] = Field(description="List of descriptive texts explaining the puzzle")
     problem: str = Field(description="Clear statement of the puzzle problem")
     answer: str = Field(description="The solution to the puzzle")
-    location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character")
-    proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental")
+    location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character. Note: if specified, this location must exist in the world")
+    proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental. Note: if specified, this character must exist in the world")
     rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
-        description="What you get when you solve this puzzle"
+        description="What you get when you solve this puzzle. Note: all reward items and locations must exist in the world"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
     hint: str = Field(description="How the character or the narration hints to the puzzle")
@@ -109,70 +109,75 @@ class GeneratedPuzzle(BaseModel):
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
     descriptions: List[str] = Field(description="List of descriptive texts for the item")
-    gettable: bool = Field(default=True, description="Whether the item can be picked up")
+    gettable: bool = Field(default=True, description="Whether the item can be picked up. Note: items required for objectives must always be gettable=True")
+    is_objective_target: bool = Field(
+        default=False, 
+        description="Whether this item is required to complete the main objective. Note: objective targets must always be gettable=True"
+    )
     relevance_to_objective: Optional[str] = Field(default=None, description="How this item helps with the main objective, or None if decorative")
     required_for: List[str] = Field(default=[], description="Names of puzzles, characters, or locations this item is required for")
 
 class CharacterInteraction(BaseModel):
     """Defines how a character interacts with the player."""
     gives_information: Optional[str] = Field(default=None, description="Important information the character provides")
-    gives_item: Optional[str] = Field(default=None, description="Item the character gives")
-    proposes_puzzle: Optional[str] = Field(default=None, description="Name of puzzle this character proposes when interacted with")
+    gives_item: Optional[str] = Field(default=None, description="Item the character gives. Note: this item must exist in the character's inventory")
+    proposes_puzzle: Optional[str] = Field(default=None, description="Name of puzzle this character proposes when interacted with. Note: this puzzle must exist in the world and have proposed_by_character set to this character's name")
     requires: List[Union[ItemRequirement, PuzzleRequirement, LocationRequirement, CharacterRequirement]] = Field(
-        default=[], description="What the character needs before helping"
+        default=[], description="What the character needs before helping. Note: all referenced items, puzzles, locations, and characters must exist in the world"
     )
-    interaction_text: Optional[str] = Field(default=None, description="What the character says when first interacted with")
+    interaction_text: Optional[str] = Field(default=None, description="What the character says when first interacted with. Note: this is required if the character proposes a puzzle or gives items")
     relevance_to_objective: str = Field(description="How this character helps achieve the main objective")
 
 class GeneratedCharacter(BaseModel):
     name: str = Field(description="Unique name of the character")
     descriptions: List[str] = Field(description="List of character descriptions")
-    location: str = Field(description="Location where this character is placed")
-    inventory: List[str] = Field(default=[], description="Items this character starts with")
+    location: str = Field(description="Location where this character is placed. Note: this location must exist in the world")
+    inventory: List[str] = Field(default=[], description="Items this character starts with. Note: all items must exist in the world")
     interaction: Optional[CharacterInteraction] = Field(default=None, description="How this character can help the player, or None if just decorative")
 
 class BlockedPassage(BaseModel):
-    location: str = Field(description="Destination location that is blocked")
+    location: str = Field(description="Destination location that is blocked. Note: this location must exist in the world and be in the connecting_locations list")
+    obstacle_name: str = Field(description="Name of the physical object that blocks the passage (e.g., 'Candado', 'Puerta cerrada'). Note: this should be a separate item from what's needed to unblock it")
     obstacle_description: str = Field(description="Description of the physical obstacle")
     required_to_unblock: Union[ItemRequirement, PuzzleRequirement, LocationRequirement, CharacterRequirement] = Field(
-        description="What's needed to unblock this passage"
+        description="What's needed to unblock this passage. Note: this must be different from obstacle_name - the obstacle blocks, the requirement removes the obstacle"
     )
     relevance_to_objective: str = Field(description="Why accessing this location is important for the objective")
 
 class GeneratedLocation(BaseModel):
     name: str = Field(description="Unique name of the location")
     descriptions: List[str] = Field(description="List of atmospheric descriptions")
-    items: List[str] = Field(default=[], description="Names of items initially present")
-    connecting_locations: List[str] = Field(default=[], description="Directly accessible locations")
+    items: List[str] = Field(default=[], description="Names of items initially present. Note: all items must exist in the world")
+    connecting_locations: List[str] = Field(default=[], description="Directly accessible locations. Note: connections must be bidirectional - if A connects to B, then B must connect to A")
     blocked_passages: List[BlockedPassage] = Field(default=[], description="Blocked passages with their requirements")
     relevance_to_objective: Optional[str] = Field(default=None, description="How this location relates to the main objective")
 
 class ObjectiveComponent(BaseModel):
     """Represents a component involved in the objective."""
-    name: str = Field(description="Name of the component (item, character, or location)")
+    name: str = Field(description="Name of the component (item, character, or location). Note: this component must exist in the world")
     component_type: ComponentType = Field(description="Type of component")
     role_in_objective: str = Field(description="What role this component plays in completing the objective")
 
 class GeneratedObjective(BaseModel):
     type: ObjectiveType = Field(description="Type of the main objective")
-    components: List[ObjectiveComponent] = Field(description="All components involved in this objective")
+    components: List[ObjectiveComponent] = Field(description="All components involved in this objective. Note: all referenced components must exist in the world")
     description: str = Field(description="Clear description of what the player needs to accomplish")
-    success_conditions: List[str] = Field(description="Specific conditions that must be met to complete the objective")
+    success_conditions: List[str] = Field(description="Specific conditions that must be met to complete the objective. Note: ensure these conditions are actually achievable given the world setup")
 
 class DependencyChain(BaseModel):
     """Represents a chain of dependencies leading to the objective."""
     chain_description: str = Field(description="Description of this dependency chain")
     steps: List[str] = Field(description="Ordered list of steps in this chain")
-    elements_involved: List[str] = Field(description="Names of all world elements involved in this chain")
+    elements_involved: List[str] = Field(description="Names of all world elements involved in this chain. Note: all elements must exist in the world")
 
 class GeneratedWorld(BaseModel):
-    locations: List[GeneratedLocation] = Field(description="All locations in the world")
-    items: List[GeneratedItem] = Field(description="All items in the world")
-    characters: List[GeneratedCharacter] = Field(description="All non-player characters")
-    puzzles: List[GeneratedPuzzle] = Field(description="All puzzles in the world")
-    player: GeneratedCharacter = Field(description="The player character")
-    objective: GeneratedObjective = Field(description="The main objective")
-    dependency_chains: List[DependencyChain] = Field(description="Possible paths to complete the objective")
+    locations: List[GeneratedLocation] = Field(description="All locations in the world. Note: all location connections must be bidirectional")
+    items: List[GeneratedItem] = Field(description="All items in the world. Note: objective target items must be gettable=True")
+    characters: List[GeneratedCharacter] = Field(description="All non-player characters. Note: all character locations must exist, and all character inventories must contain existing items")
+    puzzles: List[GeneratedPuzzle] = Field(description="All puzzles in the world. Note: puzzle rewards must reference existing world elements")
+    player: GeneratedCharacter = Field(description="The player character. Note: player location must exist in the world")
+    objective: GeneratedObjective = Field(description="The main objective. Note: all objective components must exist and be accessible in the world")
+    dependency_chains: List[DependencyChain] = Field(description="Possible paths to complete the objective. Note: all chains must be actually completable with the given world elements")
     world_theme: str = Field(description="Overall theme or setting of the world")
     narrative_context: str = Field(description="Background story that explains why everything is connected")
 
