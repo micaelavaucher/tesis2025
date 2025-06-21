@@ -52,33 +52,6 @@ def game_loop(message, history):
     global number_of_turns
     global game_log_dictionary
 
-    # DEBUG: Comando especial para inspeccionar puzzles
-    if message.lower() in ["inspect puzzles", "inspeccionar puzzles", "debug puzzles", "debug", "inspect"]:
-        debug_info = "🧩 **Información de Puzzles:**\n\n"
-        
-        if hasattr(world, 'puzzles') and world.puzzles:
-            for puzzle_name, puzzle in world.puzzles.items():
-                debug_info += f"**{puzzle_name}:**\n"
-                debug_info += f"- Descripción: {', '.join(puzzle.descriptions)}\n"
-                debug_info += f"- Problema: {puzzle.problem}\n"
-                debug_info += f"- Respuesta: {puzzle.answer}\n\n"
-        else:
-            debug_info += "No se encontraron puzzles en el mundo.\n\n"
-            
-        debug_info += "🚪 **Pasajes Bloqueados:**\n\n"
-        blocked_found = False
-        for location in world.locations.values():
-            if hasattr(location, 'blocked_locations') and location.blocked_locations:
-                for blocked_loc, blocking_element in location.blocked_locations.items():
-                    blocked_found = True
-                    blocking_type = type(blocking_element[1]).__name__
-                    debug_info += f"- {location.name} → {blocked_loc} (bloqueado por: {blocking_element[1].name} [{blocking_type}])\n"
-        
-        if not blocked_found:
-            debug_info += "No se encontraron pasajes bloqueados.\n"
-            
-        return debug_info.replace("<",r"\<").replace(">", r"\>")
-
     # DEBUG: Comando especial para inspeccionar el mundo
     if message.lower() in ["inspect", "inspeccionar", "inspect world", "inspeccionar mundo"]:
         from world_builder import inspect_generated_world

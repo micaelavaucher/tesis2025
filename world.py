@@ -25,7 +25,9 @@ class Component:
 class Puzzle (Component):
   """A class to represent a Puzzle"""
 
-  def __init__(self, name:str, descriptions: 'list[str]', problem: str, answer: str):
+  def __init__(self, name: str, descriptions: 'list[str]', problem: str, answer: str, 
+               puzzle_type: str = "riddle", proposed_by_character: str = None, 
+               rewards: list = None, relevance_to_objective: str = None):
     
     super().__init__(name, descriptions)
     """inherited from Component"""
@@ -35,6 +37,18 @@ class Puzzle (Component):
 
     self.answer = answer
     """a possible answer to the riddle or puzzle"""
+    
+    self.puzzle_type = puzzle_type
+    """type of puzzle (riddle, logic, sequence, etc.)"""
+    
+    self.proposed_by_character = proposed_by_character
+    """character who proposes this puzzle, or None if environmental"""
+    
+    self.rewards = rewards or []
+    """list of rewards obtained when solving this puzzle"""
+    
+    self.relevance_to_objective = relevance_to_objective
+    """how solving this puzzle helps achieve the main objective"""
 
 class Item (Component):
   """A class to represent an Item."""
@@ -155,6 +169,9 @@ class World:
 
     self.locations =  {}
     """a dictionary of all the Locations in the world, with their names as values"""
+    
+    self.puzzles = {}
+    """a dictionary of all the Puzzles in the world, with their names as values"""
 
     self.player = player
     """a character for the player"""
@@ -221,11 +238,17 @@ class World:
           print(f"Error setting objective: {e}")
           self.objective = None
 
-  def add_puzzle(self, puzzle):
+  def add_puzzle(self, puzzle: Puzzle) -> None:
       """Add a puzzle to the world."""
-      if not hasattr(self, 'puzzles'):
-          self.puzzles = []
-      self.puzzles.append(puzzle)
+      if puzzle.name in self.puzzles:
+          raise Exception(f"Error: Already exists a puzzle called '{puzzle.name}'")
+      else:
+          self.puzzles[puzzle.name] = puzzle
+  
+  def add_puzzles(self, puzzles: 'list[Puzzle]') -> None:
+      """Add a set of puzzles to the world."""
+      for puzzle in puzzles:
+          self.add_puzzle(puzzle)
 
   def add_location (self,location: Location) -> None:
     """Add a location to the world."""
@@ -279,17 +302,19 @@ class World:
     return rendered_world
   
   def __render_world_spanish(self, *,  detail_components:bool = True) -> str:
-    """Return the fictional world as a natural language description, using simple sentences in Spanish.
-
-    The components described are only those the player can see in the current location.
-    If detail_components is False, then the descriptions for each component are not included.
-    """
+    """Return the fictional world as a natural language description, using simple sentences in Spanish."""
     player_location = self.player.location
     reachable_locations = [f"<{p.name}>" for p in player_location.connecting_locations]
     blocked_passages = [f"<{p}> bloqueado por <{player_location.blocked_locations[p][1].name}>" for p in player_location.blocked_locations.keys()]
     characters_in_the_scene = [character for character in self.characters.values() if character.location is player_location]
-
     
+    # Add puzzles proposed by characters in the scene
+    puzzles_available = []
+    for character in characters_in_the_scene:
+        for puzzle_name, puzzle in self.puzzles.items():
+            if puzzle.proposed_by_character == character.name:
+                puzzles_available.append(puzzle)
+
     world_description = f'El jugador está en <{player_location.name}>\n'
     
     if reachable_locations:
@@ -313,14 +338,20 @@ class World:
       world_description += f'El jugador puede ver los siguientes objetos: None\n'
       
     if characters_in_the_scene:
-      world_description += f'El jugador puede ver a los siguientes personajes: {(", ").join([f"<{c.name}>" for c in characters_in_the_scene])}'
+      world_description += f'El jugador puede ver a los siguientes personajes: {(", ").join([f"<{c.name}>" for c in characters_in_the_scene])}\n'
     else:
-      world_description += f'El jugador puede ver a los siguientes personajes: None'
+      world_description += f'El jugador puede ver a los siguientes personajes: None\n'
+    
+    if puzzles_available:
+      world_description += f'Hay puzzles disponibles propuestos por personajes: {(", ").join([f"<{p.name}>" for p in puzzles_available])}'
+    else:
+      world_description += f'Hay puzzles disponibles propuestos por personajes: None'
 
     details = ""
     if detail_components:
       items_in_the_scene = player_location.items + self.player.inventory + [blocked_values[1] for blocked_values in player_location.blocked_locations.values() if isinstance(blocked_values[1], Item)]
       puzzles_in_the_scene = [blocked_values[1] for blocked_values in player_location.blocked_locations.values() if isinstance(blocked_values[1], Puzzle)]
+      puzzles_in_the_scene += puzzles_available  # Add character-proposed puzzles
 
       details += "\nAquí hay una descripción de cada componente.\n"
       details += f"<{player_location.name}>: Este es el lugar en el que está el jugador. {('. ').join(player_location.descriptions)}.\n"
@@ -423,6 +454,7 @@ class World:
     self.parse_moved_objects(updates)
     self.parse_blocked_passages(updates)
     self.parse_location_change(updates)
+    self.parse_puzzle_solution(updates)
 
   def update_structured(self, update_data: dict) -> None:
     """Update the world using structured data from the language model.
@@ -481,3 +513,84 @@ class World:
       except Exception as e:
         print(e)
 
+  def parse_puzzle_solution(self, updates: str) -> None:
+      """Parse the output of the language model to detect puzzle solutions."""
+      parsed_puzzle_solutions = re.findall(r".*Puzzle solved:\s*(.+)", updates)
+      if 'None' not in parsed_puzzle_solutions and parsed_puzzle_solutions:
+          # Formato esperado: "Puzzle solved: <puzzle_name> with answer <answer>"
+          puzzle_info = parsed_puzzle_solutions[0]
+          
+          # Extraer nombre del puzzle y respuesta
+          puzzle_match = re.findall(r"<([^<>]*?)>.*?answer\s+(.+)", puzzle_info)
+          if puzzle_match:
+              puzzle_name = puzzle_match[0][0]
+              user_answer = puzzle_match[0][1].strip()
+              
+              try:
+                  if self.solve_puzzle(puzzle_name, user_answer):
+                      print(f"✅ Puzzle {puzzle_name} resuelto correctamente!")
+                  else:
+                      print(f"❌ Respuesta incorrecta para puzzle {puzzle_name}")
+              except Exception as e:
+                  print(f"Error processing puzzle solution: {e}")
+
+  def solve_puzzle(self, puzzle_name: str, answer: str) -> bool:
+      """Attempt to solve a puzzle and apply rewards if successful."""
+      if puzzle_name not in self.puzzles:
+          return False
+      
+      puzzle = self.puzzles[puzzle_name]
+      
+      # Check if answer is correct (flexible comparison)
+      correct_answer = puzzle.answer.lower().strip()
+      user_answer = answer.lower().strip()
+      
+      if correct_answer == user_answer:
+          # Apply rewards
+          self._apply_puzzle_rewards(puzzle)
+          return True
+      
+      return False
+
+  def _apply_puzzle_rewards(self, puzzle: 'Puzzle'):
+      """Apply the rewards for solving a puzzle."""
+      for reward in puzzle.rewards:
+          try:
+              if hasattr(reward, 'reward_type'):
+                  if reward.reward_type == "ITEM" and hasattr(reward, 'item_name'):
+                      # Give item to player - case insensitive search
+                      item = self._find_item_case_insensitive(reward.item_name)
+                      if item:
+                          # Find who has the item and transfer it
+                          for char in self.characters.values():
+                              if item in char.inventory:
+                                  char.give_item(self.player, item)
+                                  break
+                          # Also check if item is in a location
+                          for location in self.locations.values():
+                              if item in location.items:
+                                  self.player.save_item(item, location)
+                                  break
+                  
+                  elif reward.reward_type == "PASSAGE" and hasattr(reward, 'from_location') and hasattr(reward, 'to_location'):
+                      # Unblock passage - case insensitive search
+                      from_loc = self._find_location_case_insensitive(reward.from_location)
+                      to_loc = self._find_location_case_insensitive(reward.to_location)
+                      if from_loc and to_loc and to_loc.name in from_loc.blocked_locations:
+                          from_loc.unblock_passage(to_loc)
+          except Exception as e:
+              print(f"Error applying puzzle reward: {e}")
+
+  def _find_item_case_insensitive(self, item_name: str) -> 'Item':
+      """Find an item by name, case insensitive."""
+      for name, item in self.items.items():
+          if name.lower() == item_name.lower():
+              return item
+      return None
+
+  def _find_location_case_insensitive(self, location_name: str) -> 'Location':
+      """Find a location by name, case insensitive."""
+      for name, location in self.locations.items():
+          if name.lower() == location_name.lower():
+              return location
+      return None

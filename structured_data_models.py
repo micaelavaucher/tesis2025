@@ -104,6 +104,7 @@ class GeneratedPuzzle(BaseModel):
         description="What you get when you solve this puzzle"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
+    hint: str = Field(description="How the character or the narration hints to the puzzle")
 
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
