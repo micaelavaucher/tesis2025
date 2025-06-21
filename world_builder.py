@@ -40,7 +40,12 @@ def create_world_from_llm_response(world_data) -> World:
                 name=puzzle_data.name,
                 descriptions=puzzle_data.descriptions,
                 problem=puzzle_data.problem,
-                answer=puzzle_data.answer)
+                answer=puzzle_data.answer,
+                puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
+                proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                rewards=getattr(puzzle_data, 'rewards', []),
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+            )
             puzzles_dict[puzzle_data.name] = puzzle
         
         # Create locations (without connections yet)
@@ -86,27 +91,20 @@ def create_world_from_llm_response(world_data) -> World:
                         blocking_element = None
                         requirement = blocked.required_to_unblock
                         
-                        if requirement.requirement_type == RequirementType.PUZZLE:
-                            puzzle_name = requirement.puzzle_name
-                            if puzzle_name in puzzles_dict:
+                        req_type = requirement.requirement_type.value if hasattr(requirement.requirement_type, 'value') else str(requirement.requirement_type)
+                        
+                        if req_type in ["PUZZLE", "puzzle"]:
+                            puzzle_name = getattr(requirement, 'puzzle_name', None)
+                            if puzzle_name and puzzle_name in puzzles_dict:
                                 blocking_element = puzzles_dict[puzzle_name]
-                            #     print(f"   ✅ Puzzle encontrado: {blocking_element.name}")
-                            # else:
-                            #     print(f"   ❌ Puzzle no encontrado: {puzzle_name}")
                                 
-                        elif requirement.requirement_type == RequirementType.ITEM:
-                            item_name = requirement.item_name  
-                            if item_name in items_dict:
+                        elif req_type in ["ITEM", "item"]:
+                            item_name = getattr(requirement, 'item_name', None)
+                            if item_name and item_name in items_dict:
                                 blocking_element = items_dict[item_name]
-                            #     print(f"   ✅ Item encontrado: {blocking_element.name}")
-                            # else:
-                            #     print(f"   ❌ Item no encontrado: {item_name}")
                         
                         if blocking_element:
                             location.block_passage(blocked_location, blocking_element)
-                        #     print(f"   ✅ Pasaje bloqueado exitosamente")
-                        # else:
-                        #     print(f"   ❌ No se pudo bloquear el pasaje")
 
         # Create the player character
         player_data = generated_world.player
@@ -183,48 +181,54 @@ def create_world_from_llm_response(world_data) -> World:
 def set_objective_from_generated(objective_data, items_dict, locations_dict, characters_list, player):
     """Create an objective tuple from generated data."""
     try:
-        obj_type = objective_data.type
+        # Handle enum values properly
+        obj_type = objective_data.type.value if hasattr(objective_data.type, 'value') else str(objective_data.type)
         components = objective_data.components
                 
         # Handle different objective types with new component system
-        if obj_type == "GET_ITEM":
+        if obj_type in ["GET_ITEM", "get_item"]:
             # Find the item component
             for component in components:
-                if component.component_type == "ITEM":
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["ITEM", "item"]:
                     if component.name in items_dict:
                         return (player, items_dict[component.name])
         
-        elif obj_type == "REACH_LOCATION":
+        elif obj_type in ["REACH_LOCATION", "reach_location"]:
             # Find the location component
             for component in components:
-                if component.component_type == "LOCATION":
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["LOCATION", "location"]:
                     if component.name in locations_dict:
                         return (player, locations_dict[component.name])
         
-        elif obj_type == "FIND_CHARACTER":
+        elif obj_type in ["FIND_CHARACTER", "find_character"]:
             # Find the character component
             for component in components:
-                if component.component_type == "CHARACTER":
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["CHARACTER", "character"]:
                     character = next((c for c in characters_list if c.name == component.name), None)
                     if character:
                         return (player, character)
         
-        elif obj_type == "DELIVER_ITEM":
+        elif obj_type in ["DELIVER_ITEM", "deliver_item"]:
             # Need both item and location/character components
             item_component = None
             target_component = None
             
             for component in components:
-                if component.component_type == "ITEM":
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["ITEM", "item"]:
                     item_component = component
-                elif component.component_type in ["LOCATION", "CHARACTER"]:
+                elif component_type in ["LOCATION", "location", "CHARACTER", "character"]:
                     target_component = component
             
             if item_component and target_component:
                 if item_component.name in items_dict:
-                    if target_component.component_type == "LOCATION" and target_component.name in locations_dict:
+                    target_type = target_component.component_type.value if hasattr(target_component.component_type, 'value') else str(target_component.component_type)
+                    if target_type in ["LOCATION", "location"] and target_component.name in locations_dict:
                         return (items_dict[item_component.name], locations_dict[target_component.name])
-                    elif target_component.component_type == "CHARACTER":
+                    elif target_type in ["CHARACTER", "character"]:
                         character = next((c for c in characters_list if c.name == target_component.name), None)
                         if character:
                             return (items_dict[item_component.name], character)
@@ -402,7 +406,12 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 name=puzzle_data.name,
                 descriptions=puzzle_data.descriptions,
                 problem=puzzle_data.problem,
-                answer=puzzle_data.answer)
+                answer=puzzle_data.answer,
+                puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
+                proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                rewards=getattr(puzzle_data, 'rewards', []),
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+            )
             puzzles_dict[puzzle_data.name] = puzzle
             world.add_puzzle(puzzle)
         
@@ -455,12 +464,16 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                         blocking_element = None
                         requirement = blocked.required_to_unblock
                         
-                        if requirement.requirement_type == RequirementType.PUZZLE:
-                            if requirement.puzzle_name in puzzles_dict:
-                                blocking_element = puzzles_dict[requirement.puzzle_name]
-                        elif requirement.requirement_type == RequirementType.ITEM:
-                            if requirement.item_name in items_dict:
-                                blocking_element = items_dict[requirement.item_name]
+                        req_type = requirement.requirement_type.value if hasattr(requirement.requirement_type, 'value') else str(requirement.requirement_type)
+                        
+                        if req_type in ["PUZZLE", "puzzle"]:
+                            puzzle_name = getattr(requirement, 'puzzle_name', None)
+                            if puzzle_name and puzzle_name in puzzles_dict:
+                                blocking_element = puzzles_dict[puzzle_name]
+                        elif req_type in ["ITEM", "item"]:
+                            item_name = getattr(requirement, 'item_name', None)
+                            if item_name and item_name in items_dict:
+                                blocking_element = items_dict[item_name]
                         
                         if blocking_element:
                             location.block_passage(blocked_location, blocking_element)
