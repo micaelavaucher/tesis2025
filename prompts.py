@@ -152,75 +152,67 @@ def prompt_world_update_spanish (world_state: str, input: str):
     Aquí hay algunas aclaraciones:
     (A) Presta atención a a la descripción de los componentes y sus capacidades.
     (B) Si un pasaje está bloqueado, significa que el jugador debe desbloquearlo antes de poder acceder al lugar. Aunque el jugador te diga que va a acceder al lugar bloqueado, tienes que estar seguro de que está cumpliendo con lo pedido para permitirle desbloquear el acceso, por ejemplo usando una llave o resolviendo un puzzle.
-	(C) No asumas que lo que dice el jugador siempre tiene sentido; quizás esas acciones intentan hacer algo que el mundo no lo permite.
-    (D) Sigue siempre el siguiente formato con las tres categorías, usando "None" en cada caso si no hay cambios y repite la categoría por cada caso:
+    (C) **PERSONAJES CON REQUISITOS**: Si un personaje tiene requisitos específicos (como resolver un puzzle o tener ciertos objetos), NO debe dar objetos o ayudar hasta que esos requisitos se cumplan. Revisa cuidadosamente la sección de "interaction" de cada personaje y sus "requires".
+    (D) No asumas que lo que dice el jugador siempre tiene sentido; quizás esas acciones intentan hacer algo que el mundo no lo permite.
+    (E) **PUZZLES PROPUESTOS POR PERSONAJES**: Si un personaje propone un puzzle ("proposes_puzzle"), debe mencionarlo ANTES de dar cualquier recompensa. El jugador debe resolver el puzzle primero.
+    (F) Sigue siempre el siguiente formato con las tres categorías, usando "None" en cada caso si no hay cambios y repite la categoría por cada caso:
     - Moved object: <object> now is in <new_location>
     - Blocked passages now available: <now_reachable_location>
     - Your location changed: <new_location>
-    (E) Por último, puedes agregar una narración de los cambios detecados en el estado del mundo (¡sin hacer avanzar la historia y sin crear detalles no incluidos en el estado del mundo!) usando el formato: #tu mensaje final#
-    (F) Dentro de la sección de narración que agregues al final, entre símbolos #, también puedes responder preguntas que haga el jugador en su entrada, sobre los objetos o personajes que puede ver, o el lugar en el que se encuentra.
+    - Puzzle solved: <puzzle_name> with answer <answer> (solo si el jugador resolvió un puzzle)
+    (G) Por último, puedes agregar una narración de los cambios detecados en el estado del mundo (¡sin hacer avanzar la historia y sin crear detalles no incluidos en el estado del mundo!) usando el formato: #tu mensaje final#
+    (H) Dentro de la sección de narración que agregues al final, entre símbolos #, también puedes responder preguntas que haga el jugador en su entrada, sobre los objetos o personajes que puede ver, o el lugar en el que se encuentra.
 
-    Aquí hay algunos ejemplos (con la aclaración entre paréntesis sobre qué podría haber intentado hacer el jugador) sobre el formato, descritos en los puntos (D) y (E):
+    Aquí hay algunos ejemplos (con la aclaración entre paréntesis sobre qué podría haber intentado hacer el jugador) sobre el formato, descritos en los puntos (F) y (G):
     
     Ejemplo 1 (El jugador guarda el hacha en su inventario)
     - Moved object: <hacha> now is in <Inventory>
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
     # Guardaste el hacha en tu bolso. Sientes la diferencia de peso luego de haberla guardado #
 
     Ejemplo 2 (El jugador desbloquea el pasaje al Sótano)
     - Moved object: None
     - Blocked passages now available: <Sótano>
     - Your location changed: None
+    - Puzzle solved: None
     # El sótano, que estaba bloqueado, ahora está accesible #
 
     Ejemplo 3 (El jugador ahora está en el Jardín)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: <Jardín>
+    - Puzzle solved: None
     # Entras al Jardín #
 
-    Ejemplo 4 (El jugador guarda objetos y deja el hacha en el lugar)
-    - Moved object: <banana> now is in <Inventory>,  <botella> now is in <Inventory>,  <hacha> now is in <Hall principal>
-    - Blocked passages now available: None
-    - Your location changed: None
-    # Guardaste la banana y la botella en tu bolso. El hacha quedó en el Hall principal #
-
-    Ejemplo 5 (El jugador guarda objetos, deja el hacha en el lugar y desbloquea el pasaje a la Pequeña habitación)
-    - Moved object: <banana> now is in <Inventory>,  <botella> now is in <Inventory>,  <hacha> now is in <Hall principal>
-    - Blocked passages now available: <Pequeña habitación>
-    - Your location changed: None
-    # Guardaste la banana y la botella en tu bolso. El hacha quedó en el Hall principal. Además, la pequeña habitación ahora está accesible. #
-
-    Ejemplo 6 (El jugador guarda objetos, deja el hacha en el lugar, desbloquea el pasaje y se mueve a la Pequeña habitación)
-    - Moved object: <banana> now is in <Inventory>,  <botella> now is in <Inventory>,  <hacha> now is in <Hall principal>
-    - Blocked passages now available: <Pequeña habitación>
-    - Your location changed:  <Pequeña habitación>
-    # Guardaste la banana y la botella en tu bolso. El hacha quedó en el Hall principal. Además, la pequeña habitación ahora está accesible e ingresaste a ella #
-
-    Ejemplo 7 (El jugador guarda el lápiz y le da un libro a John)
-    - Moved object: <libro> now is in <John>,  <lápiz> now is in <Inventory>
-    - Blocked passages now available: None
-    - Your location changed:  None
-    # John ahora tiene el libro. Tú guardaste el lápiz en tu bolso #
-
-    Ejemplo 8 (El jugador le da la computadora a Susan)
-    - Moved object: <computadora> now is in <Susan>
-    - Blocked passages now available: None
-    - Your location changed:  None
-    # Susan guardó la computadora en su bolso #
-
-    Ejemplo 9 (El jugador hace algo que no tiene como resultado el efecto que esperaba)
+    Ejemplo 4 (El jugador pide algo a un personaje que requiere resolver un puzzle primero)
     - Moved object: None
     - Blocked passages now available: None
-    - Your location changed:  None
-    # No pasa nada... #
+    - Your location changed: None
+    - Puzzle solved: None
+    # Laura te mira con una sonrisa. "Antes de darte lo que necesitas, debes resolver mi puzzle de los pinceles. Si el pincel rojo se usa para detalles finos, el azul para fondos y el amarillo para iluminaciones, ¿en qué orden deberías usarlos para pintar un amanecer?" #
 
-    Ejemplo 10 (El jugador hace una pregunta)
+    Ejemplo 5 (El jugador resuelve correctamente un puzzle)
+    - Moved object: <Llave dorada> now is in <Inventory>
+    - Blocked passages now available: None
+    - Your location changed: None
+    - Puzzle solved: <Puzzle de los pinceles> with answer <azul, amarillo, rojo>
+    # ¡Correcto! Laura sonríe orgullosa. "Exactamente, primero el azul para el fondo del cielo, luego el amarillo para la luz del amanecer, y finalmente el rojo para los detalles finos." Te entrega la llave dorada. #
+
+    Ejemplo 6 (El jugador da una respuesta incorrecta a un puzzle)
     - Moved object: None
     - Blocked passages now available: None
-    - Your location changed:  None
-    # Respuesta a la pregunta del jugador #"""
+    - Your location changed: None
+    - Puzzle solved: None
+    # Laura niega con la cabeza. "No, esa no es la respuesta correcta. Piénsalo mejor: ¿cómo pintarías un amanecer? ¿Qué va primero, el fondo o los detalles?" #
+
+    Ejemplo 7 (El jugador intenta conseguir algo sin cumplir requisitos)
+    - Moved object: None
+    - Blocked passages now available: None
+    - Your location changed: None
+    - Puzzle solved: None
+    # El personaje no puede ayudarte hasta que cumplas con lo que necesita #"""
     
     
     user_msg = f"""Expresa los cambios en el mundo siguiendo el formato pedido, teniendo en cuenta que el jugador ingresó esta entrada "{input}" a partir de este estado del mundo:
@@ -480,20 +472,22 @@ Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que est�
 
 **PERSONAJES (2):**
 - Emma (jugador): Adolescente, inventario vacío, ubicación inicial = Taller de pintura
-- Laura (madre): Artista, tiene la llave dorada, ubicación = Taller de pintura
+- Laura (madre): Artista, tiene la llave dorada en su inventario, ubicación = Taller de pintura
 - Laura DEBE proponer un puzzle cuando hables con ella
 - Laura debe requerir resolver el puzzle para dar la llave
 
 **OBJETOS REQUERIDOS:**
 - Tortuga "Hojita": En el jardín (objetivo principal)
-- Llave dorada: Con Laura, necesaria para abrir el candado
+- Llave dorada: En el inventario de Laura, necesaria para abrir el candado
 - Martillo gris: En el taller, útil para romper el candado (alternativa)
-- Martillo verde: En el taller, es solo decorativo (juguete inútil)
+- Martillo verde: En la cocina, es solo decorativo (juguete inútil)
 
 **PUZZLE REQUERIDO:**
 - Laura debe proponer un puzzle cuando interactúes con ella
 - El puzzle debe ser sencillo pero lógico
 - Resolver el puzzle debe ser requisito para obtener la llave
+- Una vez resuelto el puzzle, Laura le da la llave dorada a Emma
+    - La llave dorada deja de estar en el inventario de Laura y pasa a estar en el de Emma
 
 **CONEXIONES SEMÁNTICAS OBLIGATORIAS:**
 1. Para llegar al jardín → necesitas abrir el candado
@@ -516,9 +510,9 @@ Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que est�
 7. Emma abre el candado y rescata a Hojita
 
 **VALIDACIONES CRÍTICAS:**
-- Laura debe tener proposes_puzzle definido
-- El puzzle debe tener rewards que incluyan dar la llave
-- La interacción de Laura debe tener interaction_text
+- Laura debe tener `proposes_puzzle` definido
+- El puzzle debe tener `rewards` que incluyan dar la llave
+- La interacción de Laura debe tener `interaction_text`
 - Laura debe requerir resolver el puzzle para dar la llave
 
-Genera el JSON completo siguiendo el schema de GeneratedWorld. Asegúrate de que Laura PROPONGA el puzzle automáticamente al interactuar."""
+Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de que Laura PROPONGA el puzzle automáticamente al interactuar."""
