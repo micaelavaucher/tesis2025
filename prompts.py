@@ -305,77 +305,161 @@ def prompt_world_update_english (world_state: str, input: str):
     return system_msg, user_msg
 
 def prompt_generate_world(language: str = 'es') -> str:
-    """Prompt for generating a new world from scratch."""
+    """Generate a prompt for creating a creative world with full LLM autonomy."""
     if language == 'es':
-        prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Genera un mundo mediano y coherente con:
+        prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Tu tarea es crear un mundo completamente original y coherente. Tienes total libertad creativa para la historia, personajes, y ambientación, PERO debes seguir estrictas reglas técnicas para garantizar que el mundo sea jugable.
 
-        1. 3-4 ubicaciones conectadas (cada una con un nombre y 2-3 oraciones descriptivas)
-        2. 5-7 objetos únicos (con nombres y 2-3 oraciones descriptivas)
-        3. 2-3 personajes no jugadores (con nombres, descripciones, y ubicados en lugares específicos)
-        4. Un personaje jugador (con nombre, descripción, inventario inicial, y ubicación inicial)
-        5. 1-2 puzzles (con nombres, descripciones, problema y respuesta/solución)
-        6. Un objetivo principal para el jugador que sea algo retador
+**LIBERTAD CREATIVA TOTAL:**
+- Inventa cualquier historia, tema, o ambientación (medieval, sci-fi, moderno, fantástico, etc.)
+- Crea personajes únicos con personalidades interesantes
+- Diseña un objetivo principal desafiante y atractivo
+- Decide el tono (aventura, misterio, drama, comedia, etc.)
 
-        OBJETIVOS POSIBLES:
-        - Llevar un objeto a una ubicación específica
-        - Encontrar a un personaje específico
-        - Conseguir un objeto específico
-        - Ir a una ubicación específica
+**RESTRICCIONES TÉCNICAS OBLIGATORIAS:**
 
-        IMPORTANTE PARA OBJETIVOS DE "IR A UN LUGAR": Si el objetivo es llegar a una ubicación específica, DEBES asegurar que el camino esté bloqueado por al menos un puzzle o que requiera obtener un objeto específico primero. El jugador no debe poder completar el objetivo simplemente moviéndose directamente al lugar.
+**ESTRUCTURA MÍNIMA REQUERIDA:**
+- 3-4 ubicaciones (cada una con nombre único y 2-3 descripciones atmosféricas)
+- 4-6 objetos (nombres únicos y 2-3 descripciones cada uno)
+- 2-3 personajes no jugadores + 1 personaje jugador
+- 1-2 puzzles lógicos y solucionables
+- 1 objetivo principal claro y completable
 
-        PUZZLES Y PASAJES BLOQUEADOS:
-        Los puzzles pueden ser:
-        - Adivinanzas
-        - Problemas lógicos
-        - Preguntas sobre el mundo del juego
-        - Combinaciones de objetos
+**REGLAS DE CONEXIÓN OBLIGATORIAS:**
+1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
+2. **Objetivo alcanzable**: El objetivo DEBE ser completable con los elementos que crees
+3. **Cadena de dependencias**: Debe existir al menos una ruta lógica desde el estado inicial hasta completar el objetivo
 
-        IMPORTANTE: Cuando crees un pasaje bloqueado (blocked_passages), el campo "obstacle" debe contener EXACTAMENTE el nombre de un puzzle o item que hayas creado. Por ejemplo:
-        - Si creas un puzzle llamado "Acertijo de la puerta", usa exactamente "Acertijo de la puerta" en el campo obstacle
-        - Si creas un item llamado "Llave dorada", usa exactamente "Llave dorada" en el campo obstacle
+**REGLAS DE PERSONAJES:**
+1. **Interacciones funcionales**: Si un personaje tiene `interaction`, DEBE tener `interaction_text`
+2. **Puzzles coherentes**: Si un personaje propone un puzzle, el puzzle DEBE existir y tener `proposed_by_character` configurado
+3. **Inventarios válidos**: Todo objeto en inventarios de personajes DEBE existir en la lista de objetos del mundo
+4. **Ubicaciones válidas**: Todos los personajes DEBEN estar ubicados en lugares que existen
 
-        Haz que todo esté interconectado y sea lógico. Las ubicaciones deben conectar con al menos otra ubicación. Algunas ubicaciones pueden tener pasajes bloqueados que requieren objetos específicos o resolver puzzles para desbloquear.
+**REGLAS DE OBJETOS:**
+1. **Objetivos completables**: Si un objeto es requerido para el objetivo (`is_objective_target: true`), DEBE ser `gettable: true`
+2. **Consistencia funcional**: Objetos decorativos pueden ser `gettable: false`, objetos funcionales DEBEN ser `gettable: true`
+3. **Relevancia clara**: Cada objeto debe tener una razón de existir (funcional o atmosférica)
 
-        IMPORTANTE: Al crear pasajes bloqueados, asegúrate de que las dos ubicaciones ya estén conectadas (listadas en connecting_locations). Un pasaje solo puede ser bloqueado entre dos ubicaciones conectadas.
+**REGLAS DE PUZZLES:**
+1. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
+2. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
+3. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
 
-        IMPORTANTE: El objetivo debe ser alcanzable con los elementos que creates en el mundo.
-        """
+**REGLAS DE PASAJES BLOQUEADOS:**
+1. **Obstáculos separados**: El `obstacle_name` debe ser diferente del `required_to_unblock.item_name`
+   - Obstáculo = lo que bloquea físicamente (puerta, candado, barrera)
+   - Requirement = lo que remueve el obstáculo (llave, herramienta, conocimiento)
+2. **Elementos existentes**: Tanto obstáculos como requirements DEBEN existir como objetos en el mundo
+3. **Conectividad previa**: Solo puedes bloquear pasajes entre ubicaciones ya conectadas
+
+**VALIDACIÓN DE COMPLETABILIDAD:**
+Antes de finalizar, verifica mentalmente:
+1. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+2. ¿Existe al menos una ruta de solución desde el estado inicial?
+3. ¿Todos los elementos referenciados existen realmente en el mundo?
+4. ¿Las interacciones de personajes están completas?
+5. ¿Los puzzles tienen sentido y son solucionables?
+
+**INSPIRACIÓN TEMÁTICA (elige uno o combina):**
+- **Misterio**: Resolver un crimen, encontrar un tesoro perdido, descubrir un secreto
+- **Aventura**: Rescatar a alguien, explorar ruinas, completar una misión
+- **Supervivencia**: Escapar de un lugar, conseguir recursos, encontrar la salida
+- **Social**: Convencer personajes, reunir información, mediar conflictos
+- **Exploración**: Descubrir nuevas áreas, mapear territorio, encontrar artefactos
+
+**EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
+1. Jugador quiere [objetivo principal]
+2. Para [objetivo] necesita [objeto/ubicación X]
+3. Para conseguir X necesita [resolver puzzle/conseguir objeto Y]
+4. Para Y necesita [interactuar con personaje Z]
+5. Personaje Z requiere [completar tarea/tener objeto W]
+6. El jugador puede conseguir W directamente o mediante otro paso
+
+**FORMATO DE SALIDA:**
+Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de que:
+- Todos los nombres sean únicos y consistentes
+- Todas las referencias cruzadas sean válidas
+- El mundo sea completamente funcional desde el estado inicial
+- La historia sea engaging y los personajes memorables
+
+**RECUERDA:** Libertad creativa total para la narrativa, restricciones técnicas estrictas para la funcionalidad. ¡Crea algo único y jugable!"""
     else:
-        prompt = """You are a creative world architect for an interactive fiction game. Generate medium-sized, coherent world with:
+        prompt = """You are a creative world architect for an interactive fiction game. Your task is to create a completely original and coherent world. You have total creative freedom for the story, characters, and setting, BUT you must follow strict technical rules to ensure the world is playable.
 
-        1. 3-4 connected locations (each with a name and 2-3 descriptive sentences)
-        2. 5-7 unique items (with names and 2-3 descriptive sentences)
-        3. 2-3 non-player characters (with names, descriptions, and placed in specific locations)
-        4. One player character (with a name, description, starting inventory, and starting location)
-        5. 1-2 puzzles (with names, descriptions, problem and answer/solution)
-        6. A main objective for the player that is somewhat challenging
+**TOTAL CREATIVE FREEDOM:**
+- Invent any story, theme, or setting (medieval, sci-fi, modern, fantasy, etc.)
+- Create unique characters with interesting personalities
+- Design a challenging and engaging main objective
+- Decide the tone (adventure, mystery, drama, comedy, etc.)
 
-        POSSIBLE OBJECTIVES:
-        - Take an item to a specific location
-        - Find a specific character
-        - Get a specific item
-        - Go to a specific location
+**MANDATORY TECHNICAL CONSTRAINTS:**
 
-        IMPORTANT FOR "GO TO LOCATION" OBJECTIVES: If the objective is to reach a specific location, you MUST ensure that the path is blocked by at least one puzzle or requires obtaining a specific item first. The player should not be able to complete the objective by simply moving directly to the location.
+**MINIMUM REQUIRED STRUCTURE:**
+- 3-4 locations (each with unique name and 2-3 atmospheric descriptions)
+- 4-6 objects (unique names and 2-3 descriptions each)
+- 2-3 non-player characters + 1 player character
+- 1-2 logical and solvable puzzles
+- 1 clear and completable main objective
 
-        PUZZLES AND BLOCKED PASSAGES:
-        Puzzles can be:
-        - Riddles
-        - Logic problems
-        - Questions about the game world
-        - Object combinations
+**MANDATORY CONNECTION RULES:**
+1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
+2. **Achievable objective**: The objective MUST be completable with the elements you create
+3. **Dependency chain**: There must be at least one logical path from initial state to objective completion
 
-        IMPORTANT: When creating a blocked passage (blocked_passages), the "obstacle" field must contain EXACTLY the name of a puzzle or item you've created. For example:
-        - If you create a puzzle named "Door Riddle", use exactly "Door Riddle" in the obstacle field
-        - If you create an item named "Golden Key", use exactly "Golden Key" in the obstacle field
+**CHARACTER RULES:**
+1. **Functional interactions**: If a character has `interaction`, it MUST have `interaction_text`
+2. **Coherent puzzles**: If a character proposes a puzzle, the puzzle MUST exist and have `proposed_by_character` configured
+3. **Valid inventories**: Every object in character inventories MUST exist in the world's object list
+4. **Valid locations**: All characters MUST be located in places that exist
 
-        Make everything interconnected and logical. Locations should connect to at least one other location. Some locations can have blocked passages requiring specific items or solving puzzles to unblock.
+**OBJECT RULES:**
+1. **Completable objectives**: If an object is required for the objective (`is_objective_target: true`), it MUST be `gettable: true`
+2. **Functional consistency**: Decorative objects can be `gettable: false`, functional objects MUST be `gettable: true`
+3. **Clear relevance**: Each object should have a reason to exist (functional or atmospheric)
 
-        IMPORTANT: When creating blocked passages, ensure that the two locations are already connected (listed in connecting_locations). A passage can only be blocked between two connected locations.
+**PUZZLE RULES:**
+1. **Clear solutions**: Each puzzle MUST have a specific and unambiguous answer
+2. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
+3. **Internal logic**: Puzzles must make sense within your story's context
 
-        IMPORTANT: The objective must be achievable with the elements you create in the world.
-        """
+**BLOCKED PASSAGE RULES:**
+1. **Separate obstacles**: `obstacle_name` must be different from `required_to_unblock.item_name`
+   - Obstacle = what physically blocks (door, lock, barrier)
+   - Requirement = what removes the obstacle (key, tool, knowledge)
+2. **Existing elements**: Both obstacles and requirements MUST exist as objects in the world
+3. **Prior connectivity**: You can only block passages between already connected locations
+
+**COMPLETABILITY VALIDATION:**
+Before finalizing, mentally verify:
+1. Can the player complete the objective with available elements?
+2. Is there at least one solution path from the initial state?
+3. Do all referenced elements actually exist in the world?
+4. Are character interactions complete?
+5. Do puzzles make sense and are they solvable?
+
+**THEMATIC INSPIRATION (choose one or combine):**
+- **Mystery**: Solve a crime, find lost treasure, discover a secret
+- **Adventure**: Rescue someone, explore ruins, complete a mission
+- **Survival**: Escape a place, gather resources, find the exit
+- **Social**: Convince characters, gather information, mediate conflicts
+- **Exploration**: Discover new areas, map territory, find artifacts
+
+**EXAMPLE VALID DEPENDENCY CHAIN:**
+1. Player wants [main objective]
+2. For [objective] needs [object/location X]
+3. To get X needs [solve puzzle/get object Y]
+4. For Y needs [interact with character Z]
+5. Character Z requires [complete task/have object W]
+6. Player can get W directly or through another step
+
+**OUTPUT FORMAT:**
+Generate the complete JSON following the `GeneratedWorld` schema. Ensure that:
+- All names are unique and consistent
+- All cross-references are valid
+- The world is completely functional from the initial state
+- The story is engaging and characters memorable
+
+**REMEMBER:** Total creative freedom for narrative, strict technical constraints for functionality. Create something unique and playable!"""
     return prompt
 
 def prompt_expand_world(world_state: str, player_location: str, language: str = 'en') -> str:
