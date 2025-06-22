@@ -78,7 +78,7 @@ class GeminiModel():
                         temperature=0.7,
                         response_mime_type="application/json",
                         top_p=0.9,
-                        max_output_tokens=2048,
+                        max_output_tokens=8192,
                         response_schema=response_schema,
                     ),
                 )
@@ -96,6 +96,10 @@ class GeminiModel():
                 
                 response_text = response_text.strip()
                 
+                if not self._is_json_complete(response_text):
+                    print(f"Attempt {attempt + 1}: JSON appears truncated, retrying...")
+                    continue
+
                 # Parse the JSON response
                 parsed_response = json.loads(response_text)
                 return parsed_response
@@ -117,6 +121,22 @@ class GeminiModel():
                     return self._get_empty_response_for_schema(response_schema)
                 else:
                     print(f"Retrying... ({attempt + 2}/{max_retries})")
+
+    def _is_json_complete(self, json_text: str) -> bool:
+        """Check if JSON appears to be complete (basic heuristic)."""
+        if not json_text.strip():
+            return False
+    
+        # Count braces and brackets
+        open_braces = json_text.count('{')
+        close_braces = json_text.count('}')
+        open_brackets = json_text.count('[')
+        close_brackets = json_text.count(']')
+        
+        # Basic check: should have matching braces/brackets
+        return (open_braces == close_braces and 
+                open_brackets == close_brackets and
+                json_text.strip().endswith('}'))
 
     def _get_empty_response_for_schema(self, response_schema):
         """Generate an empty response that matches the expected schema structure."""

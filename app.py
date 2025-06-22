@@ -133,8 +133,8 @@ if generation_mode == 'generate':
     else:
         print("⚙️ Generation mode: Generating a new world from scratch...")
 
-    # world_prompt = prompt_generate_world(language=language)
-    world_prompt = prompt_generate_turtle_world_validation(language=language)
+    world_prompt = prompt_generate_world(language=language)
+    # world_prompt = prompt_generate_turtle_world_validation(language=language)
 
     try:
         if hasattr(reasoning_model, 'prompt_model_structured'):
