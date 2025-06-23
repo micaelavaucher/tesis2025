@@ -67,7 +67,7 @@ def prompt_narrate_current_scene (world_state: str, previous_narrations: 'list[s
 
 def prompt_narrate_current_scene_english (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
 
-    system_msg = "You are a storyteller. Take the state of the world given to you and narrate it in a few sentences. Be careful not to include details that contradict the current state of the world or that move the story forward. Also, try to use simple sentences and do not overuse poetic language"
+    system_msg = "You are a storyteller. Take the state of the world given to you and narrate it in a few sentences. Be careful not to include details that contradict the current state of the world, that move the story forward, or invent new puzzles that arent in the world. Also, try to use simple sentences and do not overuse poetic language"
     
     if starting_scene:
         system_msg += "\nTake into account that this is the first scene in the story: introduce the main character, creating a small background story and why that character is in that specific location.\n"
@@ -88,7 +88,7 @@ def prompt_narrate_current_scene_english (world_state: str, previous_narrations:
 
 def prompt_narrate_current_scene_spanish (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
     
-    system_msg = f"""Eres un narrador. Toma el estado del mundo que se te de y nárralo en unas pocas oraciones. Ten cuidado de no incluir detalles que contradigan el estado del mundo actual, o que hagan avanzar la historia. Además, si el jugador está en la misma ubicación en la que existe un puzzle, debes darle una pista que le haga saber que allí hay un puzzle, o que un personaje tiene un puzzle para él. Intenta usar oraciones simples, sin abusar del lenguaje poético."""
+    system_msg = f"""Eres un narrador. Toma el estado del mundo que se te de y nárralo en unas pocas oraciones. Ten cuidado de no incluir detalles que contradigan el estado del mundo actual, o que hagan avanzar la historia, o inventar puzzles o acertijos que no esten ya en el mundo. Además, si el jugador está en la misma ubicación en la que existe un puzzle, debes darle una pista que le haga saber que allí hay un puzzle, o que un personaje tiene un puzzle para él. Intenta usar oraciones simples, sin abusar del lenguaje poético."""
     
     if starting_scene:
         system_msg += "\nTen en cuenta que esta es la primera escena en la historia narrada: presenta al personaje del jugador, creando un pequeño trasfondo y por qué este personaje está en ese lugar específicamente. Puede usar las pequeñas descripciones presentes en el estado del mundo. Es importante que menciones todos los componentes que hay en este lugar. Sin embargo, es mejor si no describes cada componente: basta con que los menciones con una mínima descripción poco específica. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición. \n"
@@ -460,6 +460,164 @@ Generate the complete JSON following the `GeneratedWorld` schema. Ensure that:
 - The story is engaging and characters memorable
 
 **REMEMBER:** Total creative freedom for narrative, strict technical constraints for functionality. Create something unique and playable!"""
+    return prompt
+
+def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> str:
+    """Generate a prompt for creating a creative world based on specific inspiration with full LLM autonomy."""
+    if language == 'es':
+        prompt = f"""Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Tu tarea es crear un mundo completamente original y coherente BASADO ESPECÍFICAMENTE EN LA SIGUIENTE INSPIRACIÓN:
+
+**INSPIRACIÓN OBLIGATORIA:**
+{inspo}
+
+**INSTRUCCIÓN CRÍTICA:** Debes crear tu mundo usando esta inspiración como base fundamental. Todos los elementos del mundo (historia, personajes, ambientación, objetivo principal) deben estar directamente conectados y derivados de esta inspiración. NO ignores ni te desvíes de esta inspiración base.
+
+**LIBERTAD CREATIVA DENTRO DE LA INSPIRACIÓN:**
+- Desarrolla la historia, tema, y ambientación basándote en la inspiración proporcionada
+- Crea personajes únicos que encajen con el tema inspiracional
+- Diseña un objetivo principal que sea coherente con la inspiración
+- Adapta el tono para que complemente la inspiración dada
+
+**RESTRICCIONES TÉCNICAS OBLIGATORIAS:**
+
+**ESTRUCTURA MÍNIMA REQUERIDA:**
+- 3-4 ubicaciones (cada una con nombre único y 2-3 descripciones atmosféricas)
+- 4-6 objetos (nombres únicos y 2-3 descripciones cada uno)
+- 2-3 personajes no jugadores + 1 personaje jugador
+- 1-2 puzzles lógicos y solucionables
+- 1 objetivo principal claro y completable
+
+**REGLAS DE CONEXIÓN OBLIGATORIAS:**
+1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
+2. **Objetivo alcanzable**: El objetivo DEBE ser completable con los elementos que crees
+3. **Cadena de dependencias**: Debe existir al menos una ruta lógica desde el estado inicial hasta completar el objetivo
+
+**REGLAS DE PERSONAJES:**
+1. **Interacciones funcionales**: Si un personaje tiene `interaction`, DEBE tener `interaction_text`
+2. **Puzzles coherentes**: Si un personaje propone un puzzle, el puzzle DEBE existir y tener `proposed_by_character` configurado
+3. **Inventarios válidos**: Todo objeto en inventarios de personajes DEBE existir en la lista de objetos del mundo
+4. **Ubicaciones válidas**: Todos los personajes DEBEN estar ubicados en lugares que existen
+
+**REGLAS DE OBJETOS:**
+1. **Objetivos completables**: Si un objeto es requerido para el objetivo (`is_objective_target: true`), DEBE ser `gettable: true`
+2. **Consistencia funcional**: Objetos decorativos pueden ser `gettable: false`, objetos funcionales DEBEN ser `gettable: true`
+3. **Relevancia clara**: Cada objeto debe tener una razón de existir (funcional o atmosférica)
+
+**REGLAS DE PUZZLES:**
+1. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
+2. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
+3. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
+
+**REGLAS DE PASAJES BLOQUEADOS:**
+1. **Obstáculos separados**: El `obstacle_name` debe ser diferente del `required_to_unblock.item_name`
+   - Obstáculo = lo que bloquea físicamente (puerta, candado, barrera)
+   - Requirement = lo que remueve el obstáculo (llave, herramienta, conocimiento)
+2. **Elementos existentes**: Tanto obstáculos como requirements DEBEN existir como objetos en el mundo
+3. **Conectividad previa**: Solo puedes bloquear pasajes entre ubicaciones ya conectadas
+
+**VALIDACIÓN DE COMPLETABILIDAD:**
+Antes de finalizar, verifica mentalmente:
+1. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+2. ¿Existe al menos una ruta de solución desde el estado inicial?
+3. ¿Todos los elementos referenciados existen realmente en el mundo?
+4. ¿Las interacciones de personajes están completas?
+5. ¿Los puzzles tienen sentido y son solucionables?
+6. **¿TODO el mundo está coherentemente basado en la inspiración proporcionada?**
+
+**EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
+1. Jugador quiere [objetivo principal basado en la inspiración]
+2. Para [objetivo] necesita [objeto/ubicación X relacionado con la inspiración]
+3. Para conseguir X necesita [resolver puzzle/conseguir objeto Y que encaje con el tema]
+4. Para Y necesita [interactuar con personaje Z derivado de la inspiración]
+5. Personaje Z requiere [completar tarea/tener objeto W coherente con el tema]
+6. El jugador puede conseguir W directamente o mediante otro paso
+
+**FORMATO DE SALIDA:**
+Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de que:
+- Todos los nombres sean únicos y consistentes
+- Todas las referencias cruzadas sean válidas
+- El mundo sea completamente funcional desde el estado inicial
+- La historia sea engaging y los personajes memorables
+- **TODO esté basado en y sea coherente con la inspiración proporcionada**
+
+**RECUERDA:** Debes usar la inspiración proporcionada como base fundamental para TODO el mundo. Libertad creativa total DENTRO de esa inspiración, restricciones técnicas estrictas para la funcionalidad. ¡Crea algo único, jugable y fiel a la inspiración!"""
+    else:
+        prompt = f"""You are a creative world architect for an interactive fiction game. Your task is to create a completely original and coherent world BASED SPECIFICALLY ON THE FOLLOWING INSPIRATION:
+
+**MANDATORY INSPIRATION:**
+{inspo}
+
+**CRITICAL INSTRUCTION:** You must create your world using this inspiration as the fundamental base. All world elements (story, characters, setting, main objective) must be directly connected to and derived from this inspiration. DO NOT ignore or deviate from this base inspiration.
+
+**CREATIVE FREEDOM WITHIN THE INSPIRATION:**
+- Develop the story, theme, and setting based on the provided inspiration
+- Create unique characters that fit the inspirational theme
+- Design a main objective that is coherent with the inspiration
+- Adapt the tone to complement the given inspiration
+
+**MANDATORY TECHNICAL CONSTRAINTS:**
+
+**MINIMUM REQUIRED STRUCTURE:**
+- 3-4 locations (each with unique name and 2-3 atmospheric descriptions)
+- 4-6 objects (unique names and 2-3 descriptions each)
+- 2-3 non-player characters + 1 player character
+- 1-2 logical and solvable puzzles
+- 1 clear and completable main objective
+
+**MANDATORY CONNECTION RULES:**
+1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
+2. **Achievable objective**: The objective MUST be completable with the elements you create
+3. **Dependency chain**: There must be at least one logical path from initial state to objective completion
+
+**CHARACTER RULES:**
+1. **Functional interactions**: If a character has `interaction`, it MUST have `interaction_text`
+2. **Coherent puzzles**: If a character proposes a puzzle, the puzzle MUST exist and have `proposed_by_character` configured
+3. **Valid inventories**: Every object in character inventories MUST exist in the world's object list
+4. **Valid locations**: All characters MUST be located in places that exist
+
+**OBJECT RULES:**
+1. **Completable objectives**: If an object is required for the objective (`is_objective_target: true`), it MUST be `gettable: true`
+2. **Functional consistency**: Decorative objects can be `gettable: false`, functional objects MUST be `gettable: true`
+3. **Clear relevance**: Each object should have a reason to exist (functional or atmospheric)
+
+**PUZZLE RULES:**
+1. **Clear solutions**: Each puzzle MUST have a specific and unambiguous answer
+2. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
+3. **Internal logic**: Puzzles must make sense within your story's context
+
+**BLOCKED PASSAGE RULES:**
+1. **Separate obstacles**: `obstacle_name` must be different from `required_to_unblock.item_name`
+   - Obstacle = what physically blocks (door, lock, barrier)
+   - Requirement = what removes the obstacle (key, tool, knowledge)
+2. **Existing elements**: Both obstacles and requirements MUST exist as objects in the world
+3. **Prior connectivity**: You can only block passages between already connected locations
+
+**COMPLETABILITY VALIDATION:**
+Before finalizing, mentally verify:
+1. Can the player complete the objective with available elements?
+2. Is there at least one solution path from the initial state?
+3. Do all referenced elements actually exist in the world?
+4. Are character interactions complete?
+5. Do puzzles make sense and are they solvable?
+6. **Is the ENTIRE world coherently based on the provided inspiration?**
+
+**EXAMPLE VALID DEPENDENCY CHAIN:**
+1. Player wants [main objective based on inspiration]
+2. For [objective] needs [object/location X related to inspiration]
+3. To get X needs [solve puzzle/get object Y that fits the theme]
+4. For Y needs [interact with character Z derived from inspiration]
+5. Character Z requires [complete task/have object W coherent with theme]
+6. Player can get W directly or through another step
+
+**OUTPUT FORMAT:**
+Generate the complete JSON following the `GeneratedWorld` schema. Ensure that:
+- All names are unique and consistent
+- All cross-references are valid
+- The world is completely functional from the initial state
+- The story is engaging and characters memorable
+- **EVERYTHING is based on and coherent with the provided inspiration**
+
+**REMEMBER:** You must use the provided inspiration as the fundamental base for the ENTIRE world. Total creative freedom WITHIN that inspiration, strict technical constraints for functionality. Create something unique, playable, and faithful to the inspiration!"""
     return prompt
 
 def prompt_expand_world(world_state: str, player_location: str, language: str = 'en') -> str:
