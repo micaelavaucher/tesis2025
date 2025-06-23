@@ -13,6 +13,7 @@ from prompts import (
     prompt_world_update, 
     prompt_describe_objective,
     prompt_generate_world,
+    prompt_generate_world_from_inspiration,
     prompt_generate_turtle_world_validation,
     prompt_expand_world,
     should_expand_world
@@ -31,6 +32,44 @@ config.read('config.ini')
 
 # language of the game
 language = config['Options']['Language']
+
+def launch_main_interface(world, starting_narration):
+    # Inicialización variables de turno
+    global last_player_position, number_of_turns, game_log_dictionary
+    last_player_position = world.player.location
+    number_of_turns = 0
+    game_log_dictionary = {}
+    game_log_dictionary["nickname"] = "anonymous"
+    game_log_dictionary["language"] = language
+    game_log_dictionary["world_id"] = f"generated_{int(time.time())}"
+    game_log_dictionary["narrative_model_name"] = narrative_model_name
+    game_log_dictionary["reasoning_model_name"] = reasoning_model_name
+    game_log_dictionary[0] = {
+        "date": time.ctime(time.time()),
+        "initial_symbolic_world_state": jsonpickle.encode(world, unpicklable=True),
+        "initial_rendered_world_state": world.render_world(language=language),
+        "starting_narration": starting_narration
+    }
+
+    with open(os.path.join(PATH_GAMELOGS,log_filename), 'w', encoding='utf-8') as f:
+        json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
+
+    gr.ChatInterface(
+        fn=game_loop,
+        chatbot = gr.Chatbot(
+            height="85vh",
+            value=[{"role": "assistant", "content": starting_narration.replace("<",r"\<").replace(">", r"\>")}],
+            bubble_full_width = False, 
+            show_copy_button = False,
+            type='messages',
+        ),
+        textbox=gr.Textbox(placeholder="What do you want to do?", container=False, scale=5),
+        title="PAYADOR",
+        theme="Soft",
+        type='messages',
+        autoscroll=True,
+    ).launch()
+
 
 # Initialize the model 
 reasoning_model_name = config['Models']['ReasoningModel']
@@ -126,6 +165,119 @@ def game_loop(message, history):
     return answer.replace("<",r"\<").replace(">", r"\>")
 
 generation_mode = config['Options'].get('GenerationMode', 'preset') # 'preset' es el valor por defecto si no existe la clave
+
+if generation_mode == "inspiration":
+    with gr.Blocks() as interfaz:
+        with gr.Column(visible=True) as pre_game:
+            gr.Markdown("# 🌱 PAYADOR: Modo inspiración")
+            gr.Markdown("Escribí una frase o temática para inspirar la creación del mundo:")
+            inspo_input = gr.Textbox(label="Frase o temática")
+            generar_btn = gr.Button("Crear mundo")
+            error_output = gr.Textbox(visible=False, label="Error")
+
+        with gr.Column(visible=False) as main_game:
+            chat = gr.Chatbot(
+                height="85vh",
+                bubble_full_width=False, 
+                show_copy_button=False,
+                type='messages'
+            )
+            textbox = gr.Textbox(placeholder="¿Qué querés hacer?", container=False, scale=5)
+
+        def build_world_and_start(inspo):
+            try:
+                global world, last_player_position, number_of_turns, game_log_dictionary
+
+                print(f"[INFO] Generando mundo desde inspiración: '{inspo}'")
+                world_prompt = prompt_generate_world_from_inspiration(inspo=inspo, language=language)
+                world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
+                world = create_world_from_llm_response(world_response)
+                print("world:", world)
+
+                # Narración escena inicial
+                system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
+                    world.render_world(language=language),
+                    previous_narrations=world.player.visited_locations[world.player.location.name],
+                    language=language,
+                    starting_scene=True
+                )
+                starting_narration = narrative_model.prompt_model(system_msg=system_msg_current_scene, user_msg=user_msg_current_scene)
+
+                # Objetivo
+                if hasattr(world, 'objective') and world.objective:
+                    system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
+                    narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
+                    try:
+                        objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
+                        starting_narration += f"\n\n🎯 {objective_text}"
+                    except:
+                        starting_narration += f"\n\n🎯 {narrated_objective}"
+
+                # Inicializar variables globales
+                last_player_position = world.player.location
+                number_of_turns = 0
+                game_log_dictionary = {}
+                game_log_dictionary["nickname"] = "anonymous"
+                game_log_dictionary["language"] = language
+                game_log_dictionary["world_id"] = f"generated_{int(time.time())}"
+                game_log_dictionary["narrative_model_name"] = narrative_model_name
+                game_log_dictionary["reasoning_model_name"] = reasoning_model_name
+                game_log_dictionary[0] = {
+                    "date": time.ctime(time.time()),
+                    "initial_symbolic_world_state": jsonpickle.encode(world, unpicklable=True),
+                    "initial_rendered_world_state": world.render_world(language=language),
+                    "starting_narration": starting_narration
+                }
+
+                with open(os.path.join(PATH_GAMELOGS,log_filename), 'w', encoding='utf-8') as f:
+                    json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
+
+                # Mostrar interfaz principal
+                return (
+                    gr.update(visible=False),  # Oculta input de inspiración
+                    gr.update(visible=True),   # Muestra interfaz de juego
+                    [{"role": "assistant", "content": starting_narration}],
+                    gr.update(visible=False)
+                )
+
+            except Exception as e:
+                print(f"[ERROR] {e}")
+                return (
+                    gr.update(visible=True),
+                    gr.update(visible=False),
+                    [],
+                    gr.update(value=f"❌ Error generando el mundo: {str(e)}", visible=True)
+                )
+
+        generar_btn.click(
+            fn=build_world_and_start,
+            inputs=inspo_input,
+            outputs=[pre_game, main_game, chat, error_output]
+        )
+
+        def game_loop_wrapper(message, history):
+            # Mostrar mensaje del usuario inmediatamente
+            history.append({"role": "user", "content": message})
+            
+            # Obtener respuesta del modelo
+            respuesta = game_loop(message, history)
+            
+            # Agregar respuesta del asistente
+            history.append({"role": "assistant", "content": respuesta})
+            
+            return history, ""  # el "" borra el textbox
+
+
+        textbox.submit(
+            fn=game_loop_wrapper,
+            inputs=[textbox, chat],
+            outputs=[chat, textbox]
+        )
+
+    interfaz.launch(inbrowser=False)
+    exit()
+
+
 
 if generation_mode == 'generate':
     if language == 'es':

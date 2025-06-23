@@ -159,6 +159,8 @@ def create_world_from_llm_response(world_data) -> World:
         for puzzle in puzzles_dict.values():
             world.add_puzzle(puzzle)
 
+        print(generated_world.objective)
+
         # Set the objective if it exists
         if generated_world.objective:
             world.objective = set_objective_from_generated(
