@@ -167,13 +167,33 @@ def game_loop(message, history):
 generation_mode = config['Options'].get('GenerationMode', 'preset') # 'preset' es el valor por defecto si no existe la clave
 
 if generation_mode == "inspiration":
+    if language == "es":
+        TITLE = "# 🌱 PAYADOR: Modo inspiración"
+        PROMPT_LABEL = "Escribí una frase o temática para inspirar la creación del mundo:"
+        TEXTBOX_LABEL = "Frase o temática"
+        CREATE_BUTTON_TEXT = "Crear mundo"
+        ERROR_LABEL = "Error"
+        SPINNER_TEXT = "Generando mundo..."
+        GENERATE_WORLD= "Crear mundo"
+        TEXTBOX_PLACEHOLDER = "¿Qué quieres hacer?"
+    else:
+        TITLE = "# 🌱 PAYADOR: Inspiration Mode"
+        PROMPT_LABEL = "Write a theme or idea to inspire the world:"
+        TEXTBOX_LABEL = "Theme or idea"
+        CREATE_BUTTON_TEXT = "Create world"
+        ERROR_LABEL = "Error"
+        SPINNER_TEXT = "Generating world..."
+        GENERATE_WORLD= "Create world"
+        TEXTBOX_PLACEHOLDER = "What do you want to do next?"
+
     with gr.Blocks() as interfaz:
         with gr.Column(visible=True) as pre_game:
-            gr.Markdown("# 🌱 PAYADOR: Modo inspiración")
-            gr.Markdown("Escribí una frase o temática para inspirar la creación del mundo:")
-            inspo_input = gr.Textbox(label="Frase o temática")
-            generar_btn = gr.Button("Crear mundo")
-            error_output = gr.Textbox(visible=False, label="Error")
+            gr.Markdown(TITLE)
+            gr.Markdown(PROMPT_LABEL)
+            inspo_input = gr.Textbox(label=TEXTBOX_LABEL)
+            generar_btn = gr.Button(GENERATE_WORLD, elem_id="generar-btn")
+            error_output = gr.Textbox(visible=False, label=ERROR_LABEL)
+            spinner = gr.HTML(visible=False) 
 
         with gr.Column(visible=False) as main_game:
             chat = gr.Chatbot(
@@ -182,7 +202,33 @@ if generation_mode == "inspiration":
                 show_copy_button=False,
                 type='messages'
             )
-            textbox = gr.Textbox(placeholder="¿Qué querés hacer?", container=False, scale=5)
+            textbox = gr.Textbox(placeholder=TEXTBOX_PLACEHOLDER, container=False, scale=5)
+
+        # Función que muestra el spinner y desactiva botón
+        def preparar_creacion():
+            spinner_html = """
+            <div style='text-align:center;'>
+              <div class='loader'></div>
+              <p>Generando mundo...</p>
+            </div>
+            <style>
+              .loader {
+                border: 6px solid #f3f3f3;
+                border-top: 6px solid #3b82f6;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: auto;
+              }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            </style>
+            """
+            return gr.update(value=SPINNER_TEXT, interactive=False), gr.update(value=spinner_html, visible=True)
+
 
         def build_world_and_start(inspo):
             try:
@@ -192,7 +238,7 @@ if generation_mode == "inspiration":
                 world_prompt = prompt_generate_world_from_inspiration(inspo=inspo, language=language)
                 world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
                 world = create_world_from_llm_response(world_response)
-                print("world:", world)
+                print("world:", world_response)
 
                 # Narración escena inicial
                 system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
@@ -233,11 +279,14 @@ if generation_mode == "inspiration":
                     json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
 
                 # Mostrar interfaz principal
+                # Ocultar cargando y mostrar interfaz principal
                 return (
-                    gr.update(visible=False),  # Oculta input de inspiración
-                    gr.update(visible=True),   # Muestra interfaz de juego
-                    [{"role": "assistant", "content": starting_narration}],
-                    gr.update(visible=False)
+                    gr.update(visible=False),        # pre_game
+                    gr.update(visible=True),         # main_game
+                    [{"role": "assistant", "content": starting_narration}],  # chat
+                    gr.update(value="", visible=False),  # error_output oculto y vacío
+                    gr.update(value="Crear mundo", interactive=True),        # botón
+                    gr.update(value="", visible=False)                       # spinner oculto
                 )
 
             except Exception as e:
@@ -246,26 +295,32 @@ if generation_mode == "inspiration":
                     gr.update(visible=True),
                     gr.update(visible=False),
                     [],
-                    gr.update(value=f"❌ Error generando el mundo: {str(e)}", visible=True)
+                    gr.update(value=f"❌ Error generando el mundo: {str(e)}", visible=True),
+                    gr.update(value=""""""),
+                    gr.update(value="", visible=False) 
                 )
 
+         # Encadenamiento: spinner y luego creación
         generar_btn.click(
+            fn=preparar_creacion,
+            outputs=[generar_btn, spinner]
+        ).then(
             fn=build_world_and_start,
             inputs=inspo_input,
-            outputs=[pre_game, main_game, chat, error_output]
+            outputs=[pre_game, main_game, chat, error_output, generar_btn, spinner]
         )
 
         def game_loop_wrapper(message, history):
-            # Mostrar mensaje del usuario inmediatamente
+            # Mostrar mensaje del usuario
             history.append({"role": "user", "content": message})
             
             # Obtener respuesta del modelo
             respuesta = game_loop(message, history)
-            
+
             # Agregar respuesta del asistente
             history.append({"role": "assistant", "content": respuesta})
-            
-            return history, ""  # el "" borra el textbox
+
+            return history, ""  # Borrar textbox para permitir seguir jugando
 
 
         textbox.submit(

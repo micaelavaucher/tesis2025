@@ -1,6 +1,8 @@
 """Load models to use them as a narrator and a common-sense oracle in the PAYADOR pipeline."""
+import time
 import google.genai as genai
 from google.genai import types
+from google.genai.errors import ServerError
 import replicate
 import os
 import json
@@ -58,15 +60,25 @@ class GeminiModel():
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = model_name
 
-    def prompt_model(self, system_msg: str, user_msg:str) -> str:
-        """Prompt the Gemini model."""
+    def prompt_model(self, system_msg: str, user_msg: str, retry_attempts: int = 3, delay_seconds: int = 2) -> str:
+        """Prompt the Gemini model con reintentos automáticos en caso de sobrecarga."""
         full_prompt = system_msg + "\n\n" + user_msg
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=full_prompt,
-        )
-        return response.text
-
+        for attempt in range(retry_attempts):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=full_prompt,
+                )
+                return response.text.strip()
+            except ServerError as e:
+                if e.status_code == 503:
+                    print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{retry_attempts}")
+                    time.sleep(delay_seconds)
+                else:
+                    print(f"[ERROR] Otro error con el modelo: {e}")
+                    break
+        return "⚠️ El modelo está sobrecargado o no respondió. Por favor, intentá nuevamente."
+    
     def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3):
         """Prompt the Gemini model with structured output."""
         for attempt in range(max_retries):
