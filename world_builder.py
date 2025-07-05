@@ -7,7 +7,7 @@ import json
 from typing import Dict
 
 from world import World, Location, Item, Character, Puzzle
-from structured_data_models import GeneratedWorld, WorldExpansion
+from structured_data_models import GeneratedWorld, WorldExpansion, RequirementType
 
 # ----------------------------------------- #
 # Main functions for creating the world     #
@@ -40,15 +40,13 @@ def create_world_from_llm_response(world_data) -> World:
                 name=puzzle_data.name,
                 descriptions=puzzle_data.descriptions,
                 problem=puzzle_data.problem,
-                answer=puzzle_data.answer)
+                answer=puzzle_data.answer,
+                puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
+                proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                rewards=getattr(puzzle_data, 'rewards', []),
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+            )
             puzzles_dict[puzzle_data.name] = puzzle
-            
-            # DEBUG: Print puzzle information
-            print(f"🧩 Puzzle creado: {puzzle.name}")
-            print(f"   Descripción: {puzzle.descriptions}")
-            print(f"   Problema: {puzzle.problem}")
-            print(f"   Respuesta: {puzzle.answer}")
-            print()
         
         # Create locations (without connections yet)
         locations_dict: Dict[str, Location] = {}
@@ -62,53 +60,52 @@ def create_world_from_llm_response(world_data) -> World:
                 items=location_items)
             locations_dict[loc_data.name] = location
 
-        # Connect locations
-        for blocked in loc_data.blocked_passages:
-            if blocked.location in locations_dict:
+        # Connect locations (normal connections first)
+        for loc_data in generated_world.locations:
+            if loc_data.name in locations_dict:
                 location = locations_dict[loc_data.name]
-                blocked_location = locations_dict[blocked.location]
+                for connected_loc_name in loc_data.connecting_locations:
+                    if connected_loc_name in locations_dict:
+                        connected_location = locations_dict[connected_loc_name]
+                        if connected_location not in location.connecting_locations:
+                            location.connecting_locations.append(connected_location)
+                        # Make bidirectional connection
+                        if location not in connected_location.connecting_locations:
+                            connected_location.connecting_locations.append(location)
+
+        # Handle blocked passages
+        for loc_data in generated_world.locations:
+            if loc_data.name in locations_dict:
+                location = locations_dict[loc_data.name]
                 
-                # Check if the locations are connected before blocking
-                if blocked_location not in location.connecting_locations:
-                    # Connect the locations first
-                    location.connecting_locations.append(blocked_location)
-                    if blocked.symmetric:
-                        blocked_location.connecting_locations.append(location)
-                
-                # DEBUG: Print blocking information
-                print(f"🚪 Intentando bloquear pasaje: {location.name} -> {blocked_location.name}")
-                print(f"   Obstáculo: {blocked.obstacle}")
-                
-                # Now block the passage - check if obstacle is a puzzle or an item
-                blocking_element = None
-                if blocked.obstacle in puzzles_dict:
-                    blocking_element = puzzles_dict[blocked.obstacle]
-                    print(f"   ✅ Puzzle encontrado: {blocking_element.name}")
-                elif blocked.obstacle in items_dict:
-                    blocking_element = items_dict[blocked.obstacle]
-                    print(f"   ✅ Item encontrado: {blocking_element.name}")
-                else:
-                    print(f"   ❌ Obstáculo no encontrado en puzzles ni items")
-                    # Try to find by partial name match
-                    for puzzle_name, puzzle in puzzles_dict.items():
-                        if blocked.obstacle.lower() in puzzle_name.lower() or puzzle_name.lower() in blocked.obstacle.lower():
-                            blocking_element = puzzle
-                            print(f"   ✅ Puzzle encontrado por coincidencia parcial: {puzzle_name}")
-                            break
-                    
-                    if not blocking_element:
-                        for item_name, item in items_dict.items():
-                            if blocked.obstacle.lower() in item_name.lower() or item_name.lower() in blocked.obstacle.lower():
-                                blocking_element = item
-                                print(f"   ✅ Item encontrado por coincidencia parcial: {item_name}")
-                                break
-                
-                if blocking_element:
-                    location.block_passage(blocked_location, blocking_element, blocked.symmetric)
-                    print(f"   ✅ Pasaje bloqueado exitosamente")
-                else:
-                    print(f"   ❌ No se pudo bloquear el pasaje - obstáculo no válido")
-        
+                for blocked in loc_data.blocked_passages:
+                    if blocked.location in locations_dict:
+                        blocked_location = locations_dict[blocked.location]
+                        
+                        # Ensure locations are connected before blocking
+                        if blocked_location not in location.connecting_locations:
+                            location.connecting_locations.append(blocked_location)
+                            blocked_location.connecting_locations.append(location)
+                                                
+                        # Get blocking element based on requirement type
+                        blocking_element = None
+                        requirement = blocked.required_to_unblock
+                        
+                        req_type = requirement.requirement_type.value if hasattr(requirement.requirement_type, 'value') else str(requirement.requirement_type)
+                        
+                        if req_type in ["PUZZLE", "puzzle"]:
+                            puzzle_name = getattr(requirement, 'puzzle_name', None)
+                            if puzzle_name and puzzle_name in puzzles_dict:
+                                blocking_element = puzzles_dict[puzzle_name]
+                                
+                        elif req_type in ["ITEM", "item"]:
+                            item_name = getattr(requirement, 'item_name', None)
+                            if item_name and item_name in items_dict:
+                                blocking_element = items_dict[item_name]
+                        
+                        if blocking_element:
+                            location.block_passage(blocked_location, blocking_element)
+
         # Create the player character
         player_data = generated_world.player
         player_inventory = [items_dict[item_name] for
@@ -143,6 +140,7 @@ def create_world_from_llm_response(world_data) -> World:
                 descriptions=char_data.descriptions,
                 location=char_location,
                 inventory=char_inventory)
+                        
             characters_list.append(character)
 
         # Create the world
@@ -161,17 +159,19 @@ def create_world_from_llm_response(world_data) -> World:
         for puzzle in puzzles_dict.values():
             world.add_puzzle(puzzle)
 
+        print(generated_world.objective)
+
         # Set the objective if it exists
-        if hasattr(generated_world, 'objective') and generated_world.objective:
+        if generated_world.objective:
             world.objective = set_objective_from_generated(
                 generated_world.objective, 
                 items_dict, 
                 locations_dict, 
                 characters_list, 
                 player)
-            print(f"Objective set: {world.objective}")
 
         return world
+        
     except Exception as e:
         print(f"Error creating world from LLM response: {e}")
         import traceback
@@ -183,38 +183,59 @@ def create_world_from_llm_response(world_data) -> World:
 def set_objective_from_generated(objective_data, items_dict, locations_dict, characters_list, player):
     """Create an objective tuple from generated data."""
     try:
-        obj_type = objective_data.type.lower()
+        # Handle enum values properly
+        obj_type = objective_data.type.value if hasattr(objective_data.type, 'value') else str(objective_data.type)
         components = objective_data.components
+                
+        # Handle different objective types with new component system
+        if obj_type in ["GET_ITEM", "get_item"]:
+            # Find the item component
+            for component in components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["ITEM", "item"]:
+                    if component.name in items_dict:
+                        return (player, items_dict[component.name])
         
-        print(f"Setting objective: type={obj_type}, components={components}")
+        elif obj_type in ["REACH_LOCATION", "reach_location"]:
+            # Find the location component
+            for component in components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["LOCATION", "location"]:
+                    if component.name in locations_dict:
+                        return (player, locations_dict[component.name])
         
-        # Handle Spanish and English objective types
-        if obj_type in ["get_item", "encontrar", "conseguir"]:
-            if len(components) > 0:
-                item_name = components[0]
-                if item_name in items_dict:
-                    return (player, items_dict[item_name])
+        elif obj_type in ["FIND_CHARACTER", "find_character"]:
+            # Find the character component
+            for component in components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["CHARACTER", "character"]:
+                    character = next((c for c in characters_list if c.name == component.name), None)
+                    if character:
+                        return (player, character)
         
-        elif obj_type in ["find_character", "encontrar_personaje"]:
-            if len(components) > 0:
-                char_name = components[0]
-                character = next((c for c in characters_list if c.name == char_name), None)
-                if character:
-                    return (player, character)
+        elif obj_type in ["DELIVER_ITEM", "deliver_item"]:
+            # Need both item and location/character components
+            item_component = None
+            target_component = None
+            
+            for component in components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type in ["ITEM", "item"]:
+                    item_component = component
+                elif component_type in ["LOCATION", "location", "CHARACTER", "character"]:
+                    target_component = component
+            
+            if item_component and target_component:
+                if item_component.name in items_dict:
+                    target_type = target_component.component_type.value if hasattr(target_component.component_type, 'value') else str(target_component.component_type)
+                    if target_type in ["LOCATION", "location"] and target_component.name in locations_dict:
+                        return (items_dict[item_component.name], locations_dict[target_component.name])
+                    elif target_type in ["CHARACTER", "character"]:
+                        character = next((c for c in characters_list if c.name == target_component.name), None)
+                        if character:
+                            return (items_dict[item_component.name], character)
         
-        elif obj_type in ["reach_location", "ir_a", "llegar_a"]:
-            if len(components) > 0:
-                location_name = components[0]
-                if location_name in locations_dict:
-                    return (player, locations_dict[location_name])
-        
-        elif obj_type in ["item_to_location", "llevar_objeto"]:
-            if len(components) >= 2:
-                item_name, location_name = components[0], components[1]
-                if item_name in items_dict and location_name in locations_dict:
-                    return (items_dict[item_name], locations_dict[location_name])
-        
-        # If no specific match, try to infer from description
+        # Fallback: try to infer from description
         description = objective_data.description.lower()
         
         # Check if it's about finding an item
@@ -222,21 +243,18 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
             if item_name.lower() in description:
                 return (player, items_dict[item_name])
         
-        # Check if it's about reaching a location
+        # Check if it's about reaching a location  
         for location_name in locations_dict:
             if location_name.lower() in description:
                 return (player, locations_dict[location_name])
         
-        # Check if it's about finding a character
-        for character in characters_list:
-            if character.name.lower() in description:
-                return (player, character)
-                
-        print(f"Could not parse objective: {objective_data}")
+        print(f"   ❌ No se pudo establecer objetivo")
         return None
         
     except Exception as e:
         print(f"Error setting objective: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def inspect_generated_world(world: World, language: str = 'es') -> str:
@@ -305,10 +323,12 @@ def inspect_generated_world(world: World, language: str = 'es') -> str:
         else:
             report += f"🎯 **Objetivo:** No definido\n"
         
+        return report
+        
     else:
+        # English version (similar structure)
         report = "🌍 **GENERATED WORLD INSPECTION** 🌍\n\n"
         
-        # Basic world stats
         puzzles_count = 0
         if hasattr(world, 'puzzles'):
             if isinstance(world.puzzles, dict):
@@ -322,14 +342,12 @@ def inspect_generated_world(world: World, language: str = 'es') -> str:
         report += f"• Characters (NPCs): {len([c for c in world.characters.values() if c != world.player])}\n"
         report += f"• Puzzles: {puzzles_count}\n\n"
         
-        # Locations with connections
         report += f"🏠 **Locations and connections:**\n"
         for loc_name, location in world.locations.items():
             connections = [conn.name for conn in location.connecting_locations]
             report += f"• {loc_name} → connects to: {', '.join(connections) if connections else 'none'}\n"
         report += "\n"
         
-        # Blocked passages
         blocked_count = 0
         report += f"🚪 **Blocked passages:**\n"
         for location in world.locations.values():
@@ -343,11 +361,8 @@ def inspect_generated_world(world: World, language: str = 'es') -> str:
             report += "• No blocked passages\n"
         report += "\n"
         
-        # Puzzles summary
         if hasattr(world, 'puzzles') and world.puzzles:
             report += f"🧩 **Available puzzles:**\n"
-            
-            # Handle both dict and list formats
             if isinstance(world.puzzles, dict):
                 for puzzle_name, puzzle in world.puzzles.items():
                     problem_preview = puzzle.problem[:50] + "..." if len(puzzle.problem) > 50 else puzzle.problem
@@ -360,7 +375,6 @@ def inspect_generated_world(world: World, language: str = 'es') -> str:
             report += f"🧩 **Puzzles:** No puzzles in the world\n"
         report += "\n"
         
-        # Objective
         if hasattr(world, 'objective') and world.objective:
             obj_type = type(world.objective[1]).__name__
             obj_name = world.objective[1].name
@@ -368,7 +382,7 @@ def inspect_generated_world(world: World, language: str = 'es') -> str:
         else:
             report += f"🎯 **Objective:** Not defined\n"
     
-    return report
+        return report
 
 def expand_world_from_llm_response(world: World, response: str) -> None:
     """Parse structured LLM response and expand an existing World object."""
@@ -394,7 +408,12 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 name=puzzle_data.name,
                 descriptions=puzzle_data.descriptions,
                 problem=puzzle_data.problem,
-                answer=puzzle_data.answer)
+                answer=puzzle_data.answer,
+                puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
+                proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                rewards=getattr(puzzle_data, 'rewards', []),
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+            )
             puzzles_dict[puzzle_data.name] = puzzle
             world.add_puzzle(puzzle)
         
@@ -412,42 +431,54 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
 
         # Connect new locations to each other
         for loc_data in world_expansion.new_locations:
-            for connected_loc_name in loc_data.connecting_locations:
-                if connected_loc_name in locations_dict:
-                    locations_dict[loc_data.name].connecting_locations \
-                        .append(locations_dict[connected_loc_name])
+            if loc_data.name in locations_dict:
+                location = locations_dict[loc_data.name]
+                for connected_loc_name in loc_data.connecting_locations:
+                    if connected_loc_name in locations_dict:
+                        connected_location = locations_dict[connected_loc_name]
+                        if connected_location not in location.connecting_locations:
+                            location.connecting_locations.append(connected_location)
         
-        # Connect to player's current location if specified
-        if world_expansion.connect_to_current:
+        # Connect to existing world based on connections_to_existing
+        for connection_desc in world_expansion.connections_to_existing:
+            # This would need more sophisticated parsing based on the description
+            # For now, connect to player's current location
             for location in locations_dict.values():
                 world.player.location.connecting_locations.append(location)
                 location.connecting_locations.append(world.player.location)
+                break  # Just connect the first new location
         
-        # Handle blocked passages
+        # Handle blocked passages in new locations
         for loc_data in world_expansion.new_locations:
-            for blocked in loc_data.blocked_passages:
-                if blocked.location in locations_dict:
-                    location = locations_dict[loc_data.name]
-                    blocked_location = locations_dict[blocked.location]
-                    
-                    # Check if the locations are connected before blocking
-                    if blocked_location not in location.connecting_locations:
-                        # Connect the locations first
-                        location.connecting_locations.append(blocked_location)
-                        if blocked.symmetric:
+            if loc_data.name in locations_dict:
+                location = locations_dict[loc_data.name]
+                
+                for blocked in loc_data.blocked_passages:
+                    if blocked.location in locations_dict:
+                        blocked_location = locations_dict[blocked.location]
+                        
+                        # Ensure connection before blocking
+                        if blocked_location not in location.connecting_locations:
+                            location.connecting_locations.append(blocked_location)
                             blocked_location.connecting_locations.append(location)
-                    
-                    # Now block the passage - check if obstacle is a puzzle or an item
-                    if blocked.obstacle in puzzles_dict:
-                        location.block_passage(
-                            blocked_location, 
-                            puzzles_dict[blocked.obstacle],
-                            blocked.symmetric)
-                    elif blocked.obstacle in items_dict:
-                        location.block_passage(
-                            blocked_location, 
-                            items_dict[blocked.obstacle],
-                            blocked.symmetric)
+                        
+                        # Get blocking element based on requirement
+                        blocking_element = None
+                        requirement = blocked.required_to_unblock
+                        
+                        req_type = requirement.requirement_type.value if hasattr(requirement.requirement_type, 'value') else str(requirement.requirement_type)
+                        
+                        if req_type in ["PUZZLE", "puzzle"]:
+                            puzzle_name = getattr(requirement, 'puzzle_name', None)
+                            if puzzle_name and puzzle_name in puzzles_dict:
+                                blocking_element = puzzles_dict[puzzle_name]
+                        elif req_type in ["ITEM", "item"]:
+                            item_name = getattr(requirement, 'item_name', None)
+                            if item_name and item_name in items_dict:
+                                blocking_element = items_dict[item_name]
+                        
+                        if blocking_element:
+                            location.block_passage(blocked_location, blocking_element)
         
         # Create new characters
         for char_data in world_expansion.new_characters:
@@ -467,3 +498,5 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
             
     except Exception as e:
         print(f"Error expanding world from LLM response: {e}")
+        import traceback
+        traceback.print_exc()
