@@ -1,6 +1,8 @@
 """Load models to use them as a narrator and a common-sense oracle in the PAYADOR pipeline."""
+import time
 import google.genai as genai
 from google.genai import types
+from google.genai.errors import ServerError
 import replicate
 import os
 import json
@@ -58,15 +60,25 @@ class GeminiModel():
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = model_name
 
-    def prompt_model(self, system_msg: str, user_msg:str) -> str:
-        """Prompt the Gemini model."""
+    def prompt_model(self, system_msg: str, user_msg: str, retry_attempts: int = 3, delay_seconds: int = 2) -> str:
+        """Prompt the Gemini model con reintentos automáticos en caso de sobrecarga."""
         full_prompt = system_msg + "\n\n" + user_msg
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=full_prompt,
-        )
-        return response.text
-
+        for attempt in range(retry_attempts):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=full_prompt,
+                )
+                return response.text.strip()
+            except ServerError as e:
+                if e.status_code == 503:
+                    print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{retry_attempts}")
+                    time.sleep(delay_seconds)
+                else:
+                    print(f"[ERROR] Otro error con el modelo: {e}")
+                    break
+        return "⚠️ El modelo está sobrecargado o no respondió. Por favor, intentá nuevamente."
+    
     def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3):
         """Prompt the Gemini model with structured output."""
         for attempt in range(max_retries):
@@ -78,7 +90,7 @@ class GeminiModel():
                         temperature=0.7,
                         response_mime_type="application/json",
                         top_p=0.9,
-                        max_output_tokens=2048,
+                        max_output_tokens=8192,
                         response_schema=response_schema,
                     ),
                 )
@@ -96,6 +108,10 @@ class GeminiModel():
                 
                 response_text = response_text.strip()
                 
+                if not self._is_json_complete(response_text):
+                    print(f"Attempt {attempt + 1}: JSON appears truncated, retrying...")
+                    continue
+
                 # Parse the JSON response
                 parsed_response = json.loads(response_text)
                 return parsed_response
@@ -117,6 +133,22 @@ class GeminiModel():
                     return self._get_empty_response_for_schema(response_schema)
                 else:
                     print(f"Retrying... ({attempt + 2}/{max_retries})")
+
+    def _is_json_complete(self, json_text: str) -> bool:
+        """Check if JSON appears to be complete (basic heuristic)."""
+        if not json_text.strip():
+            return False
+    
+        # Count braces and brackets
+        open_braces = json_text.count('{')
+        close_braces = json_text.count('}')
+        open_brackets = json_text.count('[')
+        close_brackets = json_text.count(']')
+        
+        # Basic check: should have matching braces/brackets
+        return (open_braces == close_braces and 
+                open_brackets == close_brackets and
+                json_text.strip().endswith('}'))
 
     def _get_empty_response_for_schema(self, response_schema):
         """Generate an empty response that matches the expected schema structure."""
