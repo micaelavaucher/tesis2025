@@ -71,15 +71,26 @@ class GeminiModel():
                 )
                 return response.text.strip()
             except ServerError as e:
-                if e.status_code == 503:
+                # Check if it's an overload error (503) by examining the error message
+                if hasattr(e, 'error') and hasattr(e.error, 'code') and e.error.code == 503:
+                    print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{retry_attempts}")
+                    time.sleep(delay_seconds)
+                elif str(e).startswith('503 UNAVAILABLE'):
+                    # Alternative way to check for 503 error based on string representation
                     print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{retry_attempts}")
                     time.sleep(delay_seconds)
                 else:
                     print(f"[ERROR] Otro error con el modelo: {e}")
                     break
+            except Exception as general_error:
+                print(f"[ERROR] Error inesperado: {general_error}")
+                if attempt == retry_attempts - 1:  # If it's the last attempt
+                    break
+                time.sleep(delay_seconds)
+                
         return "⚠️ El modelo está sobrecargado o no respondió. Por favor, intentá nuevamente."
     
-    def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3):
+    def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3, delay_seconds: int = 2):
         """Prompt the Gemini model with structured output."""
         for attempt in range(max_retries):
             try:
@@ -118,7 +129,8 @@ class GeminiModel():
                 
             except json.JSONDecodeError as e:
                 print(f"JSON parsing error on attempt {attempt + 1}: {e}")
-                print(f"Raw response: {response.text[:500]}...")  # Print first 500 chars for debugging
+                if 'response' in locals():
+                    print(f"Raw response: {response.text[:500]}...")  # Print first 500 chars for debugging
                 
                 if attempt == max_retries - 1:
                     print("Max retries reached. Returning empty result.")
@@ -126,6 +138,18 @@ class GeminiModel():
                     return self._get_empty_response_for_schema(response_schema)
                 else:
                     print(f"Retrying... ({attempt + 2}/{max_retries})")
+                    time.sleep(delay_seconds)
+                    
+            except ServerError as e:
+                # Check if it's an overload error (503) by examining the error message
+                if str(e).startswith('503 UNAVAILABLE'):
+                    print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{max_retries}")
+                    time.sleep(delay_seconds)
+                else:
+                    print(f"[ERROR] Error del servidor en generación estructurada: {e}")
+                    if attempt == max_retries - 1:
+                        return self._get_empty_response_for_schema(response_schema)
+                    time.sleep(delay_seconds)
                     
             except Exception as e:
                 print(f"Unexpected error in structured output generation: {e}")
@@ -133,6 +157,7 @@ class GeminiModel():
                     return self._get_empty_response_for_schema(response_schema)
                 else:
                     print(f"Retrying... ({attempt + 2}/{max_retries})")
+                    time.sleep(delay_seconds)
 
     def _is_json_complete(self, json_text: str) -> bool:
         """Check if JSON appears to be complete (basic heuristic)."""
