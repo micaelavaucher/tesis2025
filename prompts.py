@@ -162,6 +162,7 @@ def prompt_world_update_spanish (world_state: str, input: str):
     - Puzzle solved: <puzzle_name> with answer <answer> (solo si el jugador resolvió un puzzle)
     (G) Por último, puedes agregar una narración de los cambios detecados en el estado del mundo (¡sin hacer avanzar la historia y sin crear detalles no incluidos en el estado del mundo!) usando el formato: #tu mensaje final#
     (H) Dentro de la sección de narración que agregues al final, entre símbolos #, también puedes responder preguntas que haga el jugador en su entrada, sobre los objetos o personajes que puede ver, o el lugar en el que se encuentra.
+    (I) Tu narración debe ser rica en detalles y evocadora, utilizando detalles sensoriales cuando sea apropiado. Haz que el mundo cobre vida a través de tus descripciones, sin dejar de adherirte a los hechos del estado del mundo.
 
     Aquí hay algunos ejemplos (con la aclaración entre paréntesis sobre qué podría haber intentado hacer el jugador) sobre el formato, descritos en los puntos (F) y (G):
     
@@ -170,49 +171,70 @@ def prompt_world_update_spanish (world_state: str, input: str):
     - Blocked passages now available: None
     - Your location changed: None
     - Puzzle solved: None
-    # Guardaste el hacha en tu bolso. Sientes la diferencia de peso luego de haberla guardado #
+    # Tomas el mango de madera desgastada del hacha, sintiendo su peso reconfortante mientras la levantas. La cabeza metálica brilla tenuemente bajo la luz mientras la aseguras cuidadosamente en tu mochila. El peso familiar contra tu espalda te recuerda el consejo de tu padre sobre siempre mantener una buena herramienta a mano. #
 
     Ejemplo 2 (El jugador desbloquea el pasaje al Sótano)
     - Moved object: None
     - Blocked passages now available: <Sótano>
     - Your location changed: None
     - Puzzle solved: None
-    # El sótano, que estaba bloqueado, ahora está accesible #
+    # Con un giro final de la oxidada llave, el viejo candado se abre con un satisfactorio clic. Lo quitas del pestillo y empujas a un lado la pesada barra de madera que aseguraba la puerta del sótano. Una bocanada de aire frío y húmedo surge desde abajo, trayendo consigo el olor a piedra húmeda y recuerdos olvidados. El sótano, previamente prohibido, ahora es accesible, sus secretos esperando ser descubiertos en la oscuridad de abajo. #
 
     Ejemplo 3 (El jugador ahora está en el Jardín)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: <Jardín>
     - Puzzle solved: None
-    # Entras al Jardín #
+    # Atraviesas la chirriante verja del jardín y entras en un mundo de colores vibrantes y fragancias. La luz del sol se filtra a través de las hojas de un roble antiguo, proyectando sombras moteadas sobre el sendero cubierto de vegetación. Mariposas danzan entre flores de todos los tonos, y en algún lugar cercano, el agua fluye musicalmente. El jardín te abraza con su belleza salvaje, tan diferente de los confines estériles que acabas de dejar atrás. #
 
-    Ejemplo 4 (El jugador pide algo a un personaje que requiere resolver un puzzle primero)
+    Ejemplo 4 (El jugador guarda objetos en la bolsa y deja el hacha en el suelo)
+    - Moved object: <plátano> now is in <Inventory>, <botella> now is in <Inventory>, <hacha> now is in <Salón Principal>
+    - Blocked passages now available: None
+    - Your location changed: None
+    - Puzzle solved: None
+    # Colocas cuidadosamente el plátano maduro y la botella de vidrio en tu bolsa, organizándolos para que nada se aplaste. El aroma dulce del plátano se mezcla con el olor a humedad de tu mochila bien viajada. Con deliberado cuidado, dejas el hacha pesada sobre el suelo pulido del Salón Principal. Reposa allí con cierta finalidad, su hoja reflejando la danzante luz de la araña de cristal que cuelga arriba. Quizás alguien más encuentre mejor uso para ella que tú. #
+
+    Ejemplo 5 (El jugador guarda objetos en la bolsa, deja el hacha en el suelo y desbloquea el pasaje a la Habitación Pequeña)
+    - Moved object: <plátano> now is in <Inventory>, <botella> now is in <Inventory>, <hacha> now is in <Salón Principal>
+    - Blocked passages now available: <Habitación Pequeña>
+    - Your location changed: None
+    - Puzzle solved: None
+    # Tus dedos trabajan rápidamente mientras guardas el plátano y la botella en tu mochila. El vidrio tintinea suavemente contra tus otras posesiones mientras aseguras la solapa. El hacha la colocas cuidadosamente sobre el suelo de mármol del Salón Principal, su mango gastado apuntando hacia la gran escalera. Después de insertar la ornamentada llave en la pequeña cerradura de latón, escuchas una serie de clics y zumbidos mientras los mecanismos ocultos se desenganchan. La puerta previamente sellada hacia la Habitación Pequeña se estremece y luego se abre ligeramente, liberando una bocanada de aire viciado. Un nuevo camino está ahora disponible para ti, llamándote con la promesa del descubrimiento. #
+
+    Ejemplo 6 (El jugador guarda objetos en la bolsa, deja el hacha en el suelo, desbloquea el pasaje y va a la Habitación Pequeña)
+    - Moved object: <plátano> now is in <Inventory>, <botella> now is in <Inventory>, <hacha> now is in <Salón Principal>
+    - Blocked passages now available: <Habitación Pequeña>
+    - Your location changed: <Habitación Pequeña>
+    - Puzzle solved: None
+    # Con eficiencia practicada, guardas tanto el plátano como la botella en tu bolsa, sintiendo cómo aumenta el peso cómodo contra tu cadera. El hacha la dejas deliberadamente sobre el suelo reluciente del Salón Principal, donde su cabeza metálica atrapa la luz del candelabro de cristal que cuelga arriba. Después de girar la antigua llave en la cerradura, la puerta oculta hacia la Habitación Pequeña se abre con un crujido, revelando un espacio intacto durante lo que deben ser décadas. Motas de polvo bailan en el rayo de luz que ahora se introduce en este santuario olvidado. Llevado por la curiosidad, cruzas el umbral, las tablas del suelo gimiendo bajo tu peso al entrar en la Habitación Pequeña. El aire aquí está cargado de secretos y el dulce olor a humedad de libros antiguos y recuerdos olvidados. #
+
+    Ejemplo 7 (El jugador guarda el lápiz en la bolsa y le da el libro a Juan)
+    - Moved object: <libro> now is in <Juan>, <lápiz> now is in <Inventory>
+    - Blocked passages now available: None
+    - Your location changed: None
+    - Puzzle solved: None
+    # Deslizas el gastado lápiz de cedro en tu bolsa, su forma familiar anidándose entre tus otras posesiones. El pesado libro encuadernado en cuero lo extiendes hacia Juan con ambas manos, respetando su aparente edad y valor. Sus ojos se ensanchan ligeramente al reconocer el tomo. "Esto es... He estado buscando esto durante años", susurra, su voz espesa de emoción. Sus manos curtidas aceptan el libro con reverencia, acunándolo como quien sostiene una reliquia preciosa. Juan abre cuidadosamente la cubierta, y por un momento, su comportamiento estoico se suaviza mientras contempla las páginas amarillentas en su interior. #
+
+    Ejemplo 8 (El jugador da la computadora a Susana)
+    - Moved object: <computadora> now is in <Susana>
+    - Blocked passages now available: None
+    - Your location changed: None
+    - Puzzle solved: None
+    # Le entregas la elegante laptop a Susana, cuyos ojos se iluminan con interés profesional. "Por fin", murmura, sus dedos ya bailando sobre el teclado mientras la pantalla ilumina su rostro concentrado. El resplandor azul resalta la determinación en su expresión mientras accede rápidamente a archivos que tú no podrías esperar entender. Guarda la computadora de manera segura en su bolso de mensajero, el movimiento practicado y eficiente. "Esto podría cambiarlo todo", añade críticamente, asintiendo en agradecimiento mientras su mente claramente corre con nuevas posibilidades. #
+
+    Ejemplo 9 (El jugador hace algo que no tiene el resultado esperado)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: None
     - Puzzle solved: None
-    # Laura te mira con una sonrisa. "Antes de darte lo que necesitas, debes resolver mi puzzle de los pinceles. Si el pincel rojo se usa para detalles finos, el azul para fondos y el amarillo para iluminaciones, ¿en qué orden deberías usarlos para pintar un amanecer?" #
+    # Intentas girar la ornamentada manija de latón, pero la puerta permanece obstinadamente cerrada. El mecanismo hace un sonido de clic sordo, pero nada más sucede. Quizás hay otra forma de abrirla, o algo que te estás perdiendo. Las marcas descoloridas sobre el marco de la puerta parecen burlarse de tus esfuerzos, manteniendo sus secretos bien guardados. #
 
-    Ejemplo 5 (El jugador resuelve correctamente un puzzle)
-    - Moved object: <Llave dorada> now is in <Inventory>
-    - Blocked passages now available: None
-    - Your location changed: None
-    - Puzzle solved: <Puzzle de los pinceles> with answer <azul, amarillo, rojo>
-    # ¡Correcto! Laura sonríe orgullosa. "Exactamente, primero el azul para el fondo del cielo, luego el amarillo para la luz del amanecer, y finalmente el rojo para los detalles finos." Te entrega la llave dorada. #
-
-    Ejemplo 6 (El jugador da una respuesta incorrecta a un puzzle)
+    Ejemplo 10 (El jugador hace una pregunta)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: None
     - Puzzle solved: None
-    # Laura niega con la cabeza. "No, esa no es la respuesta correcta. Piénsalo mejor: ¿cómo pintarías un amanecer? ¿Qué va primero, el fondo o los detalles?" #
-
-    Ejemplo 7 (El jugador intenta conseguir algo sin cumplir requisitos)
-    - Moved object: None
-    - Blocked passages now available: None
-    - Your location changed: None
-    - Puzzle solved: None
-    # El personaje no puede ayudarte hasta que cumplas con lo que necesita #"""
+    # Al examinar el extraño símbolo grabado en la pared, lo reconoces como un antiguo sigilo que representa protección y conocimiento oculto. La artesanía es notable, con intrincados patrones en espiral que parecen cambiar ligeramente cuando se ven desde diferentes ángulos. Las leyendas hablan de tales marcas utilizadas por los antiguos practicantes para alejar a los espíritus malignos mientras realizaban sus investigaciones arcanas. El hecho de que permanezca intacto después de todos estos siglos habla del poder que se creía que tenía. #"""
     
     
     user_msg = f"""Expresa los cambios en el mundo siguiendo el formato pedido, teniendo en cuenta que el jugador ingresó esta entrada "{input}" a partir de este estado del mundo:
@@ -225,7 +247,7 @@ def prompt_world_update_english (world_state: str, input: str):
     system_msg = f"""You are a storyteller. You are managing a fictional world, and the player can interact with it. Following a specific format, that I will specify below, your task is to find the changes in the world after the actions in the player input. Specifically, you will have to find what objects were moved, which previously blocked passages are now unblocked, and if the player moved to a new place.
        
     Here are some clarifications:
-    (A) Pay attention  to the description of the components and their capabilities.
+    (A) Pay attention to the description of the components and their capabilities.
     (B) If a passage is blocked, then the player must unblock it before being able to reach the place. Even if the player tells you that he is going to access the locked location, you have to be sure that he is complying with what you asked to allow him to unlock the access, for example by using a key or solving a puzzle.
     (C) Do not assume that the player input always makes sense; maybe those actions try to do something that the world does not allow.
     (D) Follow always the following format with the three categories, using "None" in each case if there are no changes and repeat the category for each case:
@@ -234,6 +256,7 @@ def prompt_world_update_english (world_state: str, input: str):
     - Your location changed: <new_location>
     (E) Finally, you can narrate the changes you've detected in the world state (without moving the story forward and without making up details not included in the world state!) using the format: #your final message#
     (F) In the narration section that you add at the end, between # symbols, you can also answer questions that the player asks in their input, about the objects or characters they can see, or the place they are in.
+    (G) Your narration should be richly detailed and evocative, using sensory details when appropriate. Make the world come alive through your descriptions, while still adhering to the facts of the world state.
 
     Here I give you some examples (in parentheses, a clarification about what the player might have tried to do) for the asked format, as described in items (D) and (E):
 
@@ -241,61 +264,61 @@ def prompt_world_update_english (world_state: str, input: str):
     - Moved object: <axe> now is in <Inventory>
     - Blocked passages now available: None
     - Your location changed: None
-    #You put the axe in your bag#
+    #You grasp the weathered wooden handle of the axe, feeling its reassuring weight as you lift it. The metal head gleams dully in the light as you carefully secure it in your pack. The familiar weight against your back reminds you of your father's advice about always keeping a good tool handy.#
 
     Example 2 (The player unblocks the passage to the basement)
     - Moved object: None
     - Blocked passages now available: <Basement>
     - Your location changed: None
-    # The basement is now reachable #
+    #With a final turn of the rusty key, the old padlock releases with a satisfying click. You remove it from the latch and push aside the heavy wooden bar that secured the basement door. A waft of cool, musty air rises from below, carrying the scent of damp stone and forgotten memories. The previously forbidden basement is now accessible, its secrets waiting to be discovered in the darkness below.#
 
     Example 3 (The player now is in the garden)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: <Garden>
-    # You enter the garden #
+    #You step through the creaking garden gate and into a world of vibrant color and fragrance. Sunlight filters through the leaves of an ancient oak, casting dappled shadows across the overgrown path. Butterflies dance between blooms of every hue, and somewhere nearby, water trickles musically. The garden embraces you with its wild beauty, so different from the sterile confines you just left behind.#
 
     Example 4 (The player puts objects in the bag and leaves the axe on the floor)
-    - Moved object: <banana> now is in <Inventory>,  <bottle> now is in <Inventory>,  <axe> now is in <Main Hall>
+    - Moved object: <banana> now is in <Inventory>, <bottle> now is in <Inventory>, <axe> now is in <Main Hall>
     - Blocked passages now available: None
     - Your location changed: None
-    # You put the banana and the bottle in your bag. The axe lies on the floor of the Main hall #
+    #You carefully place the ripe banana and glass bottle into your bag, arranging them so nothing gets crushed. The banana's sweet aroma mingles with the musty scent of your well-traveled pack. With deliberate care, you set the heavy axe down on the polished floor of the Main Hall. It rests there with a certain finality, its blade reflecting the dancing light from the chandelier above. Perhaps someone else might find better use for it than you.#
 
     Example 5 (The player puts objects in the bag and leaves the axe on the floor and unblocks the passage to the Small room)
-    - Moved object: <banana> now is in <Inventory>,  <bottle> now is in <Inventory>,  <axe> now is in <Main Hall>
+    - Moved object: <banana> now is in <Inventory>, <bottle> now is in <Inventory>, <axe> now is in <Main Hall>
     - Blocked passages now available: <Small room>
     - Your location changed: None
-    # You put the banana and the bottle in your bag. The axe lies on the floor of the Main hall. Now you can reach the Small room. #
+    #Your fingers work quickly as you tuck the banana and bottle safely into your pack. The glass clinks softly against your other possessions as you secure the flap. The axe you place carefully on the marble floor of the Main Hall, its worn handle pointing toward the grand staircase. After inserting the ornate key into the small brass lock, you hear a series of clicks and whirrs as hidden mechanisms disengage. The previously sealed doorway to the Small Room shudders and then swings open slightly, releasing a puff of stale air. A new path is now available to you, beckoning with the promise of discovery.#
 
     Example 6 (The player puts objects in the bag and leaves the axe on the floor, unblocks the passage and goes to the Small room)
-    - Moved object: <banana> now is in <Inventory>,  <bottle> now is in <Inventory>,  <axe> now is in <Main Hall>
+    - Moved object: <banana> now is in <Inventory>, <bottle> now is in <Inventory>, <axe> now is in <Main Hall>
     - Blocked passages now available: <Small room>
-    - Your location changed:  <Small room>
-    # You put the banana and the bottle in your bag. The axe lies on the floor of the Main hall. The Small room is now unblocked, and you moved there. #
+    - Your location changed: <Small room>
+    #With practiced efficiency, you stow both the banana and bottle in your bag, feeling the comfortable weight increase against your hip. The axe you deliberately place on the gleaming floor of the Main Hall, where its metal head catches the light from the crystal chandelier above. After turning the ancient key in the lock, the hidden door to the Small Room creaks open, revealing a space untouched for what must be decades. Dust motes dance in the beam of light that now intrudes upon this forgotten sanctuary. Drawn by curiosity, you step across the threshold, the floorboards groaning beneath your weight as you enter the Small Room. The air here is thick with secrets and the sweet musty scent of old books and forgotten memories.#
 
     Example 7 (The player puts the pencil in the bag and gives the book to John)
-    - Moved object: <book> now is in <John>,  <pencil> now is in <Inventory>
+    - Moved object: <book> now is in <John>, <pencil> now is in <Inventory>
     - Blocked passages now available: None
-    - Your location changed:  None
-    # John now has the book. You put the pencil in your bag #
+    - Your location changed: None
+    #You slip the worn cedar pencil into your bag, its familiar shape nestling among your other possessions. The heavy leather-bound book you extend toward John with both hands, respecting its apparent age and value. His eyes widen slightly as he recognizes the tome. "This is... I've been searching for this for years," he whispers, his voice thick with emotion. His weathered hands accept the book with reverence, cradling it as one might hold a precious relic. John carefully opens the cover, and for a moment, his stoic demeanor softens as he gazes at the yellowed pages within.#
 
     Example 8 (The player gives the computer to Susan)
     - Moved object: <computer> now is in <Susan>
     - Blocked passages now available: None
-    - Your location changed:  None
-    # Susan put the computer in her bag #
+    - Your location changed: None
+    #You hand the sleek laptop to Susan, whose eyes light up with professional interest. "Finally," she murmurs, her fingers already dancing across the keyboard as the screen illuminates her focused face. The blue glow highlights the determination in her expression as she quickly accesses files you couldn't hope to understand. She tucks the computer securely into her messenger bag, the movement practiced and efficient. "This could change everything," she adds cryptically, nodding her thanks while her mind clearly races with new possibilities.#
 
     Example 9 (The player does something that has not the expected outcome)
     - Moved object: None
     - Blocked passages now available: None
-    - Your location changed:  None
-    # Nothing happened... #
+    - Your location changed: None
+    #You try turning the ornate brass handle, but the door remains stubbornly shut. The mechanism makes a dull clicking sound, but nothing else happens. Perhaps there's another way to open it, or something you're missing. The faded markings above the doorframe seem to mock your efforts, holding their secrets close.#
 
     Example 10 (The player asks a question)
     - Moved object: None
     - Blocked passages now available: None
-    - Your location changed:  None
-    # Answer to the player's question #"""
+    - Your location changed: None
+    #As you examine the strange symbol etched into the wall, you recognize it as an ancient sigil representing protection and hidden knowledge. The craftsmanship is remarkable, with intricate swirling patterns that seem to shift slightly when viewed from different angles. Legends speak of such markings being used by the old practitioners to ward off evil spirits while conducting their arcane research. The fact that it remains intact after all these centuries speaks to the power it was believed to hold.#"""
     
     
     user_msg = f"""Give the changes in the world following the specified format, after this player input "{input}" on this world state:
@@ -322,7 +345,7 @@ def prompt_generate_world(language: str = 'es') -> str:
 - 4-6 objetos (nombres únicos y 2-3 descripciones cada uno)
 - 2-3 personajes no jugadores + 1 personaje jugador
 - 1-2 puzzles lógicos y solucionables
-- 1 objetivo principal claro y completable
+- 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
 1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
@@ -341,9 +364,31 @@ def prompt_generate_world(language: str = 'es') -> str:
 3. **Relevancia clara**: Cada objeto debe tener una razón de existir (funcional o atmosférica)
 
 **REGLAS DE PUZZLES:**
-1. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
-2. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
-3. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
+1. **Soluciones descubribles**: Cada puzzle DEBE tener una solución que el jugador pueda DESCUBRIR a través del juego
+   - PROHIBIDO: Códigos o soluciones que el jugador no pueda averiguar explorando el mundo
+   - OBLIGATORIO: Pistas físicas en el entorno, diálogos con personajes, o documentos que revelen la solución
+2. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
+3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
+4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
+5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
+
+**TIPOS DE PUZZLES PERMITIDOS:**
+1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
+2. **Puzzles de item**: Requieren usar un objeto específico para resolver un problema (como una llave para abrir una puerta)
+3. **Puzzles de secuencia**: Requieren realizar acciones en un orden específico (como pulsar botones en cierto orden)
+4. **Puzzles de adivinanza**: El jugador debe resolver un acertijo o enigma basado en pistas del entorno
+5. **Puzzles combinados**: Mezclan varios de los anteriores tipos
+
+**EJEMPLO DE BUEN PUZZLE:**
+- Puzzle: Abrir una caja fuerte con un código
+- Pista descubrible 1: En un cuaderno encontrado en el escritorio hay una fecha: "15/7/89"
+- Pista descubrible 2: Un personaje menciona "el cumpleaños de mi hija es muy importante para mí"
+- Solución: El código 1589 (derivado de la fecha que el jugador puede encontrar)
+
+**EJEMPLO DE MAL PUZZLE (PROHIBIDO):**
+- Puzzle: Abrir una puerta con un código
+- No hay pistas en el mundo sobre cuál es el código
+- La solución es un número arbitrario que el jugador no puede descubrir
 
 **REGLAS DE PASAJES BLOQUEADOS:**
 1. **Obstáculos separados**: El `obstacle_name` debe ser diferente del `required_to_unblock.item_name`
@@ -358,7 +403,8 @@ Antes de finalizar, verifica mentalmente:
 2. ¿Existe al menos una ruta de solución desde el estado inicial?
 3. ¿Todos los elementos referenciados existen realmente en el mundo?
 4. ¿Las interacciones de personajes están completas?
-5. ¿Los puzzles tienen sentido y son solucionables?
+5. ¿Los puzzles tienen sentido y son solucionables A TRAVÉS DE LA EXPLORACIÓN?
+6. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
 
 **INSPIRACIÓN TEMÁTICA (elige uno o combina):**
 - **Misterio**: Resolver un crimen, encontrar un tesoro perdido, descubrir un secreto
@@ -399,7 +445,7 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 - 4-6 objects (unique names and 2-3 descriptions each)
 - 2-3 non-player characters + 1 player character
 - 1-2 logical and solvable puzzles
-- 1 clear and completable main objective
+- 1 clear and completable main objective (MANDATORY - your world MUST define a specific objective)
 
 **MANDATORY CONNECTION RULES:**
 1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
@@ -418,9 +464,31 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 3. **Clear relevance**: Each object should have a reason to exist (functional or atmospheric)
 
 **PUZZLE RULES:**
-1. **Clear solutions**: Each puzzle MUST have a specific and unambiguous answer
-2. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
-3. **Internal logic**: Puzzles must make sense within your story's context
+1. **Discoverable solutions**: Each puzzle MUST have a solution that players can DISCOVER through gameplay
+   - FORBIDDEN: Codes or solutions that players cannot figure out by exploring the world
+   - MANDATORY: Physical clues in the environment, character dialogues, or documents that reveal the solution
+2. **Clear solutions**: Each puzzle MUST have a specific and unambiguous answer
+3. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
+4. **Internal logic**: Puzzles must make sense within your story's context
+5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
+
+**ALLOWED PUZZLE TYPES:**
+1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
+2. **Item puzzles**: Require using a specific item to solve a problem (like a key to open a door)
+3. **Sequence puzzles**: Require performing actions in a specific order (like pressing buttons in a certain order)
+4. **Riddle puzzles**: Player must solve a riddle or enigma based on environmental clues
+5. **Combination puzzles**: Mix several of the above types
+
+**EXAMPLE OF GOOD PUZZLE:**
+- Puzzle: Open a safe with a code
+- Discoverable clue 1: In a notebook found on the desk there's a date: "15/7/89"
+- Discoverable clue 2: A character mentions "my daughter's birthday is very important to me"
+- Solution: Code 1589 (derived from the date that player can find)
+
+**EXAMPLE OF BAD PUZZLE (FORBIDDEN):**
+- Puzzle: Open a door with a code
+- No clues in the world about what the code is
+- Solution is an arbitrary number the player cannot discover
 
 **BLOCKED PASSAGE RULES:**
 1. **Separate obstacles**: `obstacle_name` must be different from `required_to_unblock.item_name`
@@ -435,7 +503,8 @@ Before finalizing, mentally verify:
 2. Is there at least one solution path from the initial state?
 3. Do all referenced elements actually exist in the world?
 4. Are character interactions complete?
-5. Do puzzles make sense and are they solvable?
+5. Do puzzles make sense and are they solvable THROUGH EXPLORATION?
+6. For each code or necessary information, is there a way for the player to discover it?
 
 **THEMATIC INSPIRATION (choose one or combine):**
 - **Mystery**: Solve a crime, find lost treasure, discover a secret
@@ -485,7 +554,7 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 - 4-6 objetos (nombres únicos y 2-3 descripciones cada uno)
 - 2-3 personajes no jugadores + 1 personaje jugador
 - 1-2 puzzles lógicos y solucionables
-- 1 objetivo principal claro y completable
+- 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
 1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
@@ -504,9 +573,31 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 3. **Relevancia clara**: Cada objeto debe tener una razón de existir (funcional o atmosférica)
 
 **REGLAS DE PUZZLES:**
-1. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
-2. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
-3. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
+1. **Soluciones descubribles**: Cada puzzle DEBE tener una solución que el jugador pueda DESCUBRIR a través del juego
+   - PROHIBIDO: Códigos o soluciones que el jugador no pueda averiguar explorando el mundo
+   - OBLIGATORIO: Pistas físicas en el entorno, diálogos con personajes, o documentos que revelen la solución
+2. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
+3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
+4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
+5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
+
+**TIPOS DE PUZZLES PERMITIDOS:**
+1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
+2. **Puzzles de item**: Requieren usar un objeto específico para resolver un problema (como una llave para abrir una puerta)
+3. **Puzzles de secuencia**: Requieren realizar acciones en un orden específico (como pulsar botones en cierto orden)
+4. **Puzzles de adivinanza**: El jugador debe resolver un acertijo o enigma basado en pistas del entorno
+5. **Puzzles combinados**: Mezclan varios de los anteriores tipos
+
+**EJEMPLO DE BUEN PUZZLE:**
+- Puzzle: Abrir una caja fuerte con un código
+- Pista descubrible 1: En un cuaderno encontrado en el escritorio hay una fecha: "15/7/89"
+- Pista descubrible 2: Un personaje menciona "el cumpleaños de mi hija es muy importante para mí"
+- Solución: El código 1589 (derivado de la fecha que el jugador puede encontrar)
+
+**EJEMPLO DE MAL PUZZLE (PROHIBIDO):**
+- Puzzle: Abrir una puerta con un código
+- No hay pistas en el mundo sobre cuál es el código
+- La solución es un número arbitrario que el jugador no puede descubrir
 
 **REGLAS DE PASAJES BLOQUEADOS:**
 1. **Obstáculos separados**: El `obstacle_name` debe ser diferente del `required_to_unblock.item_name`
@@ -517,12 +608,14 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 
 **VALIDACIÓN DE COMPLETABILIDAD:**
 Antes de finalizar, verifica mentalmente:
-1. ¿Puede el jugador completar el objetivo con los elementos disponibles?
-2. ¿Existe al menos una ruta de solución desde el estado inicial?
-3. ¿Todos los elementos referenciados existen realmente en el mundo?
-4. ¿Las interacciones de personajes están completas?
-5. ¿Los puzzles tienen sentido y son solucionables?
-6. **¿TODO el mundo está coherentemente basado en la inspiración proporcionada?**
+1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO?** (OBLIGATORIO)
+2. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+3. ¿Existe al menos una ruta de solución desde el estado inicial?
+4. ¿Todos los elementos referenciados existen realmente en el mundo?
+5. ¿Las interacciones de personajes están completas?
+6. ¿Los puzzles tienen sentido y son solucionables A TRAVÉS DE LA EXPLORACIÓN?
+7. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
+8. **¿TODO el mundo está coherentemente basado en la inspiración proporcionada?**
 
 **EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
 1. Jugador quiere [objetivo principal basado en la inspiración]
@@ -562,7 +655,7 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 - 4-6 objects (unique names and 2-3 descriptions each)
 - 2-3 non-player characters + 1 player character
 - 1-2 logical and solvable puzzles
-- 1 clear and completable main objective
+- 1 clear and completable main objective (MANDATORY - your world MUST define a specific objective)
 
 **MANDATORY CONNECTION RULES:**
 1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
@@ -581,9 +674,31 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 3. **Clear relevance**: Each object should have a reason to exist (functional or atmospheric)
 
 **PUZZLE RULES:**
-1. **Clear solutions**: Each puzzle MUST have a specific and unambiguous answer
-2. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
-3. **Internal logic**: Puzzles must make sense within your story's context
+1. **Discoverable solutions**: Each puzzle MUST have a solution that players can DISCOVER through gameplay
+   - FORBIDDEN: Codes or solutions that players cannot figure out by exploring the world
+   - MANDATORY: Physical clues in the environment, character dialogues, or documents that reveal the solution
+2. **Clear solutions**: Each puzzle MUST have a specific and unambiguous answer
+3. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
+4. **Internal logic**: Puzzles must make sense within your story's context
+5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
+
+**ALLOWED PUZZLE TYPES:**
+1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
+2. **Item puzzles**: Require using a specific item to solve a problem (like a key to open a door)
+3. **Sequence puzzles**: Require performing actions in a specific order (like pressing buttons in a certain order)
+4. **Riddle puzzles**: Player must solve a riddle or enigma based on environmental clues
+5. **Combination puzzles**: Mix several of the above types
+
+**EXAMPLE OF GOOD PUZZLE:**
+- Puzzle: Open a safe with a code
+- Discoverable clue 1: In a notebook found on the desk there's a date: "15/7/89"
+- Discoverable clue 2: A character mentions "my daughter's birthday is very important to me"
+- Solution: Code 1589 (derived from the date that player can find)
+
+**EXAMPLE OF BAD PUZZLE (FORBIDDEN):**
+- Puzzle: Open a door with a code
+- No clues in the world about what the code is
+- Solution is an arbitrary number the player cannot discover
 
 **BLOCKED PASSAGE RULES:**
 1. **Separate obstacles**: `obstacle_name` must be different from `required_to_unblock.item_name`
@@ -594,12 +709,14 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 
 **COMPLETABILITY VALIDATION:**
 Before finalizing, mentally verify:
-1. Can the player complete the objective with available elements?
-2. Is there at least one solution path from the initial state?
-3. Do all referenced elements actually exist in the world?
-4. Are character interactions complete?
-5. Do puzzles make sense and are they solvable?
-6. **Is the ENTIRE world coherently based on the provided inspiration?**
+1. **HAVE YOU DEFINED A CLEAR MAIN OBJECTIVE?** (MANDATORY)
+2. Can the player complete the objective with available elements?
+3. Is there at least one solution path from the initial state?
+4. Do all referenced elements actually exist in the world?
+5. Are character interactions complete?
+6. Do puzzles make sense and are they solvable THROUGH EXPLORATION?
+7. For each code or necessary information, is there a way for the player to discover it?
+8. **Is the ENTIRE world coherently based on the provided inspiration?**
 
 **EXAMPLE VALID DEPENDENCY CHAIN:**
 1. Player wants [main objective based on inspiration]
