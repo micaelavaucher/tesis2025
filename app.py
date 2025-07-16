@@ -235,9 +235,51 @@ if generation_mode == "inspiration":
                 global world, last_player_position, number_of_turns, game_log_dictionary
 
                 print(f"[INFO] Generando mundo desde inspiración: '{inspo}'")
-                world_prompt = prompt_generate_world_from_inspiration(inspo=inspo, language=language)
-                world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
-                world = create_world_from_llm_response(world_response)
+                
+                # Maximum number of generation attempts
+                max_attempts = 3
+                generation_attempts = 0
+                world = None
+                
+                while generation_attempts < max_attempts and (world is None or not hasattr(world, 'objective') or not world.objective):
+                    generation_attempts += 1
+                    if generation_attempts > 1:
+                        if language == 'es':
+                            print(f"🔄 Intento {generation_attempts}/{max_attempts}: Regenerando mundo porque falta el objetivo...")
+                        else:
+                            print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
+                    
+                    world_prompt = prompt_generate_world_from_inspiration(inspo=inspo, language=language)
+                    world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
+                    
+                    try:
+                        world = create_world_from_llm_response(world_response)
+                        
+                        # Verify that world has an objective
+                        if not hasattr(world, 'objective') or not world.objective:
+                            if generation_attempts < max_attempts:
+                                if language == 'es':
+                                    print("⚠️ El mundo generado no tiene un objetivo definido. Intentando de nuevo...")
+                                else:
+                                    print("⚠️ Generated world has no defined objective. Trying again...")
+                                continue
+                            else:
+                                if language == 'es':
+                                    print("❌ No se pudo generar un mundo con objetivo después de varios intentos.")
+                                else:
+                                    print("❌ Failed to generate a world with objective after several attempts.")
+                                raise ValueError("Failed to generate a world with a defined objective")
+                        else:
+                            if language == 'es':
+                                print("✅ ¡Nuevo mundo creado exitosamente con objetivo definido!")
+                            else:
+                                print("✅ New world created successfully with defined objective!")
+                    except Exception as e:
+                        if generation_attempts >= max_attempts:
+                            raise e
+                        print(f"Error on attempt {generation_attempts}: {e}")
+                        continue
+                
                 print("world:", world_response)
 
                 # Narración escena inicial
@@ -254,9 +296,17 @@ if generation_mode == "inspiration":
                     system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
                     narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
                     try:
+                        # Try to extract formatted objective text between # characters
                         objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
+                        # Make sure the objective text has proper punctuation
+                        if not objective_text.strip().endswith(('.', '!', '?')):
+                            objective_text += '.'
                         starting_narration += f"\n\n🎯 {objective_text}"
-                    except:
+                    except (IndexError, TypeError):
+                        print("⚠️ No se pudo extraer el objetivo narrado con el formato #...#, usando la respuesta completa.")
+                        # Make sure we have a complete sentence for the objective
+                        if not narrated_objective.strip().endswith(('.', '!', '?')):
+                            narrated_objective += '.'
                         starting_narration += f"\n\n🎯 {narrated_objective}"
 
                 # Inicializar variables globales
@@ -332,45 +382,76 @@ if generation_mode == "inspiration":
     interfaz.launch(inbrowser=False)
     exit()
 
-
-
 if generation_mode == 'generate':
     if language == 'es':
         print("⚙️ Modo de generación: Generando un nuevo mundo desde cero...")
     else:
         print("⚙️ Generation mode: Generating a new world from scratch...")
 
-    world_prompt = prompt_generate_world(language=language)
-    # world_prompt = prompt_generate_turtle_world_validation(language=language)
+    # Maximum number of generation attempts
+    max_attempts = 3
+    generation_attempts = 0
+    world = None
+    
+    while generation_attempts < max_attempts and (world is None or not hasattr(world, 'objective') or not world.objective):
+        generation_attempts += 1
+        if generation_attempts > 1:
+            if language == 'es':
+                print(f"🔄 Intento {generation_attempts}/{max_attempts}: Regenerando mundo porque falta el objetivo...")
+            else:
+                print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
+        
+        world_prompt = prompt_generate_world(language=language)
+        # world_prompt = prompt_generate_turtle_world_validation(language=language)
 
-    try:
-        if hasattr(reasoning_model, 'prompt_model_structured'):
-            world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
-        else:
-            print("⚠️ El modelo de razonamiento no soporta 'prompt_model_structured'. Usando generación de texto plano.")
+        try:
+            if hasattr(reasoning_model, 'prompt_model_structured'):
+                world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
+            else:
+                print("⚠️ El modelo de razonamiento no soporta 'prompt_model_structured'. Usando generación de texto plano.")
+                world_id = config["Options"]["WorldID"]
+                world = example_worlds.get_world(world_id, language=language)
+                break
+                
+        except Exception as e:
+            print(f"⚠️ La generación estructurada falló ({e}), usando generación de texto plano como fallback.")
             world_id = config["Options"]["WorldID"]
             world = example_worlds.get_world(world_id, language=language)
-            
-    except Exception as e:
-        print(f"⚠️ La generación estructurada falló ({e}), usando generación de texto plano como fallback.")
-        world_id = config["Options"]["WorldID"]
-        world = example_worlds.get_world(world_id, language=language)
+            break
 
-    try:
-        world = create_world_from_llm_response(world_response)
-        if language == 'es':
-            print("✅ ¡Nuevo mundo creado exitosamente!")
-        else:
-            print("✅ New world created successfully!")
+        try:
+            world = create_world_from_llm_response(world_response)
             
-    except Exception as e:
-        print(f"🛑 Error crítico al crear el mundo desde la respuesta del LLM: {e}")
-        if language == 'es':
-            print("\n‼️ Recurriendo a un mundo predefinido de emergencia (ID: 0)...")
-        else:
-            print("\n‼️ Falling back to an emergency preset world (ID: 0)...")
-        world_id = config["Options"]["WorldID"]
-        world = example_worlds.get_world(world_id, language=language)
+            # Verify that world has an objective
+            if not hasattr(world, 'objective') or not world.objective:
+                if generation_attempts < max_attempts:
+                    if language == 'es':
+                        print("⚠️ El mundo generado no tiene un objetivo definido. Intentando de nuevo...")
+                    else:
+                        print("⚠️ Generated world has no defined objective. Trying again...")
+                    continue
+                else:
+                    if language == 'es':
+                        print("❌ No se pudo generar un mundo con objetivo después de varios intentos. Usando mundo predefinido.")
+                    else:
+                        print("❌ Failed to generate a world with objective after several attempts. Using preset world.")
+                    world_id = config["Options"]["WorldID"]
+                    world = example_worlds.get_world(world_id, language=language)
+            else:
+                if language == 'es':
+                    print("✅ ¡Nuevo mundo creado exitosamente con objetivo definido!")
+                else:
+                    print("✅ New world created successfully with defined objective!")
+                
+        except Exception as e:
+            print(f"🛑 Error crítico al crear el mundo desde la respuesta del LLM: {e}")
+            if language == 'es':
+                print("\n‼️ Recurriendo a un mundo predefinido de emergencia (ID: 0)...")
+            else:
+                print("\n‼️ Falling back to an emergency preset world (ID: 0)...")
+            world_id = config["Options"]["WorldID"]
+            world = example_worlds.get_world(world_id, language=language)
+            break
 
 else: # generation_mode == 'preset'
     if language == 'es':
@@ -412,9 +493,15 @@ if hasattr(world, 'objective') and world.objective:
     narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
     try:
         objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
+        # Make sure the objective text has proper punctuation
+        if not objective_text.strip().endswith(('.', '!', '?')):
+            objective_text += '.'
         starting_narration += f"\n\n🎯 {objective_text}"
     except (IndexError, TypeError):
         print("⚠️ No se pudo extraer el objetivo narrado con el formato #...#, usando la respuesta completa.")
+        # Make sure we have a complete sentence for the objective
+        if not narrated_objective.strip().endswith(('.', '!', '?')):
+            narrated_objective += '.'
         starting_narration += f"\n\n🎯 {narrated_objective}"
 else:
     print("ℹ️ No se encontró un objetivo principal en el mundo generado/cargado.")
