@@ -18,7 +18,7 @@ def get_llm(model_name: str = "gemini-2.0-flash") -> object:
     model = None
 
     if model_name in google_models:
-        model = GeminiModel(API_key="GOOGLE_API_KEY", model_name=model_name)
+        model = GeminiModel(API_key="GEMINI_API_KEY", model_name=model_name)
     elif model_name in replicate_models:
         model = ReplicateModel(API_key="REPLICATE_API_TOKEN", model_name=model_name)
 
@@ -56,7 +56,7 @@ class GeminiModel():
         #     types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
         #     types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE")
         # ]
-        self.api_key = os.getenv("GOOGLE_API_KEY")
+        self.api_key = os.getenv("GEMINI_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = model_name
 
