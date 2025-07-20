@@ -12,17 +12,10 @@ from prompts import (
     prompt_narrate_current_scene, 
     prompt_world_update, 
     prompt_describe_objective,
-    prompt_generate_world,
-    prompt_generate_world_from_inspiration,
-    prompt_generate_turtle_world_validation,
-    prompt_expand_world,
-    should_expand_world
 )
 
-from structured_data_models import GeneratedWorld, WorldExpansion
-from world_builder import (
-    create_world_from_llm_response, expand_world_from_llm_response
-)
+from generation_pipeline import create_world_incrementally
+from world_builder import create_world_from_llm_response
 
 PATH_GAMELOGS = 'logs'
 
@@ -249,13 +242,12 @@ if generation_mode == "inspiration":
                         else:
                             print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
                     
-                    world_prompt = prompt_generate_world_from_inspiration(inspo=inspo, language=language)
-                    world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
+                    # Usar el nuevo pipeline incremental con la inspiración como tema
+                    generated_world = create_world_incrementally(inspo)
+                    world = create_world_from_llm_response(generated_world)
                     
                     try:
-                        world = create_world_from_llm_response(world_response)
-                        
-                        # Verify that world has an objective
+                        # Verificar que el mundo tiene un objetivo
                         if not hasattr(world, 'objective') or not world.objective:
                             if generation_attempts < max_attempts:
                                 if language == 'es':
@@ -280,7 +272,7 @@ if generation_mode == "inspiration":
                         print(f"Error on attempt {generation_attempts}: {e}")
                         continue
                 
-                print("world:", world_response)
+                # print("world:", world.model_dump() if hasattr(world, 'model_dump') else str(world))
 
                 # Narración escena inicial
                 system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
@@ -350,7 +342,7 @@ if generation_mode == "inspiration":
                     gr.update(value="", visible=False) 
                 )
 
-         # Encadenamiento: spinner y luego creación
+        # Encadenamiento: spinner y luego creación
         generar_btn.click(
             fn=preparar_creacion,
             outputs=[generar_btn, spinner]
@@ -401,28 +393,11 @@ if generation_mode == 'generate':
             else:
                 print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
         
-        world_prompt = prompt_generate_world(language=language)
-        # world_prompt = prompt_generate_turtle_world_validation(language=language)
-
         try:
-            if hasattr(reasoning_model, 'prompt_model_structured'):
-                world_response = reasoning_model.prompt_model_structured(world_prompt, GeneratedWorld)
-            else:
-                print("⚠️ El modelo de razonamiento no soporta 'prompt_model_structured'. Usando generación de texto plano.")
-                world_id = config["Options"]["WorldID"]
-                world = example_worlds.get_world(world_id, language=language)
-                break
-                
-        except Exception as e:
-            print(f"⚠️ La generación estructurada falló ({e}), usando generación de texto plano como fallback.")
-            world_id = config["Options"]["WorldID"]
-            world = example_worlds.get_world(world_id, language=language)
-            break
-
-        try:
-            world = create_world_from_llm_response(world_response)
+            generated_world = create_world_incrementally("aventura misteriosa")
+            world = create_world_from_llm_response(generated_world)
             
-            # Verify that world has an objective
+            # Verificar que el mundo tiene un objetivo
             if not hasattr(world, 'objective') or not world.objective:
                 if generation_attempts < max_attempts:
                     if language == 'es':

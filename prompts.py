@@ -17,18 +17,23 @@ def prompt_describe_objective_english (objective):
     
     Always put your generated narration between # characters. For example: # You have to get the <key> # or # You have to reach the <castle> #"""
 
-    first_component_class = objective[0].__class__.__name__
-    second_component_class = objective[1].__class__.__name__
-    user_msg = ""
+    # Handle new GeneratedObjective structure
+    if hasattr(objective, 'description') and hasattr(objective, 'type'):
+        user_msg = f'The objective to narrate in an alternative way is: "{objective.description}"'
+    else:
+        # Legacy fallback for old objective structure
+        first_component_class = objective[0].__class__.__name__
+        second_component_class = objective[1].__class__.__name__
+        user_msg = ""
 
-    if first_component_class == "Character" and second_component_class == "Location":
-        user_msg =  f'The objective to narrate in an alterative way is "You have to go to <{objective[1].name}>."'
-    elif first_component_class == "Character" and second_component_class == "Item":
-        user_msg = f'The objective to narrate in an alterative way is "<{objective[0].name}> has to get the item <{objective[1].name}>."'
-    elif first_component_class == "Item" and second_component_class == "Location":
-        user_msg = f'The objective to narrate in an alterative way is "You have to leave item <{objective[0].name}> in place <{objective[1].name}>."'
-    elif first_component_class == "Character" and second_component_class == "Character":
-        user_msg = f'The objective to narrate in an alterative way is "<{objective[0].name}> has to find <{objective[1].name}>."'
+        if first_component_class == "Character" and second_component_class == "Location":
+            user_msg =  f'The objective to narrate in an alterative way is "You have to go to <{objective[1].name}>."'
+        elif first_component_class == "Character" and second_component_class == "Item":
+            user_msg = f'The objective to narrate in an alterative way is "<{objective[0].name}> has to get the item <{objective[1].name}>."'
+        elif first_component_class == "Item" and second_component_class == "Location":
+            user_msg = f'The objective to narrate in an alterative way is "You have to leave item <{objective[0].name}> in place <{objective[1].name}>."'
+        elif first_component_class == "Character" and second_component_class == "Character":
+            user_msg = f'The objective to narrate in an alterative way is "<{objective[0].name}> has to find <{objective[1].name}>."'
 
     return system_msg, user_msg 
 
@@ -36,20 +41,25 @@ def prompt_describe_objective_spanish (objective):
 
     system_msg = """Tienes que dar una forma alternativa de narrar el objetivo que se te dará. Siempre usa lenguaje simple. 
     
-    Pon siempre tu narración generada entre caracteres #. Por ejemplo: # Tienes que conseguir la <llave> # o # Tienes que llegaral <Castillo> #"""
+    Pon siempre tu narración generada entre caracteres #. Por ejemplo: # Tienes que conseguir la <llave> # o # Tienes que llegar al <Castillo> #"""
 
-    first_component_class = objective[0].__class__.__name__
-    second_component_class = objective[1].__class__.__name__
-    user_msg = ""
+    # Handle new GeneratedObjective structure
+    if hasattr(objective, 'description') and hasattr(objective, 'type'):
+        user_msg = f'El objetivo a decir de forma alternativa es: "{objective.description}"'
+    else:
+        # Legacy fallback for old objective structure
+        first_component_class = objective[0].__class__.__name__
+        second_component_class = objective[1].__class__.__name__
+        user_msg = ""
 
-    if first_component_class == "Character" and second_component_class == "Location":
-        user_msg = f'El objetivo a decir de forma alternativa es "Tienes que ir a <{objective[1].name}>."'
-    elif first_component_class == "Character" and second_component_class == "Item":
-        user_msg = f'El objetivo a decir de forma alternativa es "<{objective[0].name}> tiene que conseguir el objeto <{objective[1].name}>."'
-    elif first_component_class == "Item" and second_component_class == "Location":
-        user_msg = f'El objetivo a decir de forma alternativa es "Tienes que dejar el objeto <{objective[0].name}> en el lugar <{objective[1].name}>."'
-    elif first_component_class == "Character" and second_component_class == "Character":
-        user_msg = f'El objetivo a decir de forma alternativa es "<{objective[0].name}> tiene que encontrar a <{objective[1].name}>."'
+        if first_component_class == "Character" and second_component_class == "Location":
+            user_msg = f'El objetivo a decir de forma alternativa es "Tienes que ir a <{objective[1].name}>."'
+        elif first_component_class == "Character" and second_component_class == "Item":
+            user_msg = f'El objetivo a decir de forma alternativa es "<{objective[0].name}> tiene que conseguir el objeto <{objective[1].name}>."'
+        elif first_component_class == "Item" and second_component_class == "Location":
+            user_msg = f'El objetivo a decir de forma alternativa es "Tienes que dejar el objeto <{objective[0].name}> en el lugar <{objective[1].name}>."'
+        elif first_component_class == "Character" and second_component_class == "Character":
+            user_msg = f'El objetivo a decir de forma alternativa es "<{objective[0].name}> tiene que encontrar a <{objective[1].name}>."'
 
     return system_msg, user_msg
 
@@ -875,3 +885,257 @@ Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que est�
 - Laura debe requerir resolver el puzzle para dar la llave
 
 Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de que Laura PROPONGA el puzzle automáticamente al interactuar."""
+
+#---- Incremental Generation Prompts -----------------------------------------
+
+PROMPT_STEP_1_CONCEPT = """Eres un diseñador experto de mundos de ficción interactiva. Tu tarea es crear el concepto general de un mundo de aventura basado en el tema proporcionado.
+
+**LIBERTAD CREATIVA TOTAL:**
+- Inventa cualquier historia, tema, o ambientación (medieval, sci-fi, moderno, fantástico, etc.)
+- Crea personajes únicos con personalidades interesantes
+- Diseña un objetivo principal desafiante y atractivo
+- Decide el tono (aventura, misterio, drama, comedia, etc.)
+
+**INSPIRACIÓN TEMÁTICA (elige uno o combina):**
+- **Misterio**: Resolver un crimen, encontrar un tesoro perdido, descubrir un secreto
+- **Aventura**: Rescatar a alguien, explorar ruinas, completar una misión
+- **Supervivencia**: Escapar de un lugar, conseguir recursos, encontrar la salida
+- **Social**: Convencer personajes, reunir información, mediar conflictos
+- **Exploración**: Descubrir nuevas áreas, mapear territorio, encontrar artefactos
+
+**ELEMENTOS OBLIGATORIOS A DEFINIR:**
+- Un título atractivo para la aventura
+- Una historia de fondo que establezca el contexto y la atmósfera (coherente con el tema)
+- Una descripción del personaje jugador y su rol en la historia
+- Un objetivo principal claro, motivador y ESPECÍFICO que el jugador debe lograr
+
+**REQUISITOS DEL OBJETIVO:**
+- Debe ser CLARO y ESPECÍFICO (no vago como "explorar el mundo")
+- Debe ser MOTIVADOR para el jugador
+- Debe ser COMPLETABLE con elementos físicos del mundo
+- Debe tener una razón narrativa sólida
+
+**EJEMPLOS DE BUENOS OBJETIVOS:**
+- "Encontrar la Espada Legendaria para derrotar al dragón"
+- "Rescatar a la princesa del castillo encantado"
+- "Descubrir el tesoro del pirata perdido"
+- "Reunir los tres cristales para abrir el portal"
+
+**EJEMPLOS DE MALOS OBJETIVOS:**
+- "Explorar el mundo" (muy vago)
+- "Ser feliz" (no específico)
+- "Caminar por ahí" (no motivador)
+
+El concepto debe ser cohesivo, interesante y proporcionar una base sólida para construir un mundo de aventura completo.
+
+Tema: {theme}
+
+**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON (como 'title', 'backstory', 'name') deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
+
+PROMPT_STEP_2_SKELETON = """Eres un arquitecto de mundos de ficción interactiva. Basándote en el concepto de mundo proporcionado, tu tarea es definir las entidades clave que formarán la estructura del mundo.
+
+Concepto del mundo:
+- Título: {title}
+- Historia de fondo: {backstory}
+- Concepto del jugador: {player_concept}
+- Objetivo principal: {main_objective}
+
+**ESTRUCTURA MÍNIMA REQUERIDA:**
+- 2-3 ubicaciones: Los lugares más importantes para la historia y el objetivo
+- 3-5 objetos: Los elementos físicos esenciales para completar el objetivo
+- 2-3 personajes no jugadores: Los NPCs importantes que ayudarán o desafiarán al jugador
+
+**REGLAS PARA EL ESQUELETO:**
+1. **Enfoque en objetivo**: Cada entidad debe tener una conexión clara con el objetivo principal
+2. **Ruta lógica**: Debe existir una secuencia lógica de ubicaciones y elementos para alcanzar el objetivo
+3. **Dependencias claras**: Los objetos y personajes deben formar una cadena de dependencias hacia el objetivo
+
+Para cada entidad, especifica su nombre y su propósito/rol en el mundo. Piensa en términos de la ruta principal hacia el objetivo y cómo cada elemento contribuye a esa ruta.
+
+**EJEMPLO DE BUENA ESTRUCTURA:**
+- Ubicación inicial → Ubicación con personaje clave → Ubicación con objeto importante → Ubicación objetivo
+- Objeto inicial → Objeto para intercambio → Objeto final requerido
+- Personaje informativo → Personaje que otorga objeto/acceso → Personaje objetivo (si aplica)
+
+**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
+
+PROMPT_STEP_3_DETAILS = """Eres un constructor de mundos de ficción interactiva. Tu tarea es tomar las entidades clave del esqueleto y desarrollarlas en un mundo detallado y jugable, enfocándote en la ruta principal hacia el objetivo.
+
+Concepto del mundo:
+- Título: {title}
+- Historia de fondo: {backstory}
+- Concepto del jugador: {player_concept}
+- Objetivo principal: {main_objective}
+
+Entidades clave a desarrollar:
+{skeleton_data}
+
+**RESTRICCIONES TÉCNICAS OBLIGATORIAS:**
+
+**REGLAS DE CONEXIÓN OBLIGATORIAS:**
+1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
+2. **Conectividad global**: TODAS las ubicaciones deben ser accesibles desde cualquier punto del mundo - NO puede haber ubicaciones aisladas o grupos separados
+3. **Objetivo alcanzable**: El objetivo DEBE ser completable con los elementos que crees
+4. **Cadena de dependencias**: Debe existir al menos una ruta lógica desde el estado inicial hasta completar el objetivo
+
+**REGLAS DE PERSONAJES:**
+1. **Interacciones funcionales**: Si un personaje tiene `interaction`, DEBE tener `interaction_text`
+2. **Inventarios válidos**: Todo objeto en inventarios de personajes DEBE existir en la lista de objetos del mundo
+3. **Ubicaciones válidas**: Todos los personajes DEBEN estar ubicados en lugares que existen
+
+**REGLAS DE OBJETOS:**
+1. **Objetivos completables**: Si un objeto es requerido para el objetivo (`is_objective_target: true`), DEBE ser `gettable: true`
+2. **Consistencia funcional**: Objetos decorativos pueden ser `gettable: false`, objetos funcionales DEBEN ser `gettable: true`
+3. **Relevancia clara**: Cada objeto debe tener una razón de existir (funcional o atmosférica)
+
+**VALIDACIÓN DE COMPLETABILIDAD:**
+Antes de finalizar, verifica mentalmente:
+1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO?** (OBLIGATORIO)
+2. **¿TODAS las ubicaciones son accesibles desde la ubicación inicial?** (OBLIGATORIO - no debe haber ubicaciones aisladas)
+3. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+4. ¿Existe al menos una ruta de solución desde el estado inicial?
+5. ¿Todos los elementos referenciados existen realmente en el mundo?
+6. ¿Las interacciones de personajes están completas?
+
+**EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
+1. Jugador quiere [objetivo principal]
+2. Para [objetivo] necesita [objeto/ubicación X]
+3. Para conseguir X necesita [interactuar con personaje Y]
+4. Personaje Y requiere [completar tarea/tener objeto Z]
+5. El jugador puede conseguir Z directamente o mediante otro paso
+
+Debes crear:
+- Ubicaciones completas con descripciones atmosféricas y conexiones lógicas bidireccionales
+- Objetos detallados con descripciones y propiedades apropiadas
+- Personajes con personalidades, ubicaciones e interacciones básicas completas
+- Un objetivo claro y específico con componentes definidos y alcanzables
+- El personaje jugador en una ubicación inicial apropiada
+- Cadenas de dependencias que muestren cómo completar el objetivo
+
+IMPORTANTE: Enfócate solo en la ruta principal. No añadas puzzles complejos todavía - eso vendrá en el siguiente paso. Las interacciones de personajes deben ser directas y simples pero COMPLETAS.
+
+**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
+
+PROMPT_STEP_4_PUZZLES = """Eres un diseñador de puzzles para ficción interactiva. Tu tarea es añadir puzzles y obstáculos al mundo existente para hacer la aventura más desafiante e interesante.
+
+Mundo actual:
+{world_data}
+
+**REGLAS DE PUZZLES OBLIGATORIAS:**
+1. **Soluciones descubribles**: Cada puzzle DEBE tener una solución que el jugador pueda DESCUBRIR a través del juego
+   - PROHIBIDO: Códigos o soluciones que el jugador no pueda averiguar explorando el mundo
+   - OBLIGATORIO: Pistas físicas en el entorno, diálogos con personajes, o documentos que revelen la solución
+2. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
+3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
+4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
+5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
+6. **Juegos de palabras**: Los juegos de palabras, en caso de haberlos, deben funcionar bien en español
+
+**TIPOS DE PUZZLES PERMITIDOS:**
+1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
+2. **Puzzles de item**: Requieren usar un objeto específico para resolver un problema (como una llave para abrir una puerta)
+3. **Puzzles de secuencia**: Requieren realizar acciones en un orden específico (como pulsar botones en cierto orden)
+4. **Puzzles de adivinanza**: El jugador debe resolver un acertijo o enigma basado en pistas del entorno
+5. **Puzzles combinados**: Mezclan varios de los anteriores tipos
+
+**EJEMPLO DE BUEN PUZZLE:**
+- Puzzle: Abrir una caja fuerte con un código
+- Pista descubrible 1: En un cuaderno encontrado en el escritorio hay una fecha: "15/7/89"
+- Pista descubrible 2: Un personaje menciona "el cumpleaños de mi hija es muy importante para mí"
+- Solución: El código 1589 (derivado de la fecha que el jugador puede encontrar)
+
+**EJEMPLO DE MAL PUZZLE (PROHIBIDO):**
+- Puzzle: Abrir una puerta con un código
+- No hay pistas en el mundo sobre cuál es el código
+- La solución es un número arbitrario que el jugador no puede descubrir
+
+**REGLAS DE PASAJES BLOQUEADOS:**
+1. **Conectividad global OBLIGATORIA**: Incluso con pasajes bloqueados, TODAS las ubicaciones deben seguir siendo accesibles desde cualquier punto - NO crear grupos aislados
+2. **Obstáculos separados**: El `obstacle_name` debe ser diferente del `required_to_unblock.item_name`
+   - Obstáculo = lo que bloquea físicamente (puerta, candado, barrera)
+   - Requirement = lo que remueve el obstáculo (llave, herramienta, conocimiento)
+3. **Elementos existentes**: Tanto obstáculos como requirements DEBEN existir como objetos en el mundo
+4. **Conectividad previa**: Solo puedes bloquear pasajes entre ubicaciones ya conectadas
+
+**REGLAS DE PERSONAJES CON PUZZLES:**
+1. **Puzzles coherentes**: Si un personaje propone un puzzle, el puzzle DEBE existir y tener `proposed_by_character` configurado
+2. **Interacciones completas**: Si un personaje tiene `interaction`, DEBE tener `interaction_text`
+
+Debes añadir:
+- Puzzles que bloqueen el progreso hacia el objetivo PERO que sean solucionables por exploración
+- Obstáculos que requieran resolución de problemas con pistas descubribles
+- Pasajes bloqueados que necesiten llaves, puzzles o interacciones (siguiendo las reglas arriba)
+- Recompensas apropiadas para cada puzzle resuelto que YA EXISTAN en el mundo
+
+Los puzzles deben:
+- Estar temáticamente coherentes con el mundo
+- Ser lógicos y solucionables A TRAVÉS DE LA EXPLORACIÓN
+- Proporcionar una progresión natural hacia el objetivo
+- Incluir pistas o indicaciones DESCUBRIBLES para el jugador
+
+**VALIDACIÓN DE PUZZLES:**
+Antes de finalizar, verifica mentalmente:
+1. **¿TODAS las ubicaciones siguen siendo accesibles incluso con los nuevos obstáculos?** (OBLIGATORIO)
+2. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
+3. ¿Los puzzles tienen sentido y son solucionables A TRAVÉS DE LA EXPLORACIÓN?
+4. ¿Todos los obstáculos y requirements existen como objetos en el mundo?
+5. ¿Los personajes que proponen puzzles tienen interacciones completas?
+
+Modifica las interacciones de personajes existentes para que propongan puzzles cuando sea apropiado, pero asegúrate de que tengan `interaction_text` completo.
+
+**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
+
+PROMPT_STEP_5_EXPANSION = """Eres un enriquecedor de mundos de ficción interactiva. Tu tarea es expandir el mundo existente con contenido adicional opcional que añada profundidad y exploration sin complicar excesivamente la ruta principal.
+
+Mundo actual:
+{world_data}
+
+**REGLAS DE EXPANSIÓN OBLIGATORIAS:**
+1. **Conexiones bidireccionales**: Si añades nuevas conexiones, A conecta con B entonces B DEBE conectar con A
+2. **Conectividad global**: TODAS las ubicaciones (incluyendo las nuevas) deben ser accesibles desde cualquier punto - NO crear grupos aislados
+3. **Elementos existentes**: Todas las referencias a objetos, ubicaciones o personajes DEBEN existir
+4. **Coherencia temática**: Todo contenido nuevo debe ser coherente con el mundo existente
+5. **No interferencia**: El contenido adicional NO debe alterar la ruta principal al objetivo
+6. **Inventarios válidos**: Si añades objetos a inventarios de personajes, DEBEN existir en la lista de objetos
+
+**REGLAS DE NUEVOS PUZZLES OPCIONALES:**
+Si añades puzzles opcionales, deben seguir las mismas reglas que los puzzles principales:
+- **Soluciones descubribles**: Pistas físicas, diálogos o documentos que revelen la solución
+- **Lógica interna**: Deben hacer sentido dentro del contexto
+- **Recompensas existentes**: Las recompensas DEBEN existir en el mundo
+
+**TIPOS DE EXPANSIÓN RECOMENDADOS:**
+1. **Ubicaciones atmosféricas**: Lugares que enriquezcan la ambientación sin ser necesarios
+2. **Objetos decorativos**: Elementos que añadan inmersión (`gettable: false` está bien)
+3. **Personajes secundarios**: NPCs con historias paralelas o información adicional
+4. **Detalles descriptivos**: Enriquecimiento de descripciones existentes
+
+Debes añadir:
+- **Ubicaciones secundarias opcionales** que enriquezcan la exploración pero mantengan conexiones lógicas
+- **Objetos decorativos o de ambiente** que añadan inmersión sin alterar la jugabilidad principal
+- **Personajes secundarios** que proporcionen contexto o historias paralelas (con interacciones completas)
+- **Puzzles opcionales** con recompensas menores (siguiendo las reglas de puzzles descubribles)
+- **Detalles adicionales** que enriquezcan las descripciones existentes
+
+El contenido adicional debe:
+- Ser opcional para completar el objetivo principal
+- Enriquecer la experiencia sin confundir al jugador
+- Mantener la coherencia temática ABSOLUTA
+- Proporcionar recompensas menores pero satisfactorias
+- Seguir todas las reglas técnicas del mundo principal
+
+**VALIDACIÓN DE EXPANSIÓN:**
+Antes de finalizar, verifica mentalmente:
+1. **¿TODAS las ubicaciones (originales y nuevas) son accesibles desde cualquier punto?** (OBLIGATORIO)
+2. ¿Todas las nuevas conexiones son bidireccionales?
+3. ¿Todos los elementos referenciados existen en el mundo?
+4. ¿El contenido adicional mantiene la coherencia temática?
+5. ¿La ruta principal sigue siendo clara y no se ve interferida?
+6. ¿Los nuevos personajes tienen interacciones completas?
+
+**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
