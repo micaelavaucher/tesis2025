@@ -152,7 +152,7 @@ def run_step_5_expansion(world_data: GeneratedWorld) -> GeneratedWorld:
     else:
         return final_world_response
 
-def create_world_incrementally(theme: str) -> GeneratedWorld:
+def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedWorld:
     """
     Main orchestrator of the incremental generation pipeline.
     
@@ -160,6 +160,7 @@ def create_world_incrementally(theme: str) -> GeneratedWorld:
     
     Args:
         theme: Base theme or concept for the world
+        progress_callback: Optional function to call with progress updates
         
     Returns:
         GeneratedWorld: Fully generated and validated world
@@ -167,29 +168,62 @@ def create_world_incrementally(theme: str) -> GeneratedWorld:
     print(f"⚙️ Iniciando generación incremental del mundo con tema: '{theme}'")
     
     # Paso 1: Generar el concepto general
-    print("📝 Paso 1: Generando concepto del mundo...")
+    step_msg = "📝 Paso 1: Generando concepto del mundo..."
+    print(step_msg)
+    if progress_callback:
+        progress_callback(step_msg)
     concept = run_step_1_concept(theme)
-    print(f"✅ Concepto creado: '{concept.title}'")
+    completion_msg = f"✅ Concepto creado: '{concept.title}'"
+    print(completion_msg)
+    if progress_callback:
+        progress_callback(completion_msg)
     
     # Paso 2: Crear el esqueleto con entidades clave
-    print("🦴 Paso 2: Creando esqueleto del mundo...")
+    step_msg = "🦴 Paso 2: Creando esqueleto del mundo..."
+    print(step_msg)
+    if progress_callback:
+        progress_callback(step_msg)
     skeleton = run_step_2_skeleton(concept)
-    print(f"✅ Esqueleto creado con {len(skeleton.key_locations)} ubicaciones, {len(skeleton.key_items)} objetos y {len(skeleton.key_characters)} personajes")
+    completion_msg = f"✅ Esqueleto creado con {len(skeleton.key_locations)} ubicaciones, {len(skeleton.key_items)} objetos y {len(skeleton.key_characters)} personajes"
+    print(completion_msg)
+    if progress_callback:
+        progress_callback(completion_msg)
     
     # Paso 3: Desarrollar detalles y conexiones
-    print("🌍 Paso 3: Desarrollando detalles y conexiones...")
+    step_msg = "🌍 Paso 3: Desarrollando detalles y conexiones..."
+    print(step_msg)
+    if progress_callback:
+        progress_callback(step_msg)
     world_basic = run_step_3_details(concept, skeleton)
-    print(f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos")
+    completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos"
+    print(completion_msg)
+    if progress_callback:
+        progress_callback(completion_msg)
     
     # Paso 4: Añadir puzzles y obstáculos
-    print("🧩 Paso 4: Añadiendo puzzles y obstáculos...")
+    step_msg = "🧩 Paso 4: Añadiendo puzzles y obstáculos..."
+    print(step_msg)
+    if progress_callback:
+        progress_callback(step_msg)
     world_with_puzzles = run_step_4_puzzles(world_basic)
-    print(f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total")
+    completion_msg = f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total"
+    print(completion_msg)
+    if progress_callback:
+        progress_callback(completion_msg)
     
     # Paso 5: Expandir con contenido opcional
-    print("🎨 Paso 5: Expandiendo con contenido adicional...")
+    step_msg = "🎨 Paso 5: Expandiendo con contenido adicional..."
+    print(step_msg)
+    if progress_callback:
+        progress_callback(step_msg)
     final_world = run_step_5_expansion(world_with_puzzles)
-    print(f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones")
+    completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones"
+    print(completion_msg)
+    if progress_callback:
+        progress_callback(completion_msg)
     
-    print("🌱 ¡Generación incremental completada exitosamente!")
+    final_msg = "🌱 ¡Generación incremental completada exitosamente!"
+    print(final_msg)
+    if progress_callback:
+        progress_callback(final_msg)
     return final_world

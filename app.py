@@ -186,7 +186,7 @@ if generation_mode == "inspiration":
             inspo_input = gr.Textbox(label=TEXTBOX_LABEL)
             generar_btn = gr.Button(GENERATE_WORLD, elem_id="generar-btn")
             error_output = gr.Textbox(visible=False, label=ERROR_LABEL)
-            spinner = gr.HTML(visible=False) 
+            progress_output = gr.Textbox(visible=False, label="Progreso", lines=10, interactive=False)
 
         with gr.Column(visible=False) as main_game:
             chat = gr.Chatbot(
@@ -197,37 +197,24 @@ if generation_mode == "inspiration":
             )
             textbox = gr.Textbox(placeholder=TEXTBOX_PLACEHOLDER, container=False, scale=5)
 
-        # Función que muestra el spinner y desactiva botón
-        def preparar_creacion():
-            spinner_html = """
-            <div style='text-align:center;'>
-              <div class='loader'></div>
-              <p>Generando mundo...</p>
-            </div>
-            <style>
-              .loader {
-                border: 6px solid #f3f3f3;
-                border-top: 6px solid #3b82f6;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin: auto;
-              }
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            </style>
-            """
-            return gr.update(value=SPINNER_TEXT, interactive=False), gr.update(value=spinner_html, visible=True)
-
-
         def build_world_and_start(inspo):
             try:
                 global world, last_player_position, number_of_turns, game_log_dictionary
 
                 print(f"[INFO] Generando mundo desde inspiración: '{inspo}'")
+                
+                # Lista para acumular mensajes de progreso
+                progress_messages = []
+                
+                # Mostrar área de progreso e inhabilitar botón
+                yield (
+                    gr.update(),  # pre_game sin cambios
+                    gr.update(),  # main_game sin cambios
+                    [],  # chat sin cambios
+                    gr.update(),  # error_output sin cambios
+                    gr.update(interactive=False, value="Generando..."),  # botón inhabilitado
+                    gr.update(value="⚙️ Iniciando generación del mundo...", visible=True)  # progreso visible
+                )
                 
                 # Maximum number of generation attempts
                 max_attempts = 3
@@ -238,12 +225,170 @@ if generation_mode == "inspiration":
                     generation_attempts += 1
                     if generation_attempts > 1:
                         if language == 'es':
-                            print(f"🔄 Intento {generation_attempts}/{max_attempts}: Regenerando mundo porque falta el objetivo...")
+                            retry_msg = f"🔄 Intento {generation_attempts}/{max_attempts}: Regenerando mundo porque falta el objetivo..."
                         else:
-                            print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
+                            retry_msg = f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing..."
+                        print(retry_msg)
+                        progress_messages.append(retry_msg)
+                        yield (
+                            gr.update(),
+                            gr.update(),
+                            [],
+                            gr.update(),
+                            gr.update(interactive=False, value="Generando..."),
+                            gr.update(value="\n".join(progress_messages))
+                        )
+                    
+                    # Crear callback que actualice el progreso en tiempo real
+                    def progress_callback(message):
+                        progress_messages.append(message)
+                        # NO hacemos yield aquí porque estamos dentro de create_world_incrementally
                     
                     # Usar el nuevo pipeline incremental con la inspiración como tema
-                    generated_world = create_world_incrementally(inspo)
+                    # Vamos a hacer esto paso a paso para poder mostrar progreso
+                    from generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles, run_step_5_expansion
+                    
+                    # Paso 1: Concepto
+                    step_msg = "📝 Paso 1: Generando concepto del mundo..."
+                    progress_messages.append(step_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    concept = run_step_1_concept(inspo)
+                    completion_msg = f"✅ Concepto creado: '{concept.title}'"
+                    progress_messages.append(completion_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    # Paso 2: Esqueleto
+                    step_msg = "🦴 Paso 2: Creando esqueleto del mundo..."
+                    progress_messages.append(step_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    skeleton = run_step_2_skeleton(concept)
+                    completion_msg = f"✅ Esqueleto creado con {len(skeleton.key_locations)} ubicaciones, {len(skeleton.key_items)} objetos y {len(skeleton.key_characters)} personajes"
+                    progress_messages.append(completion_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    # Paso 3: Detalles
+                    step_msg = "🌍 Paso 3: Desarrollando detalles y conexiones..."
+                    progress_messages.append(step_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    world_basic = run_step_3_details(concept, skeleton)
+                    completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos"
+                    progress_messages.append(completion_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    # Paso 4: Puzzles
+                    step_msg = "🧩 Paso 4: Añadiendo puzzles y obstáculos..."
+                    progress_messages.append(step_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    world_with_puzzles = run_step_4_puzzles(world_basic)
+                    completion_msg = f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total"
+                    progress_messages.append(completion_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    # Paso 5: Expansión
+                    step_msg = "🎨 Paso 5: Expandiendo con contenido adicional..."
+                    progress_messages.append(step_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    generated_world = run_step_5_expansion(world_with_puzzles)
+                    completion_msg = f"✅ Expansión completada: mundo final con {len(generated_world.locations)} ubicaciones"
+                    progress_messages.append(completion_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    final_msg = "🌱 ¡Generación incremental completada exitosamente!"
+                    progress_messages.append(final_msg)
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
+                    progress_messages.append("🔧 Construyendo mundo desde respuesta del LLM...")
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
                     world = create_world_from_llm_response(generated_world)
                     
                     try:
@@ -251,28 +396,68 @@ if generation_mode == "inspiration":
                         if not hasattr(world, 'objective') or not world.objective:
                             if generation_attempts < max_attempts:
                                 if language == 'es':
-                                    print("⚠️ El mundo generado no tiene un objetivo definido. Intentando de nuevo...")
+                                    retry_msg = "⚠️ El mundo generado no tiene un objetivo definido. Intentando de nuevo..."
                                 else:
-                                    print("⚠️ Generated world has no defined objective. Trying again...")
+                                    retry_msg = "⚠️ Generated world has no defined objective. Trying again..."
+                                print(retry_msg)
+                                progress_messages.append(retry_msg)
+                                yield (
+                                    gr.update(),
+                                    gr.update(),
+                                    [],
+                                    gr.update(),
+                                    gr.update(interactive=False, value="Generando..."),
+                                    gr.update(value="\n".join(progress_messages))
+                                )
                                 continue
                             else:
                                 if language == 'es':
-                                    print("❌ No se pudo generar un mundo con objetivo después de varios intentos.")
+                                    error_msg = "❌ No se pudo generar un mundo con objetivo después de varios intentos."
                                 else:
-                                    print("❌ Failed to generate a world with objective after several attempts.")
+                                    error_msg = "❌ Failed to generate a world with objective after several attempts."
+                                print(error_msg)
                                 raise ValueError("Failed to generate a world with a defined objective")
                         else:
                             if language == 'es':
-                                print("✅ ¡Nuevo mundo creado exitosamente con objetivo definido!")
+                                success_msg = "✅ ¡Nuevo mundo creado exitosamente con objetivo definido!"
                             else:
-                                print("✅ New world created successfully with defined objective!")
+                                success_msg = "✅ New world created successfully with defined objective!"
+                            print(success_msg)
+                            progress_messages.append(success_msg)
+                            yield (
+                                gr.update(),
+                                gr.update(),
+                                [],
+                                gr.update(),
+                                gr.update(interactive=False, value="Generando..."),
+                                gr.update(value="\n".join(progress_messages))
+                            )
                     except Exception as e:
                         if generation_attempts >= max_attempts:
                             raise e
-                        print(f"Error on attempt {generation_attempts}: {e}")
+                        error_msg = f"Error on attempt {generation_attempts}: {e}"
+                        print(error_msg)
+                        progress_messages.append(error_msg)
+                        yield (
+                            gr.update(),
+                            gr.update(),
+                            [],
+                            gr.update(),
+                            gr.update(interactive=False, value="Generando..."),
+                            gr.update(value="\n".join(progress_messages))
+                        )
                         continue
                 
-                # print("world:", world.model_dump() if hasattr(world, 'model_dump') else str(world))
+                # Generar narración inicial
+                progress_messages.append("📖 Generando narración inicial...")
+                yield (
+                    gr.update(),
+                    gr.update(),
+                    [],
+                    gr.update(),
+                    gr.update(interactive=False, value="Generando..."),
+                    gr.update(value="\n".join(progress_messages))
+                )
 
                 # Narración escena inicial
                 system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
@@ -285,6 +470,16 @@ if generation_mode == "inspiration":
 
                 # Objetivo
                 if hasattr(world, 'objective') and world.objective:
+                    progress_messages.append("🎯 Generando descripción del objetivo...")
+                    yield (
+                        gr.update(),
+                        gr.update(),
+                        [],
+                        gr.update(),
+                        gr.update(interactive=False, value="Generando..."),
+                        gr.update(value="\n".join(progress_messages))
+                    )
+                    
                     system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
                     narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
                     
@@ -301,6 +496,16 @@ if generation_mode == "inspiration":
                         if not narrated_objective.strip().endswith(('.', '!', '?')):
                             narrated_objective += '.'
                         starting_narration += f"\n\n🎯 {narrated_objective}"
+
+                progress_messages.append("💾 Guardando estado inicial del mundo...")
+                yield (
+                    gr.update(),
+                    gr.update(),
+                    [],
+                    gr.update(),
+                    gr.update(interactive=False, value="Generando..."),
+                    gr.update(value="\n".join(progress_messages))
+                )
 
                 # Inicializar variables globales
                 last_player_position = world.player.location
@@ -321,36 +526,34 @@ if generation_mode == "inspiration":
                 with open(os.path.join(PATH_GAMELOGS,log_filename), 'w', encoding='utf-8') as f:
                     json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
 
+                progress_messages.append("🎉 ¡Mundo generado exitosamente! Iniciando juego...")
+                
                 # Mostrar interfaz principal
-                # Ocultar cargando y mostrar interfaz principal
-                return (
-                    gr.update(visible=False),        # pre_game
-                    gr.update(visible=True),         # main_game
-                    [{"role": "assistant", "content": starting_narration}],  # chat
+                yield (
+                    gr.update(visible=False),        # pre_game oculto
+                    gr.update(visible=True),         # main_game visible
+                    [{"role": "assistant", "content": starting_narration}],  # chat con narración inicial
                     gr.update(value="", visible=False),  # error_output oculto y vacío
-                    gr.update(value="Crear mundo", interactive=True),        # botón
-                    gr.update(value="", visible=False)                       # spinner oculto
+                    gr.update(value="Crear mundo", interactive=True),        # botón habilitado de nuevo
+                    gr.update(value="\n".join(progress_messages), visible=False)  # progreso oculto al final
                 )
 
             except Exception as e:
                 print(f"[ERROR] {e}")
-                return (
-                    gr.update(visible=True),
-                    gr.update(visible=False),
-                    [],
-                    gr.update(value=f"❌ Error generando el mundo: {str(e)}", visible=True),
-                    gr.update(value=""""""),
-                    gr.update(value="", visible=False) 
+                yield (
+                    gr.update(visible=True),         # pre_game visible (para mostrar error)
+                    gr.update(visible=False),        # main_game oculto
+                    [],                              # chat vacío
+                    gr.update(value=f"❌ Error generando el mundo: {str(e)}", visible=True),  # error visible
+                    gr.update(value="Crear mundo", interactive=True),                        # botón habilitado
+                    gr.update(value="", visible=False)                                       # progreso oculto
                 )
 
-        # Encadenamiento: spinner y luego creación
+        # Encadenamiento directo para generación
         generar_btn.click(
-            fn=preparar_creacion,
-            outputs=[generar_btn, spinner]
-        ).then(
             fn=build_world_and_start,
             inputs=inspo_input,
-            outputs=[pre_game, main_game, chat, error_output, generar_btn, spinner]
+            outputs=[pre_game, main_game, chat, error_output, generar_btn, progress_output]
         )
 
         def game_loop_wrapper(message, history):
@@ -395,7 +598,7 @@ if generation_mode == 'generate':
                 print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
         
         try:
-            generated_world = create_world_incrementally("aventura misteriosa")
+            generated_world = create_world_incrementally("aventura misteriosa", progress_callback=None)
             world = create_world_from_llm_response(generated_world)
             
             # Verificar que el mundo tiene un objetivo
