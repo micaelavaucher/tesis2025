@@ -206,6 +206,10 @@ class World:
       if self.objective[1] in self.objective[0].inventory: done = True
     elif first_component_class == "Item" and second_component_class == "Location":
       if self.objective[0] in self.objective[1].items: done = True
+    elif hasattr(self.objective[1], 'name') and 'Mystery:' in str(self.objective[1].name):
+      # Mystery objectives require manual completion through narrative
+      # For now, they are never automatically completed
+      done = False
 
     return done
 

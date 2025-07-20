@@ -287,6 +287,7 @@ if generation_mode == "inspiration":
                 if hasattr(world, 'objective') and world.objective:
                     system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
                     narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
+                    
                     try:
                         # Try to extract formatted objective text between # characters
                         objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
@@ -466,6 +467,7 @@ world.player.visited_locations[world.player.location.name]+=[starting_narration]
 if hasattr(world, 'objective') and world.objective:
     system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
     narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
+    
     try:
         objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
         # Make sure the objective text has proper punctuation
