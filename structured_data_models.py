@@ -199,6 +199,25 @@ class WorldUpdate(BaseModel):
     location_changed: LocationChange = Field(default=LocationChange(), description="Player location change information")
     narration: str = Field(description="Narrative text describing what happened")
 
+#---- Pipeline Models (for incremental world generation) --------------------
+class WorldConcept(BaseModel):
+    """Concept and high-level description of the world."""
+    title: str = Field(description="Title or name of the world/adventure")
+    backstory: str = Field(description="Background story that sets the context")
+    player_concept: str = Field(description="Description of the player character and their role")
+    main_objective: str = Field(description="High-level description of what the player must accomplish")
+
+class KeyEntity(BaseModel):
+    """Base model for key entities in the world skeleton."""
+    name: str = Field(description="Name of the entity")
+    purpose: str = Field(description="Role or purpose of this entity in the world")
+
+class WorldSkeleton(BaseModel):
+    """Skeleton structure with key entities before detailed generation."""
+    key_locations: List[KeyEntity] = Field(description="Key locations that will form the world structure")
+    key_items: List[KeyEntity] = Field(description="Key items that will be important for the objective")
+    key_characters: List[KeyEntity] = Field(description="Key characters that will interact with the player")
+
 #---- Expansion Models -------------------------------------------------------
 class WorldExpansion(BaseModel):
     """Model for expanding existing worlds with new connected areas."""

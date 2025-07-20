@@ -15,14 +15,15 @@ from structured_data_models import GeneratedWorld, WorldExpansion, RequirementTy
 def create_world_from_llm_response(world_data) -> World:
     """Parse structured LLM response and create a World object."""
     try:
-        # Handle both dict and string inputs
-        if isinstance(world_data, dict):
+        # Handle GeneratedWorld objects, dict and string inputs
+        if isinstance(world_data, GeneratedWorld):
+            generated_world = world_data
+        elif isinstance(world_data, dict):
             data = world_data
+            generated_world = GeneratedWorld.model_validate(data)
         else:
             data = json.loads(world_data)
-            
-        # Parse the JSON response
-        generated_world = GeneratedWorld.model_validate(data)
+            generated_world = GeneratedWorld.model_validate(data)
 
         # Create items first so they can be referenced
         items_dict: Dict[str, Item] = {}
