@@ -12,7 +12,7 @@ load_dotenv()
 
 def get_llm(model_name: str = "gemini-2.0-flash") -> object:
 
-    google_models = ["gemini-1.0-pro", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"]
+    google_models = ["gemini-1.0-pro", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash"]
     replicate_models = ["meta/meta-llama-3-70b", "meta/meta-llama-3-70b-instruct"]
 
     model = None
