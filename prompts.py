@@ -17,9 +17,9 @@ def prompt_describe_objective_english (objective):
     
     Always put your generated narration between # characters. For example: # You have to get the <key> # or # You have to reach the <castle> #"""
 
-    # Handle new GeneratedObjective structure
-    if hasattr(objective, 'description') and hasattr(objective, 'type'):
-        user_msg = f'The objective to narrate in an alternative way is: "{objective.description}"'
+    # Handle new GeneratedObjective structure - check if it's a tuple with new structure
+    if len(objective) == 2 and hasattr(objective[1], 'description') and hasattr(objective[1], 'type'):
+        user_msg = f'The objective to narrate in an alternative way is: "{objective[1].description}"'
     else:
         # Legacy fallback for old objective structure
         first_component_class = objective[0].__class__.__name__
@@ -43,9 +43,9 @@ def prompt_describe_objective_spanish (objective):
     
     Pon siempre tu narración generada entre caracteres #. Por ejemplo: # Tienes que conseguir la <llave> # o # Tienes que llegar al <Castillo> #"""
 
-    # Handle new GeneratedObjective structure
-    if hasattr(objective, 'description') and hasattr(objective, 'type'):
-        user_msg = f'El objetivo a decir de forma alternativa es: "{objective.description}"'
+    # Handle new GeneratedObjective structure - check if it's a tuple with new structure
+    if len(objective) == 2 and hasattr(objective[1], 'description') and hasattr(objective[1], 'type'):
+        user_msg = f'El objetivo a decir de forma alternativa es: "{objective[1].description}"'
     else:
         # Legacy fallback for old objective structure
         first_component_class = objective[0].__class__.__name__
