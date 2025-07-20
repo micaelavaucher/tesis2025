@@ -236,6 +236,17 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
                         if character:
                             return (items_dict[item_component.name], character)
         
+        elif obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
+            # For mystery objectives, create a special marker using the objective description
+            # This allows the game to track mystery completion through narrative
+            mystery_marker = type('MysteryObjective', (), {
+                'name': f"Mystery: {objective_data.description}",
+                'description': objective_data.description,
+                'type': objective_data.type,
+                'components': components
+            })()
+            return (player, mystery_marker)
+        
         # Fallback: try to infer from description
         description = objective_data.description.lower()
         
