@@ -146,6 +146,32 @@ REGLAS GENERALES:
 - Presta atención a las descripciones, capacidades y requisitos de cada componente
 
 Tu respuesta debe ser un JSON válido que siga exactamente el modelo WorldUpdate."""
+        
+        user_msg = f"""Analiza la entrada del jugador y determina los cambios en el mundo:
+
+Entrada del jugador: "{input}"
+
+Estado actual del mundo:
+{world_state}
+
+Devuelve un objeto JSON con la siguiente estructura:
+{{
+    "moved_objects": [
+        {{"object_name": "nombre", "new_location": "ubicación"}}
+    ],
+    "blocked_passages_available": [
+        {{"location_name": "ubicación", "is_available": true}}
+    ],
+    "location_changed": {{
+        "new_location": "nombre_ubicación_o_null"
+    }},
+    "puzzles_solved": [
+        {{"puzzle_name": "nombre", "answer": "respuesta", "success": true}}
+    ],
+    "narration": "Descripción narrativa rica de lo que ocurrió"
+}}
+
+IMPORTANTE: Siempre incluye el campo narration con una descripción detallada y evocativa de lo que ocurrió en el mundo."""
     else:
         system_msg = """You are an expert narrator managing an interactive fictional world. Your task is to analyze the player's actions and determine the exact changes in the world state.
 
@@ -162,7 +188,7 @@ GENERAL RULES:
 
 Your response must be valid JSON that follows exactly the WorldUpdate model."""
     
-    user_msg = f"""Analyze the player's input and determine world changes:
+        user_msg = f"""Analyze the player's input and determine world changes:
 
 Player input: "{input}"
 
@@ -198,6 +224,12 @@ def prompt_world_update_spanish (world_state: str, input: str):
     (P2) **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada del puzzle.
     (P3) **REQUISITOS DE PUZZLES**: Verifica que se cumplan todos los requisitos antes de permitir que un puzzle sea resuelto.
     (P4) **RECOMPENSAS CONDICIONADAS**: Las recompensas (objetos, pasajes, información) solo se otorgan DESPUÉS de resolver exitosamente el puzzle.
+
+    **REGLAS CRÍTICAS PARA INTERACCIONES CON PERSONAJES:**
+    (I1) **SER DIRECTO Y ÚTIL**: Cuando el jugador interactúa con un personaje, el personaje debe ser DIRECTO sobre lo que necesita o quiere. No debe dar vueltas o ser evasivo innecesariamente.
+    (I2) **COMUNICAR REQUISITOS CLARAMENTE**: Si un personaje tiene requisitos específicos (objetos, puzzles resueltos, etc.), debe comunicárselos al jugador de forma CLARA en la primera o segunda interacción. No debe seguir siendo misterioso después de que el jugador muestre interés.
+    (I3) **EVITAR REPETICIÓN INÚTIL**: Si el jugador ya interactuó con un personaje y el personaje ya le dijo que necesita algo, no debe repetir la misma información vaga. En su lugar, debe ser más específico o sugerir dónde conseguir lo que necesita.
+    (I4) **INFORMACIÓN PROGRESIVA**: En cada interacción, el personaje debe proporcionar información MÁS ESPECÍFICA que en la anterior, hasta que el jugador tenga toda la información necesaria para cumplir con los requisitos.
 
     Aquí hay otras aclaraciones importantes:
     (A) Presta atención a la descripción de los componentes y sus capacidades.
@@ -1085,72 +1117,75 @@ IMPORTANTE: Enfócate solo en la ruta principal. No añadas puzzles complejos to
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
 
-PROMPT_STEP_4_PUZZLES = """Eres un diseñador de puzzles para ficción interactiva. Tu tarea es añadir puzzles y obstáculos al mundo existente para hacer la aventura más desafiante e interesante.
+PROMPT_STEP_4_PUZZLES = """Eres un diseñador de cadenas de dependencias para ficción interactiva. Tu objetivo principal es tomar el mundo básico existente y transformarlo en una aventura compleja con múltiples pasos interconectados que el jugador debe completar para alcanzar su objetivo.
 
 Mundo actual:
 {world_data}
 
-**REGLAS DE PUZZLES OBLIGATORIAS:**
-1. **Soluciones descubribles**: Cada puzzle DEBE tener una solución que el jugador pueda DESCUBRIR a través del juego
-   - PROHIBIDO: Códigos o soluciones que el jugador no pueda averiguar explorando el mundo
-   - OBLIGATORIO: Pistas físicas en el entorno, diálogos con personajes, o documentos que revelen la solución
-2. **Soluciones claras**: Cada puzzle DEBE tener una respuesta específica y no ambigua
-3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
-4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
-5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
-6. **Juegos de palabras**: Los juegos de palabras, en caso de haberlos, deben funcionar bien en español
+**OBJETIVO CRÍTICO:** En lugar de simplemente añadir puzzles aislados, debes crear CADENAS DE DEPENDENCIAS que hagan la progresión hacia el objetivo mucho más interesante y desafiante.
 
-**TIPOS DE PUZZLES PERMITIDOS:**
-1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
-2. **Puzzles de item**: Requieren usar un objeto específico para resolver un problema (como una llave para abrir una puerta)
-3. **Puzzles de secuencia**: Requieren realizar acciones en un orden específico (como pulsar botones en cierto orden)
-4. **Puzzles de adivinanza**: El jugador debe resolver un acertijo o enigma basado en pistas del entorno
-5. **Puzzles combinados**: Mezclan varios de los anteriores tipos
+**EJEMPLO DE CADENA DE DEPENDENCIAS COMPLEJA:**
+Objetivo: Conseguir el Amuleto Mágico
+1. El Amuleto está en la Habitación Secreta, pero la puerta está bloqueada por un Candado Mágico
+2. Para abrir el Candado Mágico necesitas la Palabra Clave que solo conoce el Mago
+3. El Mago te dará la Palabra Clave, pero primero quiere que le traigas su Bastón Perdido
+4. El Bastón está en poder del Comerciante, quien lo intercambiará por 3 Gemas
+5. Para conseguir las 3 Gemas debes resolver el Acertijo del Guardián en la Cueva
+6. Pero para entrar a la Cueva necesitas la Llave de Hierro que tiene la Anciana
+7. La Anciana te dará la Llave si le traes una Poción Curativa del Herbolario
+8. El Herbolario te dará la Poción a cambio de encontrar su Libro de Recetas...
 
-**EJEMPLO DE BUEN PUZZLE:**
-- Puzzle: Abrir una caja fuerte con un código
-- Pista descubrible 1: En un cuaderno encontrado en el escritorio hay una fecha: "15/7/89"
-- Pista descubrible 2: Un personaje menciona "el cumpleaños de mi hija es muy importante para mí"
-- Solución: El código 1589 (derivado de la fecha que el jugador puede encontrar)
+**ESTRUCTURA DE CADENAS OBLIGATORIA:**
+1. **Cadena principal**: La ruta principal hacia el objetivo debe tener AL MENOS de 3 a 6 pasos interdependientes
+2. **Subcadenas**: Cada paso principal puede tener sus propias subcadenas de 1-3 pasos
+3. **Múltiples rutas opcionales**: Donde sea posible, proporciona rutas alternativas para algunos pasos
+4. **Puzzles integrados**: Los puzzles deben estar integrados orgánicamente en las cadenas
 
-**EJEMPLO DE MAL PUZZLE (PROHIBIDO):**
-- Puzzle: Abrir una puerta con un código
-- No hay pistas en el mundo sobre cuál es el código
-- La solución es un número arbitrario que el jugador no puede descubrir
+**REGLAS DE CADENAS DE DEPENDENCIAS:**
+1. **Progresión lógica**: Cada paso debe ser una consecuencia lógica del anterior
+2. **Motivación clara**: Cada personaje debe tener una razón convincente para sus peticiones
+3. **Diversidad de tareas**: Combina diferentes tipos de desafíos (puzzles, intercambios, exploración, interacciones sociales)
+4. **Escalado de dificultad**: Los desafíos deben volverse progresivamente más complejos
+5. **Conectividad temática**: Todas las tareas deben estar conectadas con la historia principal
 
-**REGLAS DE PASAJES BLOQUEADOS:**
-1. **Conectividad global OBLIGATORIA**: Incluso con pasajes bloqueados, TODAS las ubicaciones deben seguir siendo accesibles desde cualquier punto - NO crear grupos aislados
-2. **Obstáculos separados**: El `obstacle_name` debe ser diferente del `required_to_unblock.item_name`
-   - Obstáculo = lo que bloquea físicamente (puerta, candado, barrera)
-   - Requirement = lo que remueve el obstáculo (llave, herramienta, conocimiento)
-3. **Elementos existentes**: Tanto obstáculos como requirements DEBEN existir como objetos en el mundo
-4. **Conectividad previa**: Solo puedes bloquear pasajes entre ubicaciones ya conectadas
+**TIPOS DE DEPENDENCIAS A CREAR:**
+1. **Intercambios en cadena**: A quiere B de C, quien quiere D de E, etc.
+2. **Información en cascada**: Para conseguir X necesitas saber Y, que se obtiene resolviendo Z
+3. **Acceso progresivo**: Para llegar a A necesitas la llave B, que obtienes en C, accesible con objeto D
+4. **Puzzles conectados**: Resolver puzzle A revela la pista para puzzle B, que desbloquea acceso a C
+5. **Relaciones sociales**: Personaje A confía en ti solo si ayudas a personaje B primero
 
-**REGLAS DE PERSONAJES CON PUZZLES:**
-1. **Puzzles coherentes**: Si un personaje propone un puzzle, el puzzle DEBE existir y tener `proposed_by_character` configurado
-2. **Interacciones completas**: Si un personaje tiene `interaction`, DEBE tener `interaction_text`
+**REGLAS TÉCNICAS OBLIGATORIAS:**
+1. **Conectividad global**: TODAS las ubicaciones deben seguir siendo accesibles - NO crear grupos aislados
+2. **Elementos existentes**: Todas las referencias DEBEN apuntar a objetos/personajes/ubicaciones que existen
+3. **Soluciones descubribles**: Cada puzzle DEBE tener pistas que el jugador pueda encontrar explorando
+4. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
+5. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
 
-Debes añadir:
-- Puzzles que bloqueen el progreso hacia el objetivo PERO que sean solucionables por exploración
-- Obstáculos que requieran resolución de problemas con pistas descubribles
-- Pasajes bloqueados que necesiten llaves, puzzles o interacciones (siguiendo las reglas arriba)
-- Recompensas apropiadas para cada puzzle resuelto que YA EXISTAN en el mundo
+**ESTRATEGIAS PARA CREAR COMPLEJIDAD:**
+1. **Bloquear acceso directo**: El objetivo no debe ser directamente accesible - añade obstáculos
+2. **Requerir múltiples elementos**: Para el paso final se necesitan varios objetos/información
+3. **Crear cuellos de botella**: Ciertos personajes clave que controlan múltiples recursos
+4. **Esconder elementos críticos**: Objetos importantes en ubicaciones que requieren esfuerzo alcanzar
+5. **Información fragmentada**: Dividir pistas importantes entre múltiples personajes/ubicaciones
 
-Los puzzles deben:
-- Estar temáticamente coherentes con el mundo
-- Ser lógicos y solucionables A TRAVÉS DE LA EXPLORACIÓN
-- Proporcionar una progresión natural hacia el objetivo
-- Incluir pistas o indicaciones DESCUBRIBLES para el jugador
+**MODIFICACIONES REQUERIDAS AL MUNDO:**
+1. **Expandir interacciones de personajes**: Añade peticiones, intercambios, información
+2. **Añadir puzzles estratégicos**: Que bloqueen puntos críticos de la progresión
+3. **Crear pasajes bloqueados**: Con obstáculos que requieren elementos de las cadenas
+4. **Redistribuir objetos**: Mueve objetos importantes a ubicaciones menos accesibles
+5. **Añadir nuevos elementos**: Si es necesario para crear las cadenas complejas
 
-**VALIDACIÓN DE PUZZLES:**
+**VALIDACIÓN DE CADENAS:**
 Antes de finalizar, verifica mentalmente:
-1. **¿TODAS las ubicaciones siguen siendo accesibles incluso con los nuevos obstáculos?** (OBLIGATORIO)
-2. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
-3. ¿Los puzzles tienen sentido y son solucionables A TRAVÉS DE LA EXPLORACIÓN?
-4. ¿Todos los obstáculos y requirements existen como objetos en el mundo?
-5. ¿Los personajes que proponen puzzles tienen interacciones completas?
+1. **¿El camino al objetivo tiene AL MENOS 3-6 pasos principales?** (OBLIGATORIO)
+2. **¿Cada paso tiene una motivación lógica y clara?**
+3. **¿Hay variedad en los tipos de desafíos?**
+4. **¿Todas las ubicaciones siguen siendo accesibles?**
+5. **¿Todos los elementos referenciados existen?**
+6. **¿Las cadenas son interesantes pero no frustrantes?**
 
-Modifica las interacciones de personajes existentes para que propongan puzzles cuando sea apropiado, pero asegúrate de que tengan `interaction_text` completo.
+Tu misión es convertir un mundo simple y directo en una aventura rica en la que cada logro se sienta ganado a través de exploración, ingenio e interacción social. ¡Haz que el jugador trabaje por su victoria!
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
