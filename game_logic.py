@@ -9,9 +9,10 @@ import json
 import os
 import jsonpickle
 import time
-from prompts import prompt_narrate_current_scene, prompt_world_update
+from prompts import prompt_narrate_current_scene, prompt_world_update_structured
 from world_builder import inspect_generated_world
 from config import PATH_GAMELOGS
+from structured_data_models import WorldUpdate
 
 def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name):
     """Create initial game log dictionary."""
@@ -49,34 +50,78 @@ def handle_debug_command(message, world, language):
         return debug_info.replace("<", r"\<").replace(">", r"\>")
     return None
 
-def process_player_input(world, message, language, reasoning_model, number_of_turns, game_log_dictionary):
-    """Process player input and update world state."""
+def process_player_input_structured(world, message, language, reasoning_model,
+                                    number_of_turns, game_log_dictionary):
+    """Process player input using structured data models for more reliable parsing."""
     # Log input
     game_log_dictionary[number_of_turns]["date"] = time.ctime(time.time())
     game_log_dictionary[number_of_turns]["previous_symbolic_world_state"] = jsonpickle.encode(world, unpicklable=False)
     game_log_dictionary[number_of_turns]["previous_rendered_world_state"] = world.render_world(language=language)
     game_log_dictionary[number_of_turns]["user_input"] = message
 
-    # Get world changes
-    system_msg_update, user_msg_update = prompt_world_update(world.render_world(language=language), message, language=language)
-    response_update = reasoning_model.prompt_model(system_msg=system_msg_update, user_msg=user_msg_update)
-
-    # Show predicted outcomes
-    print("🛠️ Predicted outcomes of the player input 🛠️")
-    print(f"> Player input: {message}")
+    # Get structured world changes
+    system_msg_update, user_msg_update, expected_model = prompt_world_update_structured(
+        world.render_world(language=language), message, language=language
+    )
+    
     try:
-        predicted_outcomes = re.sub(r'#([^#]*?)#', '', response_update)
-        print(f"{predicted_outcomes}\n")
-        game_log_dictionary[number_of_turns]["predicted_outcomes"] = predicted_outcomes
+        # Try to get structured response
+        full_prompt = system_msg_update + "\n\n" + user_msg_update
+        # Convert Pydantic model to JSON schema for Gemini
+        response_schema = expected_model.model_json_schema()
+        
+        response_json = reasoning_model.prompt_model_structured(
+            prompt=full_prompt,
+            response_schema=response_schema
+        )
+        
+        if isinstance(response_json, dict):
+            # Direct dict response
+            world_update = WorldUpdate(**response_json)
+        elif isinstance(response_json, str):
+            # Parse JSON string if needed
+            import json
+            response_data = json.loads(response_json)
+            world_update = WorldUpdate(**response_data)
+        else:
+            # Model instance response
+            world_update = response_json
+            
+        # Show predicted outcomes
+        print("🛠️ Predicted outcomes of the player input 🛠️")
+        print(f"> Player input: {message}")
+        print(f"{world_update.narration}\n")
+        
+        game_log_dictionary[number_of_turns]["predicted_outcomes"] = world_update.narration
+        game_log_dictionary[number_of_turns]["structured_update"] = world_update.model_dump()
+        
+        # Update world using structured data
+        world.update_from_structured(world_update)
+        
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"⚠️ Structured processing failed: {e}")
+        print("🔄 Falling back to legacy text processing...")
+        
+        # Fallback to legacy processing
+        response_update = reasoning_model.prompt_model(system_msg=system_msg_update, user_msg=user_msg_update)
+        
+        print("🛠️ Predicted outcomes of the player input 🛠️")
+        print(f"> Player input: {message}")
+        try:
+            predicted_outcomes = re.sub(r'#([^#]*?)#', '', response_update)
+            print(f"{predicted_outcomes}\n")
+            game_log_dictionary[number_of_turns]["predicted_outcomes"] = predicted_outcomes
+        except Exception as e:
+            print(f"Error: {e}")
+        
+        # Update world using legacy method
+        world.update(response_update)
+        game_log_dictionary[number_of_turns]["fallback_response"] = response_update
 
-    # Update world
-    world.update(response_update)
     game_log_dictionary[number_of_turns]["updated_symbolic_world_state"] = jsonpickle.encode(world, unpicklable=True)
     game_log_dictionary[number_of_turns]["updated_rendered_world_state"] = world.render_world(language=language)
 
-    return response_update
+    return world_update.narration if 'world_update' in locals() else (response_update if 'response_update' in locals() else "")
 
 def generate_narration(world, last_player_position, response_update, language, narrative_model):
     """Generate appropriate narration based on player location and actions."""
@@ -96,9 +141,35 @@ def generate_narration(world, last_player_position, response_update, language, n
     else:
         # Narrate actions in current scene
         try:
-            answer += f"{re.findall(r'#([^#]*?)#', response_update)[0]}\n"
+            # Check if response_update is empty or None
+            if not response_update or not response_update.strip():
+                # Provide fallback narration
+                if language == 'es':
+                    answer += "Algo sucedió en el mundo.\n"
+                else:
+                    answer += "Something happened in the world.\n"
+            # Check if response_update is already clean narration (from structured processing)
+            elif isinstance(response_update, str) and not response_update.startswith(("- Moved object:", "- Blocked passages", "- Your location")):
+                # This looks like clean narration, use it directly
+                answer += f"{response_update}\n"
+            else:
+                # Try to extract narration from legacy format
+                narration_matches = re.findall(r'#([^#]*?)#', str(response_update))
+                if narration_matches:
+                    answer += f"{narration_matches[0]}\n"
+                else:
+                    # No narration found in expected format, provide fallback
+                    if language == 'es':
+                        answer += "Algo sucedió en el mundo.\n"
+                    else:
+                        answer += "Something happened in the world.\n"
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error extracting narration: {e}")
+            # Provide fallback narration
+            if language == 'es':
+                answer += "Algo sucedió en el mundo.\n"
+            else:
+                answer += "Something happened in the world.\n"
 
     return answer, last_player_position
 
@@ -139,7 +210,7 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         visited_locations.add(world.player.location.name)
 
         # Process input and update world
-        response_update = process_player_input(world, message, language, reasoning_model, number_of_turns, game_log_dictionary)
+        response_update = process_player_input_structured(world, message, language, reasoning_model, number_of_turns, game_log_dictionary)
 
         # Generate narration
         answer, last_player_position = generate_narration(world, last_player_position, response_update, language, narrative_model)

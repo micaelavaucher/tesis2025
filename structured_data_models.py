@@ -193,10 +193,17 @@ class BlockedPassageAvailable(BaseModel):
 class LocationChange(BaseModel):
     new_location: Optional[str] = Field(default=None, description="Name of the new location where the player moved")
 
+class PuzzleSolved(BaseModel):
+    """Represents a puzzle that was solved by the player."""
+    puzzle_name: str = Field(description="Name of the puzzle that was solved")
+    answer: str = Field(description="Answer provided by the player")
+    success: bool = Field(default=True, description="Whether the answer was correct")
+
 class WorldUpdate(BaseModel):
     moved_objects: List[MovedObject] = Field(default=[], description="List of objects that were moved")
     blocked_passages_available: List[BlockedPassageAvailable] = Field(default=[], description="List of blocked passages that changed status")
     location_changed: LocationChange = Field(default=LocationChange(), description="Player location change information")
+    puzzles_solved: List[PuzzleSolved] = Field(default=[], description="List of puzzles that were solved this turn")
     narration: str = Field(description="Narrative text describing what happened")
 
 #---- Pipeline Models (for incremental world generation) --------------------
