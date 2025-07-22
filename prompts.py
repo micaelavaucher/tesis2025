@@ -132,35 +132,75 @@ def prompt_world_update (world_state: str, input: str, language: str = 'en'):
 def prompt_world_update_structured(world_state: str, input: str, language: str = 'en'):
     """Create a world update prompt that will return structured data based on Pydantic models."""
     if language == 'es':
-        system_msg = """Eres un narrador. Estás manejando un mundo ficticio, y el jugador puede interactuar con él. 
-        Tu tarea es determinar los cambios en el mundo a raíz de las acciones del jugador.
-        
-        Debes considerar:
-        - Objetos que cambiaron de lugar
-        - Pasajes entre lugares que se desbloquearon
-        - Si el jugador se movió de lugar
-        - Una breve narración de los cambios"""
+        system_msg = """Eres un narrador experto manejando un mundo ficticio interactivo. Tu tarea es analizar las acciones del jugador y determinar los cambios exactos en el estado del mundo.
+
+REGLAS CRÍTICAS PARA PUZZLES:
+1. **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
+2. **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada.
+3. **REQUISITOS**: Verifica que se cumplan todos los requisitos antes de permitir acciones (objetos necesarios, puzzles resueltos, etc.).
+
+REGLAS GENERALES:
+- Objetos solo cambian de lugar si el jugador realiza acciones específicas (tomar, dar, dejar)
+- Pasajes bloqueados solo se desbloquean si se cumplen los requisitos específicos
+- El jugador solo se mueve si intenta explícitamente ir a otra ubicación y el movimiento es posible
+- Presta atención a las descripciones, capacidades y requisitos de cada componente
+
+Tu respuesta debe ser un JSON válido que siga exactamente el modelo WorldUpdate."""
     else:
-        system_msg = """You are a narrator. You are managing a fictional world, and the player can interact with it.
-        Your task is to determine the changes in the world due to the player's actions.
-        
-        You should consider:
-        - Objects that changed location
-        - Passages between locations that were unblocked
-        - If the player moved to a new location
-        - A brief narration of the changes"""
+        system_msg = """You are an expert narrator managing an interactive fictional world. Your task is to analyze the player's actions and determine the exact changes in the world state.
+
+CRITICAL RULES FOR PUZZLES:
+1. **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
+2. **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
+3. **REQUIREMENTS**: Verify that all requirements are met before allowing actions (necessary objects, solved puzzles, etc.).
+
+GENERAL RULES:
+- Objects only change location if the player performs specific actions (take, give, drop)
+- Blocked passages only unlock if specific requirements are met
+- The player only moves if they explicitly attempt to go to another location and the movement is possible
+- Pay attention to the descriptions, capabilities, and requirements of each component
+
+Your response must be valid JSON that follows exactly the WorldUpdate model."""
     
-    user_msg = f"""Determine the changes in the world based on the player's input "{input}" and the current world state:
-    
-    {world_state}"""
+    user_msg = f"""Analyze the player's input and determine world changes:
+
+Player input: "{input}"
+
+Current world state:
+{world_state}
+
+Return a JSON object with the following structure:
+{{
+    "moved_objects": [
+        {{"object_name": "name", "new_location": "location"}}
+    ],
+    "blocked_passages_available": [
+        {{"location_name": "location", "is_available": true}}
+    ],
+    "location_changed": {{
+        "new_location": "location_name_or_null"
+    }},
+    "puzzles_solved": [
+        {{"puzzle_name": "name", "answer": "answer", "success": true}}
+    ],
+    "narration": "Rich narrative description of what happened"
+}}
+
+IMPORTANT: Always include the narration field with a detailed, evocative description of what occurred in the world."""
     
     return system_msg, user_msg, WorldUpdate
 
 def prompt_world_update_spanish (world_state: str, input: str):
-    system_msg = f"""Eres un narrador. Estás manejando un mundo ficticio, y el jugador puede interactuar con él. Siguiendo un formato específico, que voy a explicarte más abajo, tu tarea es encontrar los cambios en el mundo a raíz de las acciones del jugador. En específico, tendrás que encontrar qué objetos cambiaron de lugar, qué pasajes entre lugares se desbloquearon y si el jugador se movió de lugar.
+    system_msg = f"""Eres un narrador experto manejando un mundo ficticio interactivo. Siguiendo un formato específico, tu tarea es encontrar los cambios en el mundo a raíz de las acciones del jugador. En específico, tendrás que encontrar qué objetos cambiaron de lugar, qué pasajes entre lugares se desbloquearon, si el jugador se movió de lugar, y si resolvió puzzles.
     
-    Aquí hay algunas aclaraciones:
-    (A) Presta atención a a la descripción de los componentes y sus capacidades.
+    **REGLAS CRÍTICAS PARA PUZZLES:**
+    (P1) **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
+    (P2) **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada del puzzle.
+    (P3) **REQUISITOS DE PUZZLES**: Verifica que se cumplan todos los requisitos antes de permitir que un puzzle sea resuelto.
+    (P4) **RECOMPENSAS CONDICIONADAS**: Las recompensas (objetos, pasajes, información) solo se otorgan DESPUÉS de resolver exitosamente el puzzle.
+
+    Aquí hay otras aclaraciones importantes:
+    (A) Presta atención a la descripción de los componentes y sus capacidades.
     (B) Si un pasaje está bloqueado, significa que el jugador debe desbloquearlo antes de poder acceder al lugar. Aunque el jugador te diga que va a acceder al lugar bloqueado, tienes que estar seguro de que está cumpliendo con lo pedido para permitirle desbloquear el acceso, por ejemplo usando una llave o resolviendo un puzzle.
     (C) **PERSONAJES CON REQUISITOS**: Si un personaje tiene requisitos específicos (como resolver un puzzle o tener ciertos objetos), NO debe dar objetos o ayudar hasta que esos requisitos se cumplan. Revisa cuidadosamente la sección de "interaction" de cada personaje y sus "requires".
     (D) No asumas que lo que dice el jugador siempre tiene sentido; quizás esas acciones intentan hacer algo que el mundo no lo permite.
@@ -254,80 +294,106 @@ def prompt_world_update_spanish (world_state: str, input: str):
     return system_msg, user_msg
 
 def prompt_world_update_english (world_state: str, input: str):
-    system_msg = f"""You are a storyteller. You are managing a fictional world, and the player can interact with it. Following a specific format, that I will specify below, your task is to find the changes in the world after the actions in the player input. Specifically, you will have to find what objects were moved, which previously blocked passages are now unblocked, and if the player moved to a new place.
+    system_msg = f"""You are an expert storyteller managing an interactive fictional world. Following a specific format, your task is to find the changes in the world after the actions in the player input. Specifically, you will have to find what objects were moved, which previously blocked passages are now unblocked, if the player moved to a new place, and if any puzzles were solved.
+
+    **CRITICAL RULES FOR PUZZLES:**
+    (P1) **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
+    (P2) **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
+    (P3) **PUZZLE REQUIREMENTS**: Verify that all requirements are met before allowing a puzzle to be solved.
+    (P4) **CONDITIONAL REWARDS**: Rewards (objects, passages, information) are only granted AFTER successfully solving the puzzle.
        
-    Here are some clarifications:
+    Here are other important clarifications:
     (A) Pay attention to the description of the components and their capabilities.
     (B) If a passage is blocked, then the player must unblock it before being able to reach the place. Even if the player tells you that he is going to access the locked location, you have to be sure that he is complying with what you asked to allow him to unlock the access, for example by using a key or solving a puzzle.
-    (C) Do not assume that the player input always makes sense; maybe those actions try to do something that the world does not allow.
-    (D) Follow always the following format with the three categories, using "None" in each case if there are no changes and repeat the category for each case:
+    (C) **CHARACTERS WITH REQUIREMENTS**: If a character has specific requirements (like solving a puzzle or having certain objects), they should NOT give objects or help until those requirements are met. Carefully review the "interaction" section of each character and their "requires".
+    (D) Do not assume that the player input always makes sense; maybe those actions try to do something that the world does not allow.
+    (E) Follow always the following format with the four categories, using "None" in each case if there are no changes and repeat the category for each case:
     - Moved object: <object> now is in <new_location>
     - Blocked passages now available: <now_reachable_location>
     - Your location changed: <new_location>
-    (E) Finally, you can narrate the changes you've detected in the world state (without moving the story forward and without making up details not included in the world state!) using the format: #your final message#
-    (F) In the narration section that you add at the end, between # symbols, you can also answer questions that the player asks in their input, about the objects or characters they can see, or the place they are in.
-    (G) Your narration should be richly detailed and evocative, using sensory details when appropriate. Make the world come alive through your descriptions, while still adhering to the facts of the world state.
+    - Puzzle solved: <puzzle_name> with answer <answer> (only if the player solved a puzzle)
+    (F) Finally, you can narrate the changes you've detected in the world state (without moving the story forward and without making up details not included in the world state!) using the format: #your final message#
+    (G) In the narration section that you add at the end, between # symbols, you can also answer questions that the player asks in their input, about the objects or characters they can see, or the place they are in.
+    (H) Your narration should be richly detailed and evocative, using sensory details when appropriate. Make the world come alive through your descriptions, while still adhering to the facts of the world state.
 
-    Here I give you some examples (in parentheses, a clarification about what the player might have tried to do) for the asked format, as described in items (D) and (E):
+    Here I give you some examples (in parentheses, a clarification about what the player might have tried to do) for the asked format, as described in items (E) and (F):
 
     Example 1 (The player took the axe and put it in the inventory)
     - Moved object: <axe> now is in <Inventory>
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
     #You grasp the weathered wooden handle of the axe, feeling its reassuring weight as you lift it. The metal head gleams dully in the light as you carefully secure it in your pack. The familiar weight against your back reminds you of your father's advice about always keeping a good tool handy.#
 
     Example 2 (The player unblocks the passage to the basement)
     - Moved object: None
     - Blocked passages now available: <Basement>
     - Your location changed: None
+    - Puzzle solved: None
     #With a final turn of the rusty key, the old padlock releases with a satisfying click. You remove it from the latch and push aside the heavy wooden bar that secured the basement door. A waft of cool, musty air rises from below, carrying the scent of damp stone and forgotten memories. The previously forbidden basement is now accessible, its secrets waiting to be discovered in the darkness below.#
 
     Example 3 (The player now is in the garden)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: <Garden>
+    - Puzzle solved: None
     #You step through the creaking garden gate and into a world of vibrant color and fragrance. Sunlight filters through the leaves of an ancient oak, casting dappled shadows across the overgrown path. Butterflies dance between blooms of every hue, and somewhere nearby, water trickles musically. The garden embraces you with its wild beauty, so different from the sterile confines you just left behind.#
 
     Example 4 (The player puts objects in the bag and leaves the axe on the floor)
     - Moved object: <banana> now is in <Inventory>, <bottle> now is in <Inventory>, <axe> now is in <Main Hall>
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
     #You carefully place the ripe banana and glass bottle into your bag, arranging them so nothing gets crushed. The banana's sweet aroma mingles with the musty scent of your well-traveled pack. With deliberate care, you set the heavy axe down on the polished floor of the Main Hall. It rests there with a certain finality, its blade reflecting the dancing light from the chandelier above. Perhaps someone else might find better use for it than you.#
 
     Example 5 (The player puts objects in the bag and leaves the axe on the floor and unblocks the passage to the Small room)
     - Moved object: <banana> now is in <Inventory>, <bottle> now is in <Inventory>, <axe> now is in <Main Hall>
     - Blocked passages now available: <Small room>
     - Your location changed: None
+    - Puzzle solved: None
     #Your fingers work quickly as you tuck the banana and bottle safely into your pack. The glass clinks softly against your other possessions as you secure the flap. The axe you place carefully on the marble floor of the Main Hall, its worn handle pointing toward the grand staircase. After inserting the ornate key into the small brass lock, you hear a series of clicks and whirrs as hidden mechanisms disengage. The previously sealed doorway to the Small Room shudders and then swings open slightly, releasing a puff of stale air. A new path is now available to you, beckoning with the promise of discovery.#
 
     Example 6 (The player puts objects in the bag and leaves the axe on the floor, unblocks the passage and goes to the Small room)
     - Moved object: <banana> now is in <Inventory>, <bottle> now is in <Inventory>, <axe> now is in <Main Hall>
     - Blocked passages now available: <Small room>
     - Your location changed: <Small room>
+    - Puzzle solved: None
     #With practiced efficiency, you stow both the banana and bottle in your bag, feeling the comfortable weight increase against your hip. The axe you deliberately place on the gleaming floor of the Main Hall, where its metal head catches the light from the crystal chandelier above. After turning the ancient key in the lock, the hidden door to the Small Room creaks open, revealing a space untouched for what must be decades. Dust motes dance in the beam of light that now intrudes upon this forgotten sanctuary. Drawn by curiosity, you step across the threshold, the floorboards groaning beneath your weight as you enter the Small Room. The air here is thick with secrets and the sweet musty scent of old books and forgotten memories.#
 
-    Example 7 (The player puts the pencil in the bag and gives the book to John)
+    Example 7 (The player solves a riddle correctly)
+    - Moved object: None
+    - Blocked passages now available: <Secret Chamber>
+    - Your location changed: None
+    - Puzzle solved: <Ancient Riddle> with answer <echo>
+    #Your voice echoes in the chamber as you speak the answer with confidence: "Echo." The ancient statue's eyes suddenly blaze with inner light, and a rumbling sound fills the air. Stone grinds against stone as a hidden mechanism activates, revealing a secret passage behind the wall. The Ancient Riddle has been solved, and the way to the Secret Chamber now lies open before you, promising mysteries yet to be discovered.#
+
+    Example 8 (The player puts the pencil in the bag and gives the book to John)
     - Moved object: <book> now is in <John>, <pencil> now is in <Inventory>
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
     #You slip the worn cedar pencil into your bag, its familiar shape nestling among your other possessions. The heavy leather-bound book you extend toward John with both hands, respecting its apparent age and value. His eyes widen slightly as he recognizes the tome. "This is... I've been searching for this for years," he whispers, his voice thick with emotion. His weathered hands accept the book with reverence, cradling it as one might hold a precious relic. John carefully opens the cover, and for a moment, his stoic demeanor softens as he gazes at the yellowed pages within.#
 
-    Example 8 (The player gives the computer to Susan)
+    Example 9 (The player gives the computer to Susan)
     - Moved object: <computer> now is in <Susan>
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
+    - Your location changed: None
     #You hand the sleek laptop to Susan, whose eyes light up with professional interest. "Finally," she murmurs, her fingers already dancing across the keyboard as the screen illuminates her focused face. The blue glow highlights the determination in her expression as she quickly accesses files you couldn't hope to understand. She tucks the computer securely into her messenger bag, the movement practiced and efficient. "This could change everything," she adds cryptically, nodding her thanks while her mind clearly races with new possibilities.#
 
-    Example 9 (The player does something that has not the expected outcome)
+    Example 10 (The player does something that has not the expected outcome)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
     #You try turning the ornate brass handle, but the door remains stubbornly shut. The mechanism makes a dull clicking sound, but nothing else happens. Perhaps there's another way to open it, or something you're missing. The faded markings above the doorframe seem to mock your efforts, holding their secrets close.#
 
-    Example 10 (The player asks a question)
+    Example 11 (The player asks a question)
     - Moved object: None
     - Blocked passages now available: None
     - Your location changed: None
+    - Puzzle solved: None
     #As you examine the strange symbol etched into the wall, you recognize it as an ancient sigil representing protection and hidden knowledge. The craftsmanship is remarkable, with intricate swirling patterns that seem to shift slightly when viewed from different angles. Legends speak of such markings being used by the old practitioners to ward off evil spirits while conducting their arcane research. The fact that it remains intact after all these centuries speaks to the power it was believed to hold.#"""
     
     

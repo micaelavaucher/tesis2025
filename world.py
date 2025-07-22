@@ -446,6 +446,72 @@ class World:
 
     return world_description + '\n' + details
 
+  def update_from_structured(self, world_update) -> None:
+    """Update world state using structured WorldUpdate object."""
+    from structured_data_models import WorldUpdate
+    
+    # Handle moved objects
+    for moved_obj in world_update.moved_objects:
+      try:
+        world_item = self.items[moved_obj.object_name]
+        
+        if moved_obj.new_location in ['Inventory', 'Inventario', 'Player', 'Jugador', self.player.name]:
+          # Player takes item
+          item_location = [character for character in list(self.characters.values()) if world_item in character.inventory]
+          item_location += [location for location in list(self.locations.values()) if world_item in location.items]
+          if item_location:
+            self.player.save_item(world_item, item_location[0])
+            
+        elif moved_obj.new_location in self.characters:
+          # Player gives item to character
+          self.player.give_item(self.characters[moved_obj.new_location], world_item)
+          
+        else:
+          # Player drops item (location name or current location)
+          # Remove from player inventory
+          self.player.inventory = [i for i in self.player.inventory if i is not world_item]
+          
+          if moved_obj.new_location in self.locations:
+            # Place in specific location
+            self.locations[moved_obj.new_location].items.append(world_item)
+          else:
+            # Place in current location
+            self.player.location.items.append(world_item)
+          
+      except Exception as e:
+        print(f"Error moving object {moved_obj.object_name}: {e}")
+
+    # Handle blocked passages
+    for passage in world_update.blocked_passages_available:
+      try:
+        if passage.is_available and passage.location_name in self.locations:
+          self.locations[self.player.location.name].unblock_passage(self.locations[passage.location_name])
+      except Exception as e:
+        print(f"Error unblocking passage to {passage.location_name}: {e}")
+
+    # Handle location change
+    if world_update.location_changed.new_location:
+      try:
+        new_location_name = world_update.location_changed.new_location
+        if new_location_name in self.locations:
+          self.player.move(self.locations[new_location_name])
+      except Exception as e:
+        print(f"Error moving player to {world_update.location_changed.new_location}: {e}")
+
+    # Handle puzzle solutions
+    for puzzle_solution in world_update.puzzles_solved:
+      try:
+        if puzzle_solution.success:
+          success = self.solve_puzzle(puzzle_solution.puzzle_name, puzzle_solution.answer)
+          if success:
+            print(f"✅ Puzzle {puzzle_solution.puzzle_name} solved successfully!")
+          else:
+            print(f"❌ Incorrect answer for puzzle {puzzle_solution.puzzle_name}")
+        else:
+          print(f"❌ Player attempted puzzle {puzzle_solution.puzzle_name} but failed")
+      except Exception as e:
+        print(f"Error processing puzzle solution {puzzle_solution.puzzle_name}: {e}")
+
   def update (self, updates: str) -> None:
     """Does the changes in the world according to the output of the language model.
 
