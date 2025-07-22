@@ -104,13 +104,13 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton) -> Genera
 
 def run_step_4_puzzles(world_data: GeneratedWorld) -> GeneratedWorld:
     """
-    Generation of puzzles and obstacles.
+    Generation of dependency chains with integrated puzzles.
     
     Args:
         world_data: World from the previous step
         
     Returns:
-        GeneratedWorld: Modified object with added puzzles
+        GeneratedWorld: Modified object with complex dependency chains
     """
     model = get_llm()
     
@@ -200,13 +200,13 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     if progress_callback:
         progress_callback(completion_msg)
     
-    # Paso 4: Añadir puzzles y obstáculos
-    step_msg = "🧩 Paso 4: Añadiendo puzzles y obstáculos..."
+    # Paso 4: Crear cadenas de dependencias complejas
+    step_msg = "🔗 Paso 4: Creando cadenas de dependencias..."
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
     world_with_puzzles = run_step_4_puzzles(world_basic)
-    completion_msg = f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total"
+    completion_msg = f"✅ Cadenas de dependencias creadas: {len(world_with_puzzles.puzzles)} puzzles interconectados"
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
