@@ -1,5 +1,6 @@
 # Github
-.github
+.github/instructions/*
+!context.instructions.md
 
 # API key file
 API_key
