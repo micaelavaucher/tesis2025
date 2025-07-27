@@ -31,10 +31,10 @@ def generate_world_step_by_step(inspo, language):
     progress_messages = []
     
     # Import individual step functions
-    concept = run_step_1_concept(inspo)
+    concept = run_step_1_concept(inspo, language)
     yield progress_messages, get_progress_messages(language)['STEP_1_COMPLETE'].format(title=concept.title)
     
-    skeleton = run_step_2_skeleton(concept)
+    skeleton = run_step_2_skeleton(concept, language)
     completion_msg = get_progress_messages(language)['STEP_2_COMPLETE'].format(
         locations=len(skeleton.key_locations),
         items=len(skeleton.key_items),
@@ -42,20 +42,20 @@ def generate_world_step_by_step(inspo, language):
     )
     yield progress_messages, completion_msg
     
-    world_basic = run_step_3_details(concept, skeleton)
+    world_basic = run_step_3_details(concept, skeleton, language)
     completion_msg = get_progress_messages(language)['STEP_3_COMPLETE'].format(
         locations=len(world_basic.locations),
         items=len(world_basic.items)
     )
     yield progress_messages, completion_msg
     
-    world_with_puzzles = run_step_4_puzzles(world_basic)
+    world_with_puzzles = run_step_4_puzzles(world_basic, language)
     completion_msg = get_progress_messages(language)['STEP_4_COMPLETE'].format(
         puzzles=len(world_with_puzzles.puzzles)
     )
     yield progress_messages, completion_msg
     
-    generated_world = run_step_5_expansion(world_with_puzzles)
+    generated_world = run_step_5_expansion(world_with_puzzles, language)
     completion_msg = get_progress_messages(language)['STEP_5_COMPLETE'].format(
         locations=len(generated_world.locations)
     )
@@ -102,7 +102,7 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        concept = run_step_1_concept(inspo)
+        concept = run_step_1_concept(inspo, language)
         progress_messages.append(messages['STEP_1_COMPLETE'].format(title=concept.title))
         yield (
             gr.update(), gr.update(), [], gr.update(),
@@ -118,7 +118,7 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        skeleton = run_step_2_skeleton(concept)
+        skeleton = run_step_2_skeleton(concept, language)
         progress_messages.append(messages['STEP_2_COMPLETE'].format(
             locations=len(skeleton.key_locations),
             items=len(skeleton.key_items),
@@ -138,7 +138,7 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        world_basic = run_step_3_details(concept, skeleton)
+        world_basic = run_step_3_details(concept, skeleton, language)
         progress_messages.append(messages['STEP_3_COMPLETE'].format(
             locations=len(world_basic.locations),
             items=len(world_basic.items)
@@ -157,7 +157,7 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        world_with_puzzles = run_step_4_puzzles(world_basic)
+        world_with_puzzles = run_step_4_puzzles(world_basic, language)
         progress_messages.append(messages['STEP_4_COMPLETE'].format(
             puzzles=len(world_with_puzzles.puzzles)
         ))
@@ -175,7 +175,7 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        generated_world = run_step_5_expansion(world_with_puzzles)
+        generated_world = run_step_5_expansion(world_with_puzzles, language)
         progress_messages.append(messages['STEP_5_COMPLETE'].format(
             locations=len(generated_world.locations)
         ))
@@ -321,7 +321,7 @@ def generate_world_simple(theme, language):
                 print(f"🔄 Attempt {generation_attempts}/{max_attempts}: Regenerating world because objective is missing...")
         
         try:
-            generated_world = create_world_incrementally(theme, progress_callback=None)
+            generated_world = create_world_incrementally(theme, progress_callback=None, language=language)
             world = create_world_from_llm_response(generated_world)
             
             if not hasattr(world, 'objective') or not world.objective:
