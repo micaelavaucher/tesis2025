@@ -13,10 +13,11 @@ from structured_data_models import (
 )
 from models import get_llm
 import prompts
+import configparser
 
 #---- Pipeline Functions -----------------------------------------------------
 
-def run_step_1_concept(theme: str) -> WorldConcept:
+def run_step_1_concept(theme: str, language) -> WorldConcept:
     """
     Generation of the general concept of the world.
     
@@ -27,17 +28,21 @@ def run_step_1_concept(theme: str) -> WorldConcept:
         WorldConcept: Validated object with the concept of the world
     """
     model = get_llm()
-    prompt_text = prompts.PROMPT_STEP_1_CONCEPT.format(theme=theme)
-    
-    # Llamar al modelo con el esquema WorldConcept
+    prompt_text = prompts.PROMPT_STEP_1_CONCEPT_BY_THEME(theme=theme, language=language)
+    print(f"[INFO] Generating world concept with theme: '{theme}'")
+    print(f"[INFO] Prompt text: {prompt_text}")
     concept_response = model.prompt_model_structured(prompt_text, WorldConcept)
-    
-    if isinstance(concept_response, dict):
-        return WorldConcept(**concept_response)
-    else:
-        return concept_response
 
-def run_step_2_skeleton(concept: WorldConcept) -> WorldSkeleton:
+    # Convert dict to WorldConcept if needed
+    if isinstance(concept_response, dict):
+        concept = WorldConcept(**concept_response)
+    else:
+        concept = concept_response
+
+    print(f"[INFO] Concepto generado: {concept.title} - {concept.backstory}")
+    return concept
+
+def run_step_2_skeleton(concept: WorldConcept, language) -> WorldSkeleton:
     """
     Generation of the skeleton with key entities.
     
@@ -48,11 +53,12 @@ def run_step_2_skeleton(concept: WorldConcept) -> WorldSkeleton:
         WorldSkeleton: Validated object with the key entities
     """
     model = get_llm()
-    prompt_text = prompts.PROMPT_STEP_2_SKELETON.format(
+    prompt_text = prompts.PROMPT_STEP_2_SKELETON(
         title=concept.title,
         backstory=concept.backstory,
         player_concept=concept.player_concept,
-        main_objective=concept.main_objective
+        main_objective=concept.main_objective,
+        language=language
     )
     
     skeleton_response = model.prompt_model_structured(prompt_text, WorldSkeleton)
@@ -62,7 +68,7 @@ def run_step_2_skeleton(concept: WorldConcept) -> WorldSkeleton:
     else:
         return skeleton_response
 
-def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton) -> GeneratedWorld:
+def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language) -> GeneratedWorld:
     """
     Generation of details and connections of the main route.
     
@@ -87,12 +93,13 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton) -> Genera
     {chr(10).join([f"- {char.name}: {char.purpose}" for char in skeleton.key_characters])}
     """
     
-    prompt_text = prompts.PROMPT_STEP_3_DETAILS.format(
+    prompt_text = prompts.PROMPT_STEP_3_DETAILS(
         title=concept.title,
         backstory=concept.backstory,
         player_concept=concept.player_concept,
         main_objective=concept.main_objective,
-        skeleton_data=skeleton_data
+        skeleton_data=skeleton_data,
+        language=language
     )
     
     world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
@@ -102,7 +109,7 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton) -> Genera
     else:
         return world_response
 
-def run_step_4_puzzles(world_data: GeneratedWorld) -> GeneratedWorld:
+def run_step_4_puzzles(world_data: GeneratedWorld, language) -> GeneratedWorld:
     """
     Generation of puzzles and obstacles.
     
@@ -116,8 +123,9 @@ def run_step_4_puzzles(world_data: GeneratedWorld) -> GeneratedWorld:
     
     world_json = world_data.model_dump_json(indent=2)
     
-    prompt_text = prompts.PROMPT_STEP_4_PUZZLES.format(
-        world_data=world_json
+    prompt_text = prompts.PROMPT_STEP_4_PUZZLES(
+        world_data=world_json,
+        language=language
     )
     
     enhanced_world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
@@ -127,7 +135,7 @@ def run_step_4_puzzles(world_data: GeneratedWorld) -> GeneratedWorld:
     else:
         return enhanced_world_response
 
-def run_step_5_expansion(world_data: GeneratedWorld) -> GeneratedWorld:
+def run_step_5_expansion(world_data: GeneratedWorld, language) -> GeneratedWorld:
     """
     Paso 5: Expansion with optional content.
     
@@ -141,8 +149,9 @@ def run_step_5_expansion(world_data: GeneratedWorld) -> GeneratedWorld:
     
     world_json = world_data.model_dump_json(indent=2)
     
-    prompt_text = prompts.PROMPT_STEP_5_EXPANSION.format(
-        world_data=world_json
+    prompt_text = prompts.PROMPT_STEP_5_EXPANSION(
+        world_data=world_json,
+        language=language
     )
     
     final_world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
@@ -152,7 +161,7 @@ def run_step_5_expansion(world_data: GeneratedWorld) -> GeneratedWorld:
     else:
         return final_world_response
 
-def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedWorld:
+def create_world_incrementally(theme: str, language: str, progress_callback=None) -> GeneratedWorld:
     """
     Main orchestrator of the incremental generation pipeline.
     
@@ -172,7 +181,7 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    concept = run_step_1_concept(theme)
+    concept = run_step_1_concept(theme, language)
     completion_msg = f"✅ Concepto creado: '{concept.title}'"
     print(completion_msg)
     if progress_callback:
@@ -183,7 +192,7 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    skeleton = run_step_2_skeleton(concept)
+    skeleton = run_step_2_skeleton(concept, language)
     completion_msg = f"✅ Esqueleto creado con {len(skeleton.key_locations)} ubicaciones, {len(skeleton.key_items)} objetos y {len(skeleton.key_characters)} personajes"
     print(completion_msg)
     if progress_callback:
@@ -194,7 +203,7 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    world_basic = run_step_3_details(concept, skeleton)
+    world_basic = run_step_3_details(concept, skeleton, language)
     completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos"
     print(completion_msg)
     if progress_callback:
@@ -205,7 +214,7 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    world_with_puzzles = run_step_4_puzzles(world_basic)
+    world_with_puzzles = run_step_4_puzzles(world_basic, language)
     completion_msg = f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total"
     print(completion_msg)
     if progress_callback:
@@ -216,7 +225,7 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    final_world = run_step_5_expansion(world_with_puzzles)
+    final_world = run_step_5_expansion(world_with_puzzles, language)
     completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones"
     print(completion_msg)
     if progress_callback:
@@ -224,6 +233,42 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     
     final_msg = "🌱 ¡Generación incremental completada exitosamente!"
     print(final_msg)
+    if not validate_world_size(final_world):
+        print("The generated world does not meet the size requirements.")
     if progress_callback:
         progress_callback(final_msg)
     return final_world
+
+def validate_world_size(generated_world: GeneratedWorld) -> bool:
+    """Validate if the generated world adheres to the size parameters in config.ini."""
+    # Load configuration
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    # Parse size parameters
+    def parse_range(value):
+        if '-' in value:
+            return tuple(map(int, value.split('-')))
+        return int(value), int(value)
+
+    locations_range = parse_range(config['Size_World']['Locations'])
+    objects_range = parse_range(config['Size_World']['Objects'])
+    npcs_range = parse_range(config['Size_World']['NPCs'])
+    puzzles_range = parse_range(config['Size_World']['Puzzles'])
+
+    # Validate the generated world
+    is_valid = (
+        locations_range[0] <= len(generated_world.locations) <= locations_range[1] and
+        objects_range[0] <= len(generated_world.items) <= objects_range[1] and
+        npcs_range[0] <= len(generated_world.characters) <= npcs_range[1] and
+        puzzles_range[0] <= len(generated_world.puzzles) <= puzzles_range[1]
+    )
+
+    if not is_valid:
+        print("[ERROR] Generated world does not adhere to size parameters:")
+        print(f"  Locations: {len(generated_world.locations)} (Expected: {locations_range})")
+        print(f"  Objects: {len(generated_world.items)} (Expected: {objects_range})")
+        print(f"  NPCs: {len(generated_world.characters)} (Expected: {npcs_range})")
+        print(f"  Puzzles: {len(generated_world.puzzles)} (Expected: {puzzles_range})")
+
+    return is_valid
