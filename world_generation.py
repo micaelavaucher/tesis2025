@@ -167,23 +167,23 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        # Step 5: Expansion
-        progress_messages.append(messages['STEP_5'])
-        yield (
-            gr.update(), gr.update(), [], gr.update(),
-            gr.update(interactive=False, value="Generando..."),
-            gr.update(value="\n".join(progress_messages))
-        )
+        # # Step 5: Expansion
+        # progress_messages.append(messages['STEP_5'])
+        # yield (
+        #     gr.update(), gr.update(), [], gr.update(),
+        #     gr.update(interactive=False, value="Generando..."),
+        #     gr.update(value="\n".join(progress_messages))
+        # )
         
-        generated_world = run_step_5_expansion(world_with_puzzles)
-        progress_messages.append(messages['STEP_5_COMPLETE'].format(
-            locations=len(generated_world.locations)
-        ))
-        yield (
-            gr.update(), gr.update(), [], gr.update(),
-            gr.update(interactive=False, value="Generando..."),
-            gr.update(value="\n".join(progress_messages))
-        )
+        # generated_world = run_step_5_expansion(world_with_puzzles)
+        # progress_messages.append(messages['STEP_5_COMPLETE'].format(
+        #     locations=len(generated_world.locations)
+        # ))
+        # yield (
+        #     gr.update(), gr.update(), [], gr.update(),
+        #     gr.update(interactive=False, value="Generando..."),
+        #     gr.update(value="\n".join(progress_messages))
+        # )
         
         progress_messages.append(messages['PIPELINE_COMPLETE'])
         progress_messages.append(messages['BUILDING_WORLD'])
@@ -193,7 +193,8 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
             gr.update(value="\n".join(progress_messages))
         )
         
-        world = create_world_from_llm_response(generated_world)
+        # world = create_world_from_llm_response(generated_world)
+        world = create_world_from_llm_response(world_with_puzzles)
         
         try:
             is_valid, validation_msg = validate_world_objective(world, language, generation_attempts, max_attempts)

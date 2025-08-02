@@ -211,19 +211,20 @@ def create_world_incrementally(theme: str, progress_callback=None) -> GeneratedW
     if progress_callback:
         progress_callback(completion_msg)
     
-    # Paso 5: Expandir con contenido opcional
-    step_msg = "🎨 Paso 5: Expandiendo con contenido adicional..."
-    print(step_msg)
-    if progress_callback:
-        progress_callback(step_msg)
-    final_world = run_step_5_expansion(world_with_puzzles)
-    completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones"
-    print(completion_msg)
-    if progress_callback:
-        progress_callback(completion_msg)
+    # # Paso 5: Expandir con contenido opcional
+    # step_msg = "🎨 Paso 5: Expandiendo con contenido adicional..."
+    # print(step_msg)
+    # if progress_callback:
+    #     progress_callback(step_msg)
+    # final_world = run_step_5_expansion(world_with_puzzles)
+    # completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones"
+    # print(completion_msg)
+    # if progress_callback:
+    #     progress_callback(completion_msg)
     
     final_msg = "🌱 ¡Generación incremental completada exitosamente!"
     print(final_msg)
     if progress_callback:
         progress_callback(final_msg)
-    return final_world
+    # return final_world
+    return world_with_puzzles
