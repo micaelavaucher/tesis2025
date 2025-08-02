@@ -6,6 +6,7 @@ including inspiration mode, generate mode, and preset mode.
 
 import gradio as gr
 import re
+import os
 from ui_components import get_ui_texts
 from world_generation import create_world_with_progress
 from game_logic import create_game_loop
@@ -14,6 +15,9 @@ from prompts import prompt_narrate_current_scene, prompt_describe_objective
 def create_inspiration_interface(language, narrative_model, reasoning_model, reasoning_model_name, narrative_model_name, log_filename, visited_locations):
     """Create the inspiration mode interface."""
     texts = get_ui_texts(language)
+    
+    # Get API key for memory system
+    api_key = os.getenv("GEMINI_API_KEY")
     
     # Store world reference for game loop
     world_ref = {'world': None}
@@ -71,7 +75,7 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
             history.append({"role": "user", "content": message})
             
             # Create game loop
-            game_loop = create_game_loop(world_ref['world'], reasoning_model, narrative_model, language, log_filename, visited_locations)
+            game_loop = create_game_loop(world_ref['world'], reasoning_model, narrative_model, language, log_filename, visited_locations, api_key)
             respuesta = game_loop(message, history)
 
             history.append({"role": "assistant", "content": respuesta})
@@ -87,7 +91,8 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
 
 def create_standard_interface(world, starting_narration, language, reasoning_model, narrative_model, log_filename, visited_locations):
     """Create the standard game interface for preset/generate modes."""
-    game_loop = create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations)
+    api_key = os.getenv("GEMINI_API_KEY")
+    game_loop = create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key)
     
     return gr.ChatInterface(
         fn=game_loop,
