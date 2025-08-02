@@ -303,6 +303,58 @@ class World:
       rendered_world = self.__render_world_english(detail_components = detail_components)
 
     return rendered_world
+
+  def format_world_state_for_chat(self, *, language:str = 'en') -> str:
+    """Return a nicely formatted world state for display in chat, without puzzles."""
+    player_location = self.player.location
+    reachable_locations = [f"**{p.name}**" for p in player_location.connecting_locations]
+    blocked_passages = [f"**{p}**" for p in player_location.blocked_locations.keys()]
+    characters_in_the_scene = [character for character in self.characters.values() if character.location is player_location]
+
+    if language == 'es':
+      formatted_state = f"📍 **Ubicación actual:** {player_location.name}\n"
+      
+      if reachable_locations:
+        formatted_state += f"🚪 **Lugares accesibles:** {', '.join(reachable_locations)}\n"
+      else:
+        formatted_state += f"🚪 **Lugares accesibles:** Ninguno\n"
+
+      if blocked_passages:
+        formatted_state += f"🔒 **Pasajes bloqueados:** {', '.join(blocked_passages)}\n"
+
+      if self.player.inventory:
+        formatted_state += f"🎒 **Inventario:** {', '.join([f'**{i.name}**' for i in self.player.inventory])}\n"
+      else:
+        formatted_state += f"🎒 **Inventario:** Vacío\n"
+
+      if player_location.items:
+        formatted_state += f"👁️ **Objetos visibles:** {', '.join([f'**{i.name}**' for i in player_location.items])}\n"
+
+      if characters_in_the_scene:
+        formatted_state += f"👥 **Personajes presentes:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}"
+    else:
+      formatted_state = f"📍 **Current location:** {player_location.name}\n"
+      
+      if reachable_locations:
+        formatted_state += f"🚪 **Accessible places:** {', '.join(reachable_locations)}\n"
+      else:
+        formatted_state += f"🚪 **Accessible places:** None\n"
+
+      if blocked_passages:
+        formatted_state += f"🔒 **Blocked passages:** {', '.join(blocked_passages)}\n"
+
+      if self.player.inventory:
+        formatted_state += f"🎒 **Inventory:** {', '.join([f'**{i.name}**' for i in self.player.inventory])}\n"
+      else:
+        formatted_state += f"🎒 **Inventory:** Empty\n"
+
+      if player_location.items:
+        formatted_state += f"👁️ **Visible objects:** {', '.join([f'**{i.name}**' for i in player_location.items])}\n"
+
+      if characters_in_the_scene:
+        formatted_state += f"👥 **Characters present:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}"
+
+    return formatted_state
   
   def __render_world_spanish(self, *,  detail_components:bool = True) -> str:
     """Return the fictional world as a natural language description, using simple sentences in Spanish."""
