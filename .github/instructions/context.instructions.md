@@ -93,7 +93,35 @@ Todos los prompts del pipeline incluyen reglas estrictas derivadas de los prompt
 - Incluye sistema de reintentos para objetivos válidos
 - Genera narrativa inicial y descripción del objetivo
 
-## **6. Expansión Dinámica**
+## **6. Sistema RAG (Retrieval-Augmented Generation) (memory_system.py)**
+
+El sistema incluye memoria episódica inteligente que transforma PAYADOR de un generador de mundos a un narrador con memoria persistente:
+
+**Componentes Principales:**
+- `AtomicMemory`: Unidad básica de memoria por turno de juego
+  - Almacena: número de turno, acción del jugador, resultado narrativo, contexto del mundo, timestamp
+  - Métodos: `to_text()`, `to_dict()`, `from_dict()` para serialización
+- `EmbeddingService`: Genera embeddings vectoriales usando Gemini API
+  - Modelo: `gemini-embedding-001` con dimensionalidad 768
+  - Configuración: `task_type="RETRIEVAL_DOCUMENT"` con normalización
+- `MemoryStore`: Base de datos vectorial con ChromaDB persistente
+  - Almacenamiento: embeddings, documentos texto, metadatos estructurados
+  - Búsqueda: similitud coseno para recuperación contextual
+- `IntelligentMemorySystem`: Coordinador principal del sistema RAG
+  - Funciones: ingestión automática, recuperación inteligente, formateo para prompts
+
+**Flujo de Funcionamiento:**
+1. **Ingestión**: Cada turno se convierte en `AtomicMemory` con embedding semántico
+2. **Almacenamiento**: ChromaDB persiste memorias en colección por `world_id`
+3. **Recuperación**: Búsqueda vectorial encuentra memorias relevantes a acción actual
+4. **Augmentación**: Memorias se formatean como contexto para prompts del LLM
+
+**Integración con Game Loop:**
+- `game_logic.py`: Ingestión automática post-turno y recuperación pre-prompt
+- `prompts.py`: Sección "Recuerdos Relevantes del Pasado" en `prompt_world_update_structured`
+- `app_interface.py`: Paso de API key desde variables de entorno
+
+## **7. Expansión Dinámica**
 
 - Sistema heredado preservado para crecimiento durante el juego
 - `expand_world_from_llm_response()` en `world_builder.py`
@@ -107,3 +135,5 @@ Todos los prompts del pipeline incluyen reglas estrictas derivadas de los prompt
 - `prompts.py`: Prompts especializados con reglas de calidad
 - `world_builder.py`: Conversión a objetos Python
 - `app.py`: Integración y modos de generación
+- `memory_system.py`: Sistema RAG con memoria episódica inteligente
+- `game_logic.py`: Integración del loop de juego con memoria contextual
