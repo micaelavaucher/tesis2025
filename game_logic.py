@@ -1,7 +1,7 @@
 """Game logic and world management for PAYADOR.
 
 This module contains the core game loop, world state management,
-and game-related utility functions.
+and game-related utility functions with intelligent memory integration.
 """
 
 import re
@@ -13,6 +13,7 @@ from prompts import prompt_narrate_current_scene, prompt_world_update_structured
 from world_builder import inspect_generated_world
 from config import PATH_GAMELOGS
 from structured_data_models import WorldUpdate
+from memory_system import create_memory_system
 
 def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name):
     """Create initial game log dictionary."""
@@ -51,7 +52,7 @@ def handle_debug_command(message, world, language):
     return None
 
 def process_player_input_structured(world, message, language, reasoning_model,
-                                    number_of_turns, game_log_dictionary):
+                                    number_of_turns, game_log_dictionary, memory_system=None):
     """Process player input using structured data models for more reliable parsing."""
     # Log input
     game_log_dictionary[number_of_turns]["date"] = time.ctime(time.time())
@@ -59,9 +60,19 @@ def process_player_input_structured(world, message, language, reasoning_model,
     game_log_dictionary[number_of_turns]["previous_rendered_world_state"] = world.render_world(language=language)
     game_log_dictionary[number_of_turns]["user_input"] = message
 
-    # Get structured world changes
+    # Retrieve relevant memories if memory system is available
+    relevant_memories_text = ""
+    if memory_system:
+        try:
+            relevant_memories = memory_system.retrieve_relevant_memories(message, top_k=3)
+            relevant_memories_text = memory_system.format_memories_for_prompt(relevant_memories, language)
+        except Exception as e:
+            print(f"⚠️ Error retrieving memories: {e}")
+            relevant_memories_text = ""
+
+    # Get structured world changes with memory augmentation
     system_msg_update, user_msg_update, expected_model = prompt_world_update_structured(
-        world.render_world(language=language), message, language=language
+        world.render_world(language=language), message, language=language, relevant_memories=relevant_memories_text
     )
     
     try:
@@ -98,6 +109,18 @@ def process_player_input_structured(world, message, language, reasoning_model,
         # Update world using structured data
         world.update_from_structured(world_update)
         
+        # Ingest new memory after successful processing
+        if memory_system:
+            try:
+                memory_system.ingest_memory(
+                    turn_number=number_of_turns,
+                    player_action=message,
+                    result_narration=world_update.narration,
+                    world_state_summary=""  # Could be enhanced with a summary if needed
+                )
+            except Exception as e:
+                print(f"⚠️ Error ingesting memory: {e}")
+        
     except Exception as e:
         print(f"⚠️ Structured processing failed: {e}")
         print("🔄 Falling back to legacy text processing...")
@@ -117,6 +140,21 @@ def process_player_input_structured(world, message, language, reasoning_model,
         # Update world using legacy method
         world.update(response_update)
         game_log_dictionary[number_of_turns]["fallback_response"] = response_update
+        
+        # Try to ingest memory for fallback case too
+        if memory_system:
+            try:
+                # Extract narration from fallback response
+                narration_matches = re.findall(r'#([^#]*?)#', str(response_update))
+                fallback_narration = narration_matches[0] if narration_matches else "Something happened in the world."
+                
+                memory_system.ingest_memory(
+                    turn_number=number_of_turns,
+                    player_action=message,
+                    result_narration=fallback_narration
+                )
+            except Exception as e:
+                print(f"⚠️ Error ingesting fallback memory: {e}")
 
     game_log_dictionary[number_of_turns]["updated_symbolic_world_state"] = jsonpickle.encode(world, unpicklable=True)
     game_log_dictionary[number_of_turns]["updated_rendered_world_state"] = world.render_world(language=language)
@@ -189,11 +227,25 @@ def save_game_log(game_log_dictionary, log_filename, number_of_turns, answer):
     with open(os.path.join(PATH_GAMELOGS, log_filename), 'w', encoding='utf-8') as f:
         json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
 
-def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations):
-    """Create the main game loop function."""
+def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None):
+    """Create the main game loop function with intelligent memory system."""
     last_player_position = world.player.location
     number_of_turns = 0
     game_log_dictionary = create_game_log_entry(world, language, log_filename, narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown', reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown')
+
+    # Initialize memory system
+    world_id = game_log_dictionary["world_id"]
+    memory_system = None
+    try:
+        memory_system = create_memory_system(world_id, api_key)
+        print(f"🧠 Intelligent memory system initialized for world {world_id}")
+        
+        # Load existing memories from previous logs if available
+        if log_filename:
+            memory_system.load_memories_from_logs(log_filename)
+    except Exception as e:
+        print(f"⚠️ Failed to initialize memory system: {e}")
+        print("🔄 Continuing without memory enhancement...")
 
     def game_loop(message, history):
         nonlocal last_player_position, number_of_turns, game_log_dictionary
@@ -209,8 +261,11 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         # Track visited locations
         visited_locations.add(world.player.location.name)
 
-        # Process input and update world
-        response_update = process_player_input_structured(world, message, language, reasoning_model, number_of_turns, game_log_dictionary)
+        # Process input and update world with memory system
+        response_update = process_player_input_structured(
+            world, message, language, reasoning_model, 
+            number_of_turns, game_log_dictionary, memory_system
+        )
 
         # Generate narration
         answer, last_player_position = generate_narration(world, last_player_position, response_update, language, narrative_model)

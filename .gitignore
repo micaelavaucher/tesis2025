@@ -5,6 +5,9 @@
 # API key file
 API_key
 
+# ChromaDB
+logs/memory_db
+
 .env
 logs/*.json
 

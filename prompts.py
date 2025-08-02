@@ -129,7 +129,7 @@ def prompt_world_update (world_state: str, input: str, language: str = 'en'):
 
     return system_msg, user_msg
 
-def prompt_world_update_structured(world_state: str, input: str, language: str = 'en'):
+def prompt_world_update_structured(world_state: str, input: str, language: str = 'en', relevant_memories: str = ""):
     """Create a world update prompt that will return structured data based on Pydantic models."""
     if language == 'es':
         system_msg = """Eres un narrador experto manejando un mundo ficticio interactivo. Tu tarea es analizar las acciones del jugador y determinar los cambios exactos en el estado del mundo.
@@ -145,14 +145,18 @@ REGLAS GENERALES:
 - El jugador solo se mueve si intenta explícitamente ir a otra ubicación y el movimiento es posible
 - Presta atención a las descripciones, capacidades y requisitos de cada componente
 
+INSTRUCCIÓN ESPECIAL SOBRE MEMORIA:
+Presta especial atención a la sección 'Recuerdos Relevantes del Pasado' si está presente. Úsalos para informar tu decisión. Por ejemplo, si el jugador le habla a un personaje sobre un objeto, tu respuesta debe reflejar cómo reaccionaría ese personaje basándose en interacciones pasadas.
+
 Tu respuesta debe ser un JSON válido que siga exactamente el modelo WorldUpdate."""
         
-        user_msg = f"""Analiza la entrada del jugador y determina los cambios en el mundo:
-
-Entrada del jugador: "{input}"
-
-Estado actual del mundo:
+        user_msg_base = f"""Estado actual del mundo:
 {world_state}
+
+{relevant_memories}El jugador ahora realiza la siguiente acción:
+<accion>
+{input}
+</accion>
 
 Devuelve un objeto JSON con la siguiente estructura:
 {{
@@ -186,14 +190,18 @@ GENERAL RULES:
 - The player only moves if they explicitly attempt to go to another location and the movement is possible
 - Pay attention to the descriptions, capabilities, and requirements of each component
 
+SPECIAL INSTRUCTION ABOUT MEMORY:
+Pay special attention to the 'Relevant Past Memories' section if present. Use them to inform your decision. For example, if the player talks to a character about an object, your response should reflect how that character would react based on past interactions.
+
 Your response must be valid JSON that follows exactly the WorldUpdate model."""
     
-        user_msg = f"""Analyze the player's input and determine world changes:
-
-Player input: "{input}"
-
-Current world state:
+        user_msg_base = f"""Current world state:
 {world_state}
+
+{relevant_memories}The player now performs the following action:
+<action>
+{input}
+</action>
 
 Return a JSON object with the following structure:
 {{
@@ -214,7 +222,7 @@ Return a JSON object with the following structure:
 
 IMPORTANT: Always include the narration field with a detailed, evocative description of what occurred in the world."""
     
-    return system_msg, user_msg, WorldUpdate
+    return system_msg, user_msg_base, WorldUpdate
 
 def prompt_world_update_spanish (world_state: str, input: str):
     system_msg = f"""Eres un narrador experto manejando un mundo ficticio interactivo. Siguiendo un formato específico, tu tarea es encontrar los cambios en el mundo a raíz de las acciones del jugador. En específico, tendrás que encontrar qué objetos cambiaron de lugar, qué pasajes entre lugares se desbloquearon, si el jugador se movió de lugar, y si resolvió puzzles.
