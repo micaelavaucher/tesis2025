@@ -63,7 +63,7 @@ def generate_world_step_by_step(inspo, language):
     
     return generated_world
 
-def create_world_with_progress(inspo, language, narrative_model, reasoning_model_name, narrative_model_name, log_filename, world_ref):
+def create_world_with_progress(inspo, language, narrative_model, reasoning_model_name, narrative_model_name, log_filename, world_ref, game_loop_ref=None):
     """Create world with detailed progress reporting for UI."""
     progress_messages = []
     messages = get_progress_messages(language)
@@ -294,6 +294,10 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
     
     # Store world reference for game loop
     world_ref['world'] = world
+    
+    # Reset game loop reference when new world is created
+    if game_loop_ref is not None:
+        game_loop_ref['game_loop'] = None
     
     progress_messages.append(messages['COMPLETE'])
     
