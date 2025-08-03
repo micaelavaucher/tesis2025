@@ -5,14 +5,21 @@ and maintains an intelligent memory of game events, allowing the system to
 retrieve relevant past memories when processing new player actions.
 """
 
+import os
 import json
 import time
-import hashlib
-from typing import List, Dict, Optional, Tuple
+
+from typing import List, Dict
 from pathlib import Path
+from config import PATH_GAMELOGS
+import numpy as np
+
+from google import genai
+from google.genai import types
+
 import chromadb
 from chromadb.config import Settings
-from config import PATH_GAMELOGS
+
 
 class AtomicMemory:
     """Represents a single atomic memory unit from a game turn."""
@@ -89,13 +96,9 @@ class EmbeddingService:
     
     def __init__(self, api_key: str = None):
         # Get API key from environment if not provided
-        import os
         if not api_key:
             api_key = os.getenv("GEMINI_API_KEY")
         
-        # The new Gemini API requires the API key to be passed to Client
-        from google import genai
-        from google.genai import types
         self.client = genai.Client(api_key=api_key)
         self.types = types
     
@@ -114,7 +117,6 @@ class EmbeddingService:
             embedding_values = result.embeddings[0].values
             
             # Normalize embeddings for 768 dimensions (as recommended in docs)
-            import numpy as np
             embedding_array = np.array(embedding_values)
             normalized_embedding = embedding_array / np.linalg.norm(embedding_array)
             
