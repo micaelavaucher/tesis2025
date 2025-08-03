@@ -21,6 +21,7 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
     
     # Store world reference for game loop
     world_ref = {'world': None}
+    game_loop_ref = {'game_loop': None}  # Store game loop to avoid recreating
     
     with gr.Blocks() as interfaz:
         with gr.Column(visible=True) as pre_game:
@@ -46,7 +47,7 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
                 print(f"[INFO] Generando mundo desde inspiración: '{inspo}'")
                 
                 # Use the world generation function with progress
-                for result in create_world_with_progress(inspo, language, narrative_model, reasoning_model_name, narrative_model_name, log_filename, world_ref):
+                for result in create_world_with_progress(inspo, language, narrative_model, reasoning_model_name, narrative_model_name, log_filename, world_ref, game_loop_ref):
                     yield result
                     
             except Exception as e:
@@ -74,9 +75,14 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
                 
             history.append({"role": "user", "content": message})
             
-            # Create game loop
-            game_loop = create_game_loop(world_ref['world'], reasoning_model, narrative_model, language, log_filename, visited_locations, api_key)
-            respuesta = game_loop(message, history)
+            # Create game loop only once, then reuse it
+            if game_loop_ref['game_loop'] is None:
+                game_loop_ref['game_loop'] = create_game_loop(
+                    world_ref['world'], reasoning_model, narrative_model, 
+                    language, log_filename, visited_locations, api_key
+                )
+            
+            respuesta = game_loop_ref['game_loop'](message, history)
 
             history.append({"role": "assistant", "content": respuesta})
             return history, ""

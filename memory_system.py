@@ -9,6 +9,9 @@ import os
 import json
 import time
 
+# Disable ChromaDB telemetry at module level
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 from typing import List, Dict
 from pathlib import Path
 from config import PATH_GAMELOGS
@@ -136,7 +139,11 @@ class MemoryStore:
         # Initialize ChromaDB
         self.client = chromadb.PersistentClient(
             path=self.persist_directory,
-            settings=Settings(anonymized_telemetry=False)
+            settings=Settings(
+                anonymized_telemetry=False,
+                allow_reset=True,
+                is_persistent=True
+            )
         )
         
         # Create or get collection
@@ -227,6 +234,8 @@ class IntelligentMemorySystem:
                 print(f"🔍 Retrieved {len(relevant_memories)} relevant memories")
                 for i, memory in enumerate(relevant_memories, 1):
                     print(f"  {i}. Turn {memory.turn_number}: {memory.player_action[:50]}...")
+            else:
+                print(f"🔍 No relevant memories found for this action")
             
             return relevant_memories
             
