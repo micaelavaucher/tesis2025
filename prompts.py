@@ -77,18 +77,18 @@ def prompt_narrate_current_scene (world_state: str, previous_narrations: 'list[s
 
 def prompt_narrate_current_scene_english (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
 
-    system_msg = "You are a storyteller. Take the state of the world given to you and narrate it in a few sentences. Be careful not to include details that contradict the current state of the world, that move the story forward, or invent new puzzles that arent in the world. Also, try to use simple sentences and do not overuse poetic language"
+    system_msg = "You are a storyteller. Take the state of the world given to you and narrate it in vivid, evocative sentences. Use the detailed descriptions of locations, objects, and characters provided in the world state to create rich, immersive narrations with sensory details. Incorporate textures, colors, sounds, smells, and visual elements based on the available descriptions. Be careful not to include details that contradict the current state of the world, that move the story forward, or invent new puzzles that aren't in the world."
     
     if starting_scene:
-        system_msg += "\nTake into account that this is the first scene in the story: introduce the main character, creating a small background story and why that character is in that specific location.\n"
+        system_msg += "\nTake into account that this is the first scene in the story: introduce the main character using their descriptions, creating a small background story and why that character is in that specific location. Use the location descriptions to paint a vivid scene. It is important that you mention all components in this location using their descriptions to bring them to life. It is very important that you name the places the player can access from this position in an engaging way.\n"
     elif len(previous_narrations)==0:
-        system_msg += "Take into account that the player already knows what the main character looks like, so do not mention anything about that. However, it is the first time the player visits this place, so make sure to describe it exhaustively."
+        system_msg += "Take into account that the player already knows what the main character looks like, so do not mention anything about that. However, it is the first time the player visits this place, so describe it exhaustively using the location descriptions. Mention all components in this location using their descriptions. It is very important that you name the places the player can access from this position."
     else:
         system_msg += "Take into account that the player already knows what the main character looks like, so do not mention anything about that. Additionally, it is not the first time the player visits this place. Next I’ll give you some previous narrations of this same location (from oldest to newest) so you can be sure to not repeat the same details again:\n"
         for narration in previous_narrations:
             system_msg+=f'- {narration}\n'
 
-    system_msg+= "\nRemember: you are talking to the player, describing what his or her character has and what he or she can see or feel."
+    system_msg+= "\nRemember: you are talking to the player, describing what his or her character has and what he or she can see, hear, smell, or feel. Use the component descriptions to make everything come alive with vivid details."
 
     user_msg =f"""This is the state of the world at the moment:
     {world_state}
@@ -98,18 +98,18 @@ def prompt_narrate_current_scene_english (world_state: str, previous_narrations:
 
 def prompt_narrate_current_scene_spanish (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
     
-    system_msg = f"""Eres un narrador. Toma el estado del mundo que se te de y nárralo en unas pocas oraciones. Ten cuidado de no incluir detalles que contradigan el estado del mundo actual, o que hagan avanzar la historia, o inventar puzzles o acertijos que no esten ya en el mundo. Además, si el jugador está en la misma ubicación en la que existe un puzzle, debes darle una pista que le haga saber que allí hay un puzzle, o que un personaje tiene un puzzle para él. Intenta usar oraciones simples, sin abusar del lenguaje poético."""
+    system_msg = f"""Eres un narrador. Toma el estado del mundo que se te de y nárralo con oraciones vívidas y evocativas. Usa las descripciones detalladas de ubicaciones, objetos y personajes proporcionadas en el estado del mundo para crear narraciones ricas e inmersivas con detalles sensoriales. Incorpora texturas, colores, sonidos, olores y elementos visuales basándote en las descripciones disponibles. Ten cuidado de no incluir detalles que contradigan el estado del mundo actual, o que hagan avanzar la historia, o inventar puzzles o acertijos que no estén ya en el mundo. Además, si el jugador está en la misma ubicación en la que existe un puzzle, debes darle una pista que le haga saber que allí hay un puzzle, o que un personaje tiene un puzzle para él."""
     
     if starting_scene:
-        system_msg += "\nTen en cuenta que esta es la primera escena en la historia narrada: presenta al personaje del jugador, creando un pequeño trasfondo y por qué este personaje está en ese lugar específicamente. Puede usar las pequeñas descripciones presentes en el estado del mundo. Es importante que menciones todos los componentes que hay en este lugar. Sin embargo, es mejor si no describes cada componente: basta con que los menciones con una mínima descripción poco específica. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición. \n"
+        system_msg += "\nTen en cuenta que esta es la primera escena en la historia narrada: presenta al personaje del jugador usando sus descripciones, creando un pequeño trasfondo y por qué este personaje está en ese lugar específicamente. Usa las descripciones de la ubicación para pintar una escena vívida. Es importante que menciones todos los componentes que hay en este lugar usando sus descripciones para darles vida. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición de manera atractiva.\n"
     elif len(previous_narrations)==0:
-        system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Sin embargo, es la primera vez que el jugador visita este lugar, así que describelo. Es importante que menciones todos los componentes que hay en este lugar. Sin embargo, es mejor si no describes cada componente: basta con que los menciones con una mínima descripción poco específica. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición. \n"
+        system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Sin embargo, es la primera vez que el jugador visita este lugar, así que descríbelo exhaustivamente usando las descripciones de la ubicación. Menciona todos los componentes que hay en este lugar usando sus descripciones. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición.\n"
     else:
-        system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Además, no es la primera vez que el jugador visita este lugar. A continuación te daré algunas narraciones previas de este mismo lugar (de la más antigua a la más nueva), así te puedes asegurar de no repetir los mismos detalles de nuevo:\n"
+        system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Además, no es la primera vez que el jugador visita este lugar. A continuación te daré algunas narraciones previas de este mismo lugar (de la más antigua a la más nueva), así te puedes asegurar de no repetir los mismos detalles de nuevo, pero aún usar las ricas descripciones disponibles:\n"
         for narration in previous_narrations:
             system_msg+=f'- {narration}\n'
 
-    system_msg+= "\nRecuerda: le estás hablando al jugador, describiendo lo que su personaje tiene y lo que puede sentir o ver."
+    system_msg+= "\nRecuerda: le estás hablando al jugador, describiendo lo que su personaje tiene y lo que puede sentir, ver, oír u oler. Usa las descripciones de los componentes para hacer que todo cobre vida con detalles vívidos."
 
     user_msg = f"""Este es el estado del mundo en este momento:
     {world_state}
@@ -145,6 +145,14 @@ REGLAS GENERALES:
 - El jugador solo se mueve si intenta explícitamente ir a otra ubicación y el movimiento es posible
 - Presta atención a las descripciones, capacidades y requisitos de cada componente
 
+REGLAS PARA NARRACIÓN RICA:
+- **USA LAS DESCRIPCIONES**: El estado del mundo incluye descripciones detalladas de ubicaciones, objetos y personajes. Úsalas para crear narraciones vívidas y evocativas.
+- **DETALLES SENSORIALES**: Incorpora sonidos, olores, texturas, y sensaciones visuales basándote en las descripciones disponibles.
+- **DESCRIBE LOS OBJETOS**: Cuando el jugador interactúa con objetos, usa sus descripciones para darles vida (materiales, aspecto, peso, etc.).
+- **ATMOSFERA DE UBICACIONES**: Usa las descripciones de las ubicaciones para crear ambiente y inmersión.
+- **PERSONALIDAD DE PERSONAJES**: Refleja las descripciones de los personajes en su comportamiento y diálogo.
+- **CONEXIONES NARRATIVAS**: Menciona ubicaciones accesibles y objetos visibles de manera natural en la narración.
+
 INSTRUCCIÓN ESPECIAL SOBRE MEMORIA:
 Presta especial atención a la sección 'Recuerdos Relevantes del Pasado' si está presente. Úsalos para informar tu decisión. Por ejemplo, si el jugador le habla a un personaje sobre un objeto, tu respuesta debe reflejar cómo reaccionaría ese personaje basándose en interacciones pasadas.
 
@@ -175,7 +183,7 @@ Devuelve un objeto JSON con la siguiente estructura:
     "narration": "Descripción narrativa rica de lo que ocurrió"
 }}
 
-IMPORTANTE: Siempre incluye el campo narration con una descripción detallada y evocativa de lo que ocurrió en el mundo."""
+IMPORTANTE: Siempre incluye el campo narration con una descripción detallada y evocativa de lo que ocurrió en el mundo. Usa las descripciones específicas de objetos, ubicaciones y personajes del estado del mundo para crear una narración rica en detalles sensoriales. Menciona texturas, colores, sonidos, olores y sensaciones cuando sea apropiado."""
     else:
         system_msg = """You are an expert narrator managing an interactive fictional world. Your task is to analyze the player's actions and determine the exact changes in the world state.
 
@@ -189,6 +197,14 @@ GENERAL RULES:
 - Blocked passages only unlock if specific requirements are met
 - The player only moves if they explicitly attempt to go to another location and the movement is possible
 - Pay attention to the descriptions, capabilities, and requirements of each component
+
+RULES FOR RICH NARRATION:
+- **USE THE DESCRIPTIONS**: The world state includes detailed descriptions of locations, objects, and characters. Use them to create vivid and evocative narrations.
+- **SENSORY DETAILS**: Incorporate sounds, smells, textures, and visual sensations based on available descriptions.
+- **DESCRIBE OBJECTS**: When the player interacts with objects, use their descriptions to bring them to life (materials, appearance, weight, etc.).
+- **LOCATION ATMOSPHERE**: Use location descriptions to create ambiance and immersion.
+- **CHARACTER PERSONALITY**: Reflect character descriptions in their behavior and dialogue.
+- **NARRATIVE CONNECTIONS**: Naturally mention accessible locations and visible objects in the narration.
 
 SPECIAL INSTRUCTION ABOUT MEMORY:
 Pay special attention to the 'Relevant Past Memories' section if present. Use them to inform your decision. For example, if the player talks to a character about an object, your response should reflect how that character would react based on past interactions.
@@ -220,7 +236,7 @@ Return a JSON object with the following structure:
     "narration": "Rich narrative description of what happened"
 }}
 
-IMPORTANT: Always include the narration field with a detailed, evocative description of what occurred in the world."""
+IMPORTANT: Always include the narration field with a detailed, evocative description of what occurred in the world. Use the specific descriptions of objects, locations, and characters from the world state to create rich narrations with sensory details. Mention textures, colors, sounds, smells, and sensations when appropriate."""
     
     return system_msg, user_msg_base, WorldUpdate
 

@@ -68,8 +68,16 @@ class GeminiModel():
                 response = self.client.models.generate_content(
                     model=self.model_name,
                     contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.7,
+                        top_p=0.9,
+                        max_output_tokens=6144,
+                    ),
                 )
-                return response.text.strip()
+                
+                response_text = response.text.strip()
+                
+                return response_text
             except ServerError as e:
                 # Check if it's an overload error (503) by examining the error message
                 if hasattr(e, 'error') and hasattr(e.error, 'code') and e.error.code == 503:
