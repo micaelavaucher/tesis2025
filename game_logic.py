@@ -387,10 +387,7 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
 
         # Append formatted world state to answer
         world_state_formatted = world.format_world_state_for_chat(language=language)
-        if language == 'es':
-            answer += f"\n\n---\n🌍 **Estado del mundo:**\n{world_state_formatted}"
-        else:
-            answer += f"\n\n---\n🌍 **World state:**\n{world_state_formatted}"
+        answer += f"\n\n---\n{world_state_formatted}"
 
         # Print world state
         print(f"\n🌎 World state 🌍\n>Player input: {message}\n{world.render_world(language=language)}\n")
