@@ -147,9 +147,6 @@ def generate_starting_narration(world, language, narrative_model):
     
     # Add formatted world state to starting narration
     world_state_formatted = world.format_world_state_for_chat(language=language)
-    if language == 'es':
-        starting_narration += f"\n\n---\n🌍 **Estado del mundo:**\n{world_state_formatted}"
-    else:
-        starting_narration += f"\n\n---\n🌍 **World state:**\n{world_state_formatted}"
+    starting_narration += f"\n\n---\n{world_state_formatted}"
     
     return starting_narration

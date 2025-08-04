@@ -311,6 +311,15 @@ class World:
     blocked_passages = [f"**{p}**" for p in player_location.blocked_locations.keys()]
     characters_in_the_scene = [character for character in self.characters.values() if character.location is player_location]
 
+    # Categorize items by their current holder/location
+    location_items = list(player_location.items)  # Items free in the location
+    blocking_items = []  # Items blocking passages
+    
+    # Get items blocking passages
+    for blocked_values in player_location.blocked_locations.values():
+        if isinstance(blocked_values[1], Item):
+            blocking_items.append(blocked_values[1])
+
     if language == 'es':
       formatted_state = f"📍 **Ubicación actual:** {player_location.name}\n"
       
@@ -322,14 +331,26 @@ class World:
       if blocked_passages:
         formatted_state += f"🔒 **Pasajes bloqueados:** {', '.join(blocked_passages)}\n"
 
+      # Player inventory
       if self.player.inventory:
-        formatted_state += f"🎒 **Inventario:** {', '.join([f'**{i.name}**' for i in self.player.inventory])}\n"
+        formatted_state += f"🎒 **Tu inventario:** {', '.join([f'**{i.name}**' for i in self.player.inventory])}\n"
       else:
-        formatted_state += f"🎒 **Inventario:** Vacío\n"
+        formatted_state += f"🎒 **Tu inventario:** Vacío\n"
 
-      if player_location.items:
-        formatted_state += f"👁️ **Objetos visibles:** {', '.join([f'**{i.name}**' for i in player_location.items])}\n"
+      # Items free in the location
+      if location_items:
+        formatted_state += f"📦 **Objetos en este lugar:** {', '.join([f'**{i.name}**' for i in location_items])}\n"
 
+      # Items in character inventories
+      for character in characters_in_the_scene:
+        if character.inventory:
+          formatted_state += f"👤 **{character.name} tiene:** {', '.join([f'**{i.name}**' for i in character.inventory])}\n"
+
+      # Items blocking passages
+      if blocking_items:
+        formatted_state += f"🚧 **Objetos bloqueando:** {', '.join([f'**{i.name}**' for i in blocking_items])}\n"
+
+      # Characters present
       if characters_in_the_scene:
         formatted_state += f"👥 **Personajes presentes:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}"
     else:
@@ -343,14 +364,26 @@ class World:
       if blocked_passages:
         formatted_state += f"🔒 **Blocked passages:** {', '.join(blocked_passages)}\n"
 
+      # Player inventory
       if self.player.inventory:
-        formatted_state += f"🎒 **Inventory:** {', '.join([f'**{i.name}**' for i in self.player.inventory])}\n"
+        formatted_state += f"🎒 **Your inventory:** {', '.join([f'**{i.name}**' for i in self.player.inventory])}\n"
       else:
-        formatted_state += f"🎒 **Inventory:** Empty\n"
+        formatted_state += f"🎒 **Your inventory:** Empty\n"
 
-      if player_location.items:
-        formatted_state += f"👁️ **Visible objects:** {', '.join([f'**{i.name}**' for i in player_location.items])}\n"
+      # Items free in the location
+      if location_items:
+        formatted_state += f"📦 **Items in this place:** {', '.join([f'**{i.name}**' for i in location_items])}\n"
 
+      # Items in character inventories
+      for character in characters_in_the_scene:
+        if character.inventory:
+          formatted_state += f"👤 **{character.name} has:** {', '.join([f'**{i.name}**' for i in character.inventory])}\n"
+
+      # Items blocking passages
+      if blocking_items:
+        formatted_state += f"🚧 **Items blocking passages:** {', '.join([f'**{i.name}**' for i in blocking_items])}\n"
+
+      # Characters present
       if characters_in_the_scene:
         formatted_state += f"👥 **Characters present:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}"
 

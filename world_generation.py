@@ -265,6 +265,10 @@ def create_world_with_progress(inspo, language, narrative_model, reasoning_model
                 narrated_objective += '.'
             starting_narration += f"\n\n🎯 {narrated_objective}"
     
+    # Add formatted world state to starting narration
+    world_state_formatted = world.format_world_state_for_chat(language=language)
+    starting_narration += f"\n\n---\n{world_state_formatted}"
+    
     # Save world state
     progress_messages.append(messages['SAVING'])
     yield (
