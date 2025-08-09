@@ -41,7 +41,10 @@ elif generation_mode == 'generate':
     else:
         print("⚙️ Generation mode: Generating a new world from scratch...")
 
-    world = generate_world_simple("aventura misteriosa", language)
+    from generation_pipeline import create_world_incrementally_generate
+    from world_builder import create_world_from_llm_response
+    generated_world = create_world_incrementally_generate(language)
+    world = create_world_from_llm_response(generated_world)
     
     if world is None:
         # Fallback to preset world
