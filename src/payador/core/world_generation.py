@@ -10,11 +10,11 @@ import time
 import json
 import os
 import jsonpickle
-from generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles, run_step_5_expansion, create_world_incrementally
-from world_builder import create_world_from_llm_response
-from prompts import prompt_narrate_current_scene, prompt_describe_objective
-from ui_components import get_progress_messages
-from config import PATH_GAMELOGS
+from ..llm.generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles, run_step_5_expansion, create_world_incrementally
+from .world_builder import create_world_from_llm_response
+from ..llm.prompts import prompt_narrate_current_scene, prompt_describe_objective
+from ..ui.ui_components import get_progress_messages
+from ..config import PATH_GAMELOGS
 
 def validate_world_objective(world, language, generation_attempts, max_attempts):
     """Validate that the generated world has an objective."""

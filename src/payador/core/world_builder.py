@@ -6,8 +6,8 @@
 import json
 from typing import Dict
 
-from world import World, Location, Item, Character, Puzzle
-from structured_data_models import GeneratedWorld, WorldExpansion, RequirementType
+from .world import World, Location, Item, Character, Puzzle
+from ..llm.structured_data_models import GeneratedWorld, WorldExpansion, RequirementType
 
 # ----------------------------------------- #
 # Main functions for creating the world     #
@@ -178,7 +178,7 @@ def create_world_from_llm_response(world_data) -> World:
         import traceback
         traceback.print_exc()
         # Fallback to the default world
-        import example_worlds
+        import examples.example_worlds as example_worlds
         return example_worlds.get_world("1")
 
 def set_objective_from_generated(objective_data, items_dict, locations_dict, characters_list, player):

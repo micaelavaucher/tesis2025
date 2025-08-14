@@ -14,7 +14,7 @@ os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 from typing import List, Dict
 from pathlib import Path
-from config import PATH_GAMELOGS
+from ..config import PATH_GAMELOGS
 import numpy as np
 
 from google import genai

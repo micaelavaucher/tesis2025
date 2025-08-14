@@ -7,10 +7,10 @@ including inspiration mode, generate mode, and preset mode.
 import gradio as gr
 import re
 import os
-from ui_components import get_ui_texts
-from world_generation import create_world_with_progress
-from game_logic import create_game_loop
-from prompts import prompt_narrate_current_scene, prompt_describe_objective
+from .ui_components import get_ui_texts
+from ..core.world_generation import create_world_with_progress
+from ..core.game_logic import create_game_loop
+from ..llm.prompts import prompt_narrate_current_scene, prompt_describe_objective
 
 def create_inspiration_interface(
         language,
