@@ -331,7 +331,7 @@ def save_game_log(game_log_dictionary, log_filename, number_of_turns, answer):
     with open(os.path.join(PATH_GAMELOGS, log_filename), 'w', encoding='utf-8') as f:
         json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
 
-def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None):
+def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None, enable_rag=True):
     """Create the main game loop function with intelligent memory system."""
     last_player_position = world.player.location
     number_of_turns = 0
@@ -346,18 +346,22 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         world_id=session_world_id  # Use consistent world_id
     )
 
-    # Initialize memory system with consistent world_id
+    # Initialize memory system with consistent world_id only if RAG is enabled
     memory_system = None
-    try:
-        memory_system = create_memory_system(session_world_id, api_key)
-        print(f"🧠 Intelligent memory system initialized for world {session_world_id}")
-        
-        # Load existing memories from previous logs if available
-        if log_filename:
-            memory_system.load_memories_from_logs(log_filename)
-    except Exception as e:
-        print(f"⚠️ Failed to initialize memory system: {e}")
-        print("🔄 Continuing without memory enhancement...")
+    if enable_rag:
+        try:
+            memory_system = create_memory_system(session_world_id, api_key)
+            print(f"🧠 Intelligent memory system initialized for world {session_world_id}")
+            
+            # Load existing memories from previous logs if available
+            if log_filename:
+                memory_system.load_memories_from_logs(log_filename)
+        except Exception as e:
+            print(f"⚠️ Failed to initialize memory system: {e}")
+            print("🔄 Continuing without memory enhancement...")
+            memory_system = None
+    else:
+        print("🔇 RAG system disabled by configuration")
 
     def game_loop(message, history):
         nonlocal last_player_position, number_of_turns, game_log_dictionary

@@ -38,3 +38,7 @@ def create_log_filename():
 def get_world_id(config):
     """Get the world ID from config."""
     return config["Options"]["WorldID"]
+
+def get_enable_rag(config):
+    """Get the RAG enable setting from config."""
+    return config["Options"].getboolean("EnableRAG", fallback=True)
