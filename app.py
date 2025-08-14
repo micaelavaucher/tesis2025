@@ -5,7 +5,7 @@ generation modes and initializes the appropriate interface.
 """
 
 from models import get_llm
-from config import load_config, get_language, get_generation_mode, get_model_names, create_log_filename, get_world_id
+from config import load_config, get_language, get_generation_mode, get_model_names, create_log_filename, get_world_id, get_enable_rag
 from app_interface import create_inspiration_interface, create_standard_interface, generate_starting_narration
 from world_generation import generate_world_simple
 from game_logic import initialize_game_state
@@ -17,6 +17,7 @@ language = get_language(config)
 generation_mode = get_generation_mode(config)
 reasoning_model_name, narrative_model_name = get_model_names(config)
 log_filename = create_log_filename()
+enable_rag = get_enable_rag(config)
 
 # Initialize models
 reasoning_model = get_llm(reasoning_model_name)
@@ -30,7 +31,7 @@ if generation_mode == "inspiration":
     interfaz = create_inspiration_interface(
         language, narrative_model, reasoning_model, 
         reasoning_model_name, narrative_model_name, 
-        log_filename, visited_locations
+        log_filename, visited_locations, enable_rag
     )
     interfaz.launch(inbrowser=False)
     exit()
@@ -70,7 +71,7 @@ last_player_position, number_of_turns, game_log_dictionary = initialize_game_sta
 # Launch standard interface
 gradio_interface = create_standard_interface(
     world, starting_narration, language, reasoning_model, 
-    narrative_model, log_filename, visited_locations
+    narrative_model, log_filename, visited_locations, enable_rag
 )
 
 gradio_interface.launch(inbrowser=False)
