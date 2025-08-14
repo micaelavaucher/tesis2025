@@ -139,12 +139,21 @@ def generate_starting_narration(world, language, narrative_model):
     if hasattr(world, 'objective') and world.objective:
         system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
         narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
-        
+        import re
         try:
-            objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
-            if not objective_text.strip().endswith(('.', '!', '?')):
-                objective_text += '.'
-            starting_narration += f"\n\n🎯 {objective_text}"
+            objective_texts = re.findall(r'#(.*?)#', narrated_objective, re.DOTALL)
+            if objective_texts:
+                objective_text = " ".join([t.strip() for t in objective_texts])
+                # Fallback if objective is too short or incomplete
+                if len(objective_text.split()) < 8 or not objective_text.strip().endswith(('.', '!', '?')):
+                    print("⚠️ Objective seems incomplete, using full LLM response instead.")
+                    if not narrated_objective.strip().endswith(('.', '!', '?')):
+                        narrated_objective += '.'
+                    starting_narration += f"\n\n🎯 {narrated_objective}"
+                else:
+                    starting_narration += f"\n\n🎯 {objective_text}"
+            else:
+                raise IndexError
         except (IndexError, TypeError):
             print("⚠️ No se pudo extraer el objetivo narrado con el formato #...#, usando la respuesta completa.")
             if not narrated_objective.strip().endswith(('.', '!', '?')):
