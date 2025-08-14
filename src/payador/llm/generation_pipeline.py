@@ -6,13 +6,13 @@ the coherence and quality of the final world.
 """
 
 #---- Imports -----------------------------------------------------------------
-from structured_data_models import (
+from .structured_data_models import (
     WorldConcept, 
     WorldSkeleton, 
     GeneratedWorld
 )
-from models import get_llm
-import prompts
+from .models import get_llm
+from . import prompts
 import configparser
 
 #---- Pipeline Functions -----------------------------------------------------

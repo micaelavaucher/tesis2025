@@ -9,11 +9,11 @@ import json
 import os
 import jsonpickle
 import time
-from prompts import prompt_narrate_current_scene, prompt_world_update_structured
-from world_builder import inspect_generated_world
-from config import PATH_GAMELOGS
-from structured_data_models import WorldUpdate
-from memory_system import create_memory_system
+from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured
+from .world_builder import inspect_generated_world
+from ..config import PATH_GAMELOGS
+from ..llm.structured_data_models import WorldUpdate
+from ..llm.memory_system import create_memory_system
 
 def create_world_state_summary(world, player_action, language='en'):
     """Create a rich contextual summary of the world state for memory embedding."""

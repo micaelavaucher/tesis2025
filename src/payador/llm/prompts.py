@@ -1,4 +1,4 @@
-from structured_data_models import WorldUpdate
+from .structured_data_models import WorldUpdate
 import configparser
 
 # Load configuration

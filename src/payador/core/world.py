@@ -533,7 +533,7 @@ class World:
 
   def update_from_structured(self, world_update) -> None:
     """Update world state using structured WorldUpdate object."""
-    from structured_data_models import WorldUpdate
+    from ..llm.structured_data_models import WorldUpdate
     
     # Handle moved objects
     for moved_obj in world_update.moved_objects:

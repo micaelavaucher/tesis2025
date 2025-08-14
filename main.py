@@ -4,12 +4,12 @@ Main application entry point. This module orchestrates the different
 generation modes and initializes the appropriate interface.
 """
 
-from models import get_llm
-from config import load_config, get_language, get_generation_mode, get_model_names, create_log_filename, get_world_id, get_enable_rag
-from app_interface import create_inspiration_interface, create_standard_interface, generate_starting_narration
-from world_generation import generate_world_simple
-from game_logic import initialize_game_state
-import example_worlds
+from src.payador.llm.models import get_llm
+from src.payador.config import load_config, get_language, get_generation_mode, get_model_names, create_log_filename, get_world_id, get_enable_rag
+from src.payador.ui.app_interface import create_inspiration_interface, create_standard_interface, generate_starting_narration
+from src.payador.core.world_generation import generate_world_simple
+from src.payador.core.game_logic import initialize_game_state
+import examples.example_worlds as example_worlds
 
 # Load configuration
 config = load_config()
@@ -42,8 +42,8 @@ elif generation_mode == 'generate':
     else:
         print("⚙️ Generation mode: Generating a new world from scratch...")
 
-    from generation_pipeline import create_world_incrementally_generate
-    from world_builder import create_world_from_llm_response
+    from src.payador.llm.generation_pipeline import create_world_incrementally_generate
+    from src.payador.core.world_builder import create_world_from_llm_response
     generated_world = create_world_incrementally_generate(language)
     world = create_world_from_llm_response(generated_world)
     
