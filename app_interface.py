@@ -12,7 +12,15 @@ from world_generation import create_world_with_progress
 from game_logic import create_game_loop
 from prompts import prompt_narrate_current_scene, prompt_describe_objective
 
-def create_inspiration_interface(language, narrative_model, reasoning_model, reasoning_model_name, narrative_model_name, log_filename, visited_locations):
+def create_inspiration_interface(
+        language,
+        narrative_model,
+        reasoning_model,
+        reasoning_model_name,
+        narrative_model_name,
+        log_filename,
+        visited_locations,
+        enable_rag=True):
     """Create the inspiration mode interface."""
     texts = get_ui_texts(language)
     
@@ -79,7 +87,7 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
             if game_loop_ref['game_loop'] is None:
                 game_loop_ref['game_loop'] = create_game_loop(
                     world_ref['world'], reasoning_model, narrative_model, 
-                    language, log_filename, visited_locations, api_key
+                    language, log_filename, visited_locations, api_key, enable_rag
                 )
             
             respuesta = game_loop_ref['game_loop'](message, history)
@@ -95,10 +103,10 @@ def create_inspiration_interface(language, narrative_model, reasoning_model, rea
 
     return interfaz
 
-def create_standard_interface(world, starting_narration, language, reasoning_model, narrative_model, log_filename, visited_locations):
+def create_standard_interface(world, starting_narration, language, reasoning_model, narrative_model, log_filename, visited_locations, enable_rag=True):
     """Create the standard game interface for preset/generate modes."""
     api_key = os.getenv("GEMINI_API_KEY")
-    game_loop = create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key)
+    game_loop = create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key, enable_rag)
     
     return gr.ChatInterface(
         fn=game_loop,
