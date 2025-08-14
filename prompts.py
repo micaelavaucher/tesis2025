@@ -1,4 +1,9 @@
 from structured_data_models import WorldUpdate
+import configparser
+
+# Load configuration
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 def prompt_describe_objective (objective, language:str = 'en'):
     system_msg = ""
@@ -461,8 +466,14 @@ def prompt_world_update_english (world_state: str, input: str):
 
 def prompt_generate_world(language: str = 'es') -> str:
     """Generate a prompt for creating a creative world with full LLM autonomy."""
+    # Get world size parameters from config
+    locations = config['Size_World']['Locations']
+    objects = config['Size_World']['Objects']
+    npcs = config['Size_World']['NPCs']
+    puzzles = config['Size_World']['Puzzles']
+    
     if language == 'es':
-        prompt = """Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Tu tarea es crear un mundo completamente original y coherente. Tienes total libertad creativa para la historia, personajes, y ambientación, PERO debes seguir estrictas reglas técnicas para garantizar que el mundo sea jugable.
+        prompt = f"""Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Tu tarea es crear un mundo completamente original y coherente. Tienes total libertad creativa para la historia, personajes, y ambientación, PERO debes seguir estrictas reglas técnicas para garantizar que el mundo sea jugable.
 
 **LIBERTAD CREATIVA TOTAL:**
 - Inventa cualquier historia, tema, o ambientación (medieval, sci-fi, moderno, fantástico, etc.)
@@ -473,10 +484,10 @@ def prompt_generate_world(language: str = 'es') -> str:
 **RESTRICCIONES TÉCNICAS OBLIGATORIAS:**
 
 **ESTRUCTURA MÍNIMA REQUERIDA:**
-- 3-4 ubicaciones (cada una con nombre único y 2-3 descripciones atmosféricas)
-- 4-6 objetos (nombres únicos y 2-3 descripciones cada uno)
-- 2-3 personajes no jugadores + 1 personaje jugador
-- 1-2 puzzles lógicos y solucionables
+- {locations} ubicaciones (cada una con nombre único y 2-3 descripciones atmosféricas)
+- {objects} objetos (nombres únicos y 2-3 descripciones cada uno)
+- {npcs} personajes no jugadores + 1 personaje jugador
+- {puzzles} puzzles lógicos y solucionables
 - 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
@@ -562,7 +573,7 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 
 **RECUERDA:** Libertad creativa total para la narrativa, restricciones técnicas estrictas para la funcionalidad. ¡Crea algo único y jugable!"""
     else:
-        prompt = """You are a creative world architect for an interactive fiction game. Your task is to create a completely original and coherent world. You have total creative freedom for the story, characters, and setting, BUT you must follow strict technical rules to ensure the world is playable.
+        prompt = f"""You are a creative world architect for an interactive fiction game. Your task is to create a completely original and coherent world. You have total creative freedom for the story, characters, and setting, BUT you must follow strict technical rules to ensure the world is playable.
 
 **TOTAL CREATIVE FREEDOM:**
 - Invent any story, theme, or setting (medieval, sci-fi, modern, fantasy, etc.)
@@ -573,10 +584,10 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 **MANDATORY TECHNICAL CONSTRAINTS:**
 
 **MINIMUM REQUIRED STRUCTURE:**
-- 3-4 locations (each with unique name and 2-3 atmospheric descriptions)
-- 4-6 objects (unique names and 2-3 descriptions each)
-- 2-3 non-player characters + 1 player character
-- 1-2 logical and solvable puzzles
+- {locations} locations (each with unique name and 2-3 atmospheric descriptions)
+- {objects} objects (unique names and 2-3 descriptions each)
+- {npcs} non-player characters + 1 player character
+- {puzzles} logical and solvable puzzles
 - 1 clear and completable main objective (MANDATORY - your world MUST define a specific objective)
 
 **MANDATORY CONNECTION RULES:**
@@ -665,27 +676,33 @@ Generate the complete JSON following the `GeneratedWorld` schema. Ensure that:
 
 def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> str:
     """Generate a prompt for creating a creative world based on specific inspiration with full LLM autonomy."""
+    # Get world size parameters from config
+    locations = config['Size_World']['Locations']
+    objects = config['Size_World']['Objects']
+    npcs = config['Size_World']['NPCs']
+    puzzles = config['Size_World']['Puzzles']
+    
     if language == 'es':
         prompt = f"""Eres un arquitecto creativo de mundos para un juego de ficción interactiva. Tu tarea es crear un mundo completamente original y coherente BASADO ESPECÍFICAMENTE EN LA SIGUIENTE INSPIRACIÓN:
 
 **INSPIRACIÓN OBLIGATORIA:**
 {inspo}
 
-**INSTRUCCIÓN CRÍTICA:** Debes crear tu mundo usando esta inspiración como base fundamental. Todos los elementos del mundo (historia, personajes, ambientación, objetivo principal) deben estar directamente conectados y derivados de esta inspiración. NO ignores ni te desvíes de esta inspiración base.
+**INSTRUCCIÓN CRÍTICA:** Debes crear tu mundo usando esta inspiración como base fundamental y fuente directa para TODOS los elementos. CADA ubicación, objeto, personaje, puzzle y el objetivo principal DEBEN ser manifestaciones directas o estar temáticamente vinculados a esta inspiración. NO inventes elementos desconectados ni te desvíes de esta inspiración base.
 
 **LIBERTAD CREATIVA DENTRO DE LA INSPIRACIÓN:**
-- Desarrolla la historia, tema, y ambientación basándote en la inspiración proporcionada
-- Crea personajes únicos que encajen con el tema inspiracional
-- Diseña un objetivo principal que sea coherente con la inspiración
-- Adapta el tono para que complemente la inspiración dada
+- Desarrolla la historia, tema, y ambientación EXTRAYÉNDOLOS DIRECTAMENTE de la inspiración proporcionada
+- Crea personajes únicos que REPRESENTEN ASPECTOS ESPECÍFICOS de la inspiración
+- Diseña un objetivo principal que sea una CONSECUENCIA NATURAL de la inspiración
+- CADA elemento debe tener una conexión rastreable y explícita con la inspiración dada
 
 **RESTRICCIONES TÉCNICAS OBLIGATORIAS:**
 
 **ESTRUCTURA MÍNIMA REQUERIDA:**
-- 3-4 ubicaciones (cada una con nombre único y 2-3 descripciones atmosféricas)
-- 4-6 objetos (nombres únicos y 2-3 descripciones cada uno)
-- 2-3 personajes no jugadores + 1 personaje jugador
-- 1-2 puzzles lógicos y solucionables
+- {locations} ubicaciones (cada una con nombre único y 2-3 descripciones atmosféricas)
+- {objects} objetos (nombres únicos y 2-3 descripciones cada uno)
+- {npcs} personajes no jugadores + 1 personaje jugador
+- {puzzles} puzzles lógicos y solucionables
 - 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
@@ -738,24 +755,24 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 2. **Elementos existentes**: Tanto obstáculos como requirements DEBEN existir como objetos en el mundo
 3. **Conectividad previa**: Solo puedes bloquear pasajes entre ubicaciones ya conectadas
 
-**VALIDACIÓN DE COMPLETABILIDAD:**
+**VALIDACIÓN DE COMPLETABILIDAD Y COHERENCIA CON LA INSPIRACIÓN:**
 Antes de finalizar, verifica mentalmente:
-1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO?** (OBLIGATORIO)
+1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO Y DIRECTAMENTE DERIVADO DE LA INSPIRACIÓN?** (OBLIGATORIO)
 2. ¿Puede el jugador completar el objetivo con los elementos disponibles?
 3. ¿Existe al menos una ruta de solución desde el estado inicial?
 4. ¿Todos los elementos referenciados existen realmente en el mundo?
 5. ¿Las interacciones de personajes están completas?
-6. ¿Los puzzles tienen sentido y son solucionables A TRAVÉS DE LA EXPLORACIÓN?
+6. ¿Los puzzles tienen sentido, son solucionables A TRAVÉS DE LA EXPLORACIÓN, y REFLEJAN ASPECTOS de la inspiración?
 7. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
-8. **¿TODO el mundo está coherentemente basado en la inspiración proporcionada?**
+8. **¿PUEDES EXPLICAR CÓMO CADA UBICACIÓN, OBJETO, PERSONAJE Y PUZZLE ES UNA REPRESENTACIÓN O MANIFESTACIÓN DIRECTA de la inspiración proporcionada?**
 
 **EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
-1. Jugador quiere [objetivo principal basado en la inspiración]
-2. Para [objetivo] necesita [objeto/ubicación X relacionado con la inspiración]
-3. Para conseguir X necesita [resolver puzzle/conseguir objeto Y que encaje con el tema]
-4. Para Y necesita [interactuar con personaje Z derivado de la inspiración]
-5. Personaje Z requiere [completar tarea/tener objeto W coherente con el tema]
-6. El jugador puede conseguir W directamente o mediante otro paso
+1. Jugador quiere [objetivo principal DERIVADO DIRECTAMENTE de la inspiración]
+2. Para [objetivo] necesita [objeto/ubicación X que REPRESENTE UN ASPECTO CONCRETO de la inspiración]
+3. Para conseguir X necesita [resolver puzzle/conseguir objeto Y que MATERIALICE otro elemento de la inspiración]
+4. Para Y necesita [interactuar con personaje Z que PERSONIFIQUE una faceta de la inspiración]
+5. Personaje Z requiere [completar tarea/tener objeto W que ENCARNE otro aspecto de la inspiración]
+6. El jugador puede conseguir W mediante pasos que REFUERCEN la temática de la inspiración
 
 **FORMATO DE SALIDA:**
 Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de que:
@@ -765,28 +782,30 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 - La historia sea engaging y los personajes memorables
 - **TODO esté basado en y sea coherente con la inspiración proporcionada**
 
-**RECUERDA:** Debes usar la inspiración proporcionada como base fundamental para TODO el mundo. Libertad creativa total DENTRO de esa inspiración, restricciones técnicas estrictas para la funcionalidad. ¡Crea algo único, jugable y fiel a la inspiración!"""
+**REGLA FUNDAMENTAL:** Cada elemento creado DEBE ser una manifestación tangible, una representación directa, o una evolución lógica de la inspiración proporcionada. Si no puedes explicar cómo un elemento se deriva de la inspiración, NO lo incluyas.
+
+**RECUERDA:** La inspiración proporcionada NO es solo una sugerencia o punto de partida - es LA FUENTE PRIMARIA Y OBLIGATORIA de todos los elementos del mundo. Cada ubicación, objeto, personaje y puzzle debe ser un reflejo directo o una manifestación específica de esa inspiración. Libertad creativa para EXPANDIR y DESARROLLAR la inspiración, NO para desviarte de ella. ¡Crea algo único, jugable y COMPLETAMENTE fiel a la inspiración!"""
     else:
         prompt = f"""You are a creative world architect for an interactive fiction game. Your task is to create a completely original and coherent world BASED SPECIFICALLY ON THE FOLLOWING INSPIRATION:
 
 **MANDATORY INSPIRATION:**
 {inspo}
 
-**CRITICAL INSTRUCTION:** You must create your world using this inspiration as the fundamental base. All world elements (story, characters, setting, main objective) must be directly connected to and derived from this inspiration. DO NOT ignore or deviate from this base inspiration.
+**CRITICAL INSTRUCTION:** You must create your world using this inspiration as the fundamental base and direct source for ALL elements. EACH location, object, character, puzzle, and the main objective MUST be direct manifestations of or thematically linked to this inspiration. DO NOT invent disconnected elements or deviate from this base inspiration.
 
 **CREATIVE FREEDOM WITHIN THE INSPIRATION:**
-- Develop the story, theme, and setting based on the provided inspiration
-- Create unique characters that fit the inspirational theme
-- Design a main objective that is coherent with the inspiration
-- Adapt the tone to complement the given inspiration
+- Develop the story, theme, and setting by DIRECTLY EXTRACTING them from the provided inspiration
+- Create unique characters that REPRESENT SPECIFIC ASPECTS of the inspiration
+- Design a main objective that is a NATURAL CONSEQUENCE of the inspiration
+- EACH element must have an explicit and traceable connection to the given inspiration
 
 **MANDATORY TECHNICAL CONSTRAINTS:**
 
 **MINIMUM REQUIRED STRUCTURE:**
-- 3-4 locations (each with unique name and 2-3 atmospheric descriptions)
-- 4-6 objects (unique names and 2-3 descriptions each)
-- 2-3 non-player characters + 1 player character
-- 1-2 logical and solvable puzzles
+- {locations} locations (each with unique name and 2-3 atmospheric descriptions)
+- {objects} objects (unique names and 2-3 descriptions each)
+- {npcs} non-player characters + 1 player character
+- {puzzles} logical and solvable puzzles
 - 1 clear and completable main objective (MANDATORY - your world MUST define a specific objective)
 
 **MANDATORY CONNECTION RULES:**
@@ -839,24 +858,24 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 2. **Existing elements**: Both obstacles and requirements MUST exist as objects in the world
 3. **Prior connectivity**: You can only block passages between already connected locations
 
-**COMPLETABILITY VALIDATION:**
+**COMPLETABILITY AND INSPIRATION COHERENCE VALIDATION:**
 Before finalizing, mentally verify:
-1. **HAVE YOU DEFINED A CLEAR MAIN OBJECTIVE?** (MANDATORY)
+1. **HAVE YOU DEFINED A CLEAR MAIN OBJECTIVE THAT IS DIRECTLY DERIVED FROM THE INSPIRATION?** (MANDATORY)
 2. Can the player complete the objective with available elements?
 3. Is there at least one solution path from the initial state?
 4. Do all referenced elements actually exist in the world?
 5. Are character interactions complete?
-6. Do puzzles make sense and are they solvable THROUGH EXPLORATION?
+6. Do puzzles make sense, are they solvable THROUGH EXPLORATION, and do they REFLECT ASPECTS of the inspiration?
 7. For each code or necessary information, is there a way for the player to discover it?
-8. **Is the ENTIRE world coherently based on the provided inspiration?**
+8. **CAN YOU EXPLAIN HOW EACH LOCATION, OBJECT, CHARACTER, AND PUZZLE IS A DIRECT REPRESENTATION OR MANIFESTATION of the provided inspiration?**
 
 **EXAMPLE VALID DEPENDENCY CHAIN:**
-1. Player wants [main objective based on inspiration]
-2. For [objective] needs [object/location X related to inspiration]
-3. To get X needs [solve puzzle/get object Y that fits the theme]
-4. For Y needs [interact with character Z derived from inspiration]
-5. Character Z requires [complete task/have object W coherent with theme]
-6. Player can get W directly or through another step
+1. Player wants [main objective DIRECTLY DERIVED from inspiration]
+2. For [objective] needs [object/location X that REPRESENTS A CONCRETE ASPECT of the inspiration]
+3. To get X needs [solve puzzle/get object Y that MATERIALIZES another element of the inspiration]
+4. For Y needs [interact with character Z that PERSONIFIES a facet of the inspiration]
+5. Character Z requires [complete task/have object W that EMBODIES another aspect of the inspiration]
+6. Player can get W through steps that REINFORCE the inspiration's theme
 
 **OUTPUT FORMAT:**
 Generate the complete JSON following the `GeneratedWorld` schema. Ensure that:
@@ -1009,8 +1028,10 @@ Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que est�
 Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de que Laura PROPONGA el puzzle automáticamente al interactuar."""
 
 #---- Incremental Generation Prompts -----------------------------------------
-
-PROMPT_STEP_1_CONCEPT = """Eres un diseñador experto de mundos de ficción interactiva. Tu tarea es crear el concepto general de un mundo de aventura basado en el tema proporcionado.
+def PROMPT_STEP_1_CONCEPT(language: str = 'es') -> str:
+    """Generate the first step prompt for creating a world concept."""
+    if language == 'es':
+        return """Eres un diseñador experto de mundos de ficción interactiva. Tu tarea es crear el concepto general de un mundo de aventura.
 
 **LIBERTAD CREATIVA TOTAL:**
 - Inventa cualquier historia, tema, o ambientación (medieval, sci-fi, moderno, fantástico, etc.)
@@ -1050,12 +1071,160 @@ PROMPT_STEP_1_CONCEPT = """Eres un diseñador experto de mundos de ficción inte
 
 El concepto debe ser cohesivo, interesante y proporcionar una base sólida para construir un mundo de aventura completo.
 
+**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON (como 'title', 'backstory', 'name') deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
+    else:
+        return """You are an expert designer of interactive fiction worlds. Your task is to create the overall concept of an adventure world.
+
+**TOTAL CREATIVE FREEDOM:**
+- Invent any story, theme, or setting (medieval, sci-fi, modern, fantasy, etc.)
+- Create unique characters with interesting personalities
+- Design a main objective that is challenging and engaging
+- Decide the tone (adventure, mystery, drama, comedy, etc.)
+
+**THEMATIC INSPIRATION (choose one or combine):**
+- **Mystery**: Solve a crime, find a lost treasure, uncover a secret
+- **Adventure**: Rescue someone, explore ruins, complete a mission
+- **Survival**: Escape from a place, gather resources, find the way out
+- **Social**: Persuade characters, gather information, mediate conflicts
+- **Exploration**: Discover new areas, map territory, find artifacts
+
+**MANDATORY ELEMENTS TO DEFINE:**
+- An attractive title for the adventure
+- A backstory that sets the context and atmosphere (consistent with the theme)
+- A description of the player character and their role in the story
+- A clear, motivating, and SPECIFIC main objective the player must achieve
+
+**OBJECTIVE REQUIREMENTS:**
+- Must be CLEAR and SPECIFIC (not vague like "explore the world")
+- Must be MOTIVATING for the player
+- Must be COMPLETABLE using physical elements from the world
+- Must have a solid narrative reason
+
+**EXAMPLES OF GOOD OBJECTIVES:**
+- "Find the Legendary Sword to defeat the dragon"
+- "Rescue the princess from the enchanted castle"
+- "Discover the treasure of the lost pirate"
+- "Gather the three crystals to open the portal"
+
+**EXAMPLES OF BAD OBJECTIVES:**
+- "Explore the world" (too vague)
+- "Be happy" (not specific)
+- "Just walk around" (not motivating)
+
+The concept must be cohesive, interesting, and provide a solid foundation to build a complete adventure world.
+
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+"""
+
+
+def PROMPT_STEP_1_CONCEPT_BY_THEME(theme: str, language: str = 'es') -> str:
+    """Generate the first step prompt for creating a world concept."""
+    if language == 'es':
+        return f"""Eres un diseñador experto de mundos de ficción interactiva. Tu tarea es crear el concepto general de un mundo de aventura COMPLETAMENTE BASADO en el tema proporcionado. Es CRÍTICO que TODOS los elementos del mundo (ubicaciones, objetos, personajes y objetivo) estén directamente relacionados con el tema central.
+
+**TEMA CENTRAL OBLIGATORIO:** {theme}
+
+**INSTRUCCIONES CRÍTICAS:**
+- El tema proporcionado DEBE ser la base fundamental de TODO el concepto del mundo
+- TODOS los elementos deben estar temáticamente vinculados al tema central
+- NO inventes elementos desconectados del tema proporcionado
+- Cada ubicación, personaje, objeto y el objetivo principal DEBEN ser manifestaciones del tema
+
+**DISEÑO DEL MUNDO:**
+- Desarrolla una historia que explore directamente el tema proporcionado
+- Crea una ambientación que refleje naturalmente aspectos del tema
+- Inventa personajes que encarnen diferentes facetas del tema
+- El tono (aventura, misterio, drama, comedia) debe complementar el tema central
+
+**ELEMENTOS OBLIGATORIOS A DEFINIR (TODOS RELACIONADOS AL TEMA):**
+- Un título atractivo para la aventura que refleje claramente el tema
+- Una historia de fondo que establezca el contexto y la atmósfera, basada directamente en el tema
+- Una descripción del personaje jugador y su rol en la historia, relacionado con el tema
+- Un objetivo principal claro, motivador y ESPECÍFICO, derivado directamente del tema central
+
+**REQUISITOS DEL OBJETIVO:**
+- Debe ser CLARO y ESPECÍFICO (no vago como "explorar el mundo")
+- Debe ser MOTIVADOR para el jugador
+- Debe ser COMPLETABLE con elementos físicos del mundo
+- Debe estar DIRECTAMENTE RELACIONADO con el tema proporcionado
+- Debe tener una razón narrativa sólida dentro del contexto temático
+
+**EJEMPLOS DE BUENOS OBJETIVOS:**
+- Si el tema es "piratas": "Encontrar el mapa del tesoro del Capitán Barbanegra en la Isla Calavera"
+- Si el tema es "medieval": "Recuperar la corona real robada de las mazmorras del Castillo Oscuro"
+- Si el tema es "espacio": "Reparar la nave espacial recolectando piezas dispersas por la estación abandonada"
+
+**EJEMPLOS DE MALOS OBJETIVOS:**
+- Objetivos vagos o genéricos no relacionados claramente con el tema
+- Objetivos que podrían aplicarse a cualquier tema sin cambios
+- Objetivos sin conexión narrativa al contexto temático
+
+El concepto debe ser cohesivo, interesante y proporcionar una base sólida para construir un mundo de aventura completo, donde CADA ELEMENTO refleje y refuerce el tema central: {theme}
+
+**VERIFICACIÓN FINAL:** Antes de finalizar, confirma que cada elemento propuesto (título, historia, personajes, objetivo) está claramente relacionado con el tema proporcionado y no podría existir sin modificaciones en un mundo con un tema diferente.
+
 Tema: {theme}
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON (como 'title', 'backstory', 'name') deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
+    else:
+        return f"""You are an expert designer of interactive fiction worlds. Your task is to create the overall concept of an adventure world COMPLETELY BASED on the provided theme. It is CRITICAL that ALL world elements (locations, objects, characters, and objective) are directly related to the central theme.
 
-PROMPT_STEP_2_SKELETON = """Eres un arquitecto de mundos de ficción interactiva. Basándote en el concepto de mundo proporcionado, tu tarea es definir las entidades clave que formarán la estructura del mundo.
+**MANDATORY CENTRAL THEME:** {theme}
+
+**CRITICAL INSTRUCTIONS:**
+- The provided theme MUST be the fundamental base for ALL of the world concept
+- ALL elements must be thematically linked to the central theme
+- DO NOT invent elements disconnected from the provided theme
+- Each location, character, object, and the main objective MUST be manifestations of the theme
+
+**WORLD DESIGN:**
+- Develop a story that directly explores the provided theme
+- Create a setting that naturally reflects aspects of the theme
+- Invent characters that embody different facets of the theme
+- The tone (adventure, mystery, drama, comedy) should complement the central theme
+
+**MANDATORY ELEMENTS TO DEFINE (ALL RELATED TO THE THEME):**
+- An attractive title for the adventure that clearly reflects the theme
+- A backstory that establishes context and atmosphere, directly based on the theme
+- A description of the player character and their role in the story, related to the theme
+- A clear, motivating, and SPECIFIC main objective, directly derived from the central theme
+
+**OBJECTIVE REQUIREMENTS:**
+- Must be CLEAR and SPECIFIC (not vague like "explore the world")
+- Must be MOTIVATING for the player
+- Must be COMPLETABLE using physical elements from the world
+- Must be DIRECTLY RELATED to the provided theme
+- Must have a solid narrative reason within the thematic context
+
+**EXAMPLES OF GOOD OBJECTIVES:**
+- If the theme is "pirates": "Find Captain Blackbeard's treasure map on Skull Island"
+- If the theme is "medieval": "Recover the stolen royal crown from the dungeons of Dark Castle"
+- If the theme is "space": "Repair the spaceship by collecting scattered parts around the abandoned station"
+
+**EXAMPLES OF BAD OBJECTIVES:**
+- Vague or generic objectives not clearly related to the theme
+- Objectives that could apply to any theme without changes
+- Objectives without narrative connection to the thematic context
+
+The concept must be cohesive, interesting, and provide a solid foundation to build a complete adventure world where EVERY ELEMENT reflects and reinforces the central theme: {theme}
+
+**FINAL VERIFICATION:** Before finalizing, confirm that each proposed element (title, story, characters, objective) is clearly related to the provided theme and could not exist without modifications in a world with a different theme.
+
+Theme: {theme}
+
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+"""
+
+
+def PROMPT_STEP_2_SKELETON(title: str, backstory: str,player_concept: str, main_objective: str, language: str = 'es') -> str:
+    locations = config['Size_World']['Locations']
+    objects = config['Size_World']['Objects']
+    npcs = config['Size_World']['NPCs']
+    """Generate the first step prompt for creating a world concept."""
+    if language == 'es':
+        return f"""Eres un arquitecto de mundos de ficción interactiva. Basándote en el concepto de mundo proporcionado, tu tarea es definir las entidades clave que formarán la estructura del mundo.
 
 Concepto del mundo:
 - Título: {title}
@@ -1064,9 +1233,9 @@ Concepto del mundo:
 - Objetivo principal: {main_objective}
 
 **ESTRUCTURA MÍNIMA REQUERIDA:**
-- 2-3 ubicaciones: Los lugares más importantes para la historia y el objetivo
-- 3-5 objetos: Los elementos físicos esenciales para completar el objetivo
-- 2-3 personajes no jugadores: Los NPCs importantes que ayudarán o desafiarán al jugador
+- {locations} ubicaciones: Los lugares más importantes para la historia y el objetivo
+- {objects} objetos: Los elementos físicos esenciales para completar el objetivo
+- {npcs} personajes no jugadores: Los NPCs importantes que ayudarán o desafiarán al jugador
 
 **REGLAS PARA EL ESQUELETO:**
 1. **Enfoque en objetivo**: Cada entidad debe tener una conexión clara con el objetivo principal
@@ -1082,8 +1251,39 @@ Para cada entidad, especifica su nombre y su propósito/rol en el mundo. Piensa 
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
+    else:
+        return f"""You are an architect of interactive fiction worlds. Based on the provided world concept, your task is to define the key entities that will form the structure of the world.
 
-PROMPT_STEP_3_DETAILS = """Eres un constructor de mundos de ficción interactiva. Tu tarea es tomar las entidades clave del esqueleto y desarrollarlas en un mundo detallado y jugable, enfocándote en la ruta principal hacia el objetivo.
+World concept:
+- Title: {title}
+- Backstory: {backstory}
+- Player concept: {player_concept}
+- Main objective: {main_objective}
+
+**MINIMUM REQUIRED STRUCTURE:**
+- {locations} locations: The most important places for the story and the objective
+- {objects} objects: The essential physical elements to complete the objective
+- {npcs} non-player characters: Key NPCs who will help or challenge the player
+
+**RULES FOR THE SKELETON:**
+1. **Objective focus**: Each entity must have a clear connection to the main objective  
+2. **Logical path**: There must be a logical sequence of locations and items to reach the objective  
+3. **Clear dependencies**: Objects and characters must form a chain of dependencies toward the objective
+
+For each entity, specify its name and its purpose/role in the world. Think in terms of the main path toward the objective and how each element contributes to that path.
+
+**EXAMPLE OF A GOOD STRUCTURE:**
+- Initial location → Location with key character → Location with important object → Goal location  
+- Initial object → Object for trade → Final required object  
+- Informative character → Character that grants item/access → Target character (if applicable)
+
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must also remain in English to match the required schema.**
+"""
+
+def PROMPT_STEP_3_DETAILS(skeleton_data: str, title: str, backstory: str, player_concept: str, main_objective: str, language: str = 'es') -> str:
+    """Generate the third step prompt for fleshing out the world details."""
+    if language == 'es':
+        return f"""Eres un constructor de mundos de ficción interactiva. Tu tarea es tomar las entidades clave del esqueleto y desarrollarlas en un mundo detallado y jugable, enfocándote en la ruta principal hacia el objetivo.
 
 Concepto del mundo:
 - Título: {title}
@@ -1140,8 +1340,68 @@ IMPORTANTE: Enfócate solo en la ruta principal. No añadas puzzles complejos to
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
+    else:
+        return f"""You are a builder of interactive fiction worlds. Your task is to take the key skeleton entities and develop them into a detailed and playable world, focusing on the main path to the objective.
 
-PROMPT_STEP_4_PUZZLES = """Eres un diseñador de cadenas de dependencias para ficción interactiva. Tu objetivo principal es tomar el mundo básico existente y transformarlo en una aventura compleja con múltiples pasos interconectados que el jugador debe completar para alcanzar su objetivo.
+World concept:
+- Title: {title}
+- Backstory: {backstory}
+- Player concept: {player_concept}
+- Main objective: {main_objective}
+
+Key entities to develop:
+{skeleton_data}
+
+**MANDATORY TECHNICAL RESTRICTIONS:**
+
+**MANDATORY CONNECTION RULES:**
+1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
+2. **Global connectivity**: ALL locations must be accessible from any point in the world – there can be NO isolated locations or separate groups
+3. **Reachable objective**: The objective MUST be completable using the elements you create
+4. **Dependency chain**: There must be at least one logical path from the initial state to completing the objective
+
+**CHARACTER RULES:**
+1. **Functional interactions**: If a character has `interaction`, it MUST have `interaction_text`
+2. **Valid inventories**: Every object in characters' inventories MUST exist in the world’s object list
+3. **Valid locations**: All characters MUST be located in places that exist
+
+**OBJECT RULES:**
+1. **Completable objectives**: If an object is required for the objective (`is_objective_target: true`), it MUST be `gettable: true`
+2. **Functional consistency**: Decorative objects can be `gettable: false`, functional objects MUST be `gettable: true`
+3. **Clear relevance**: Every object must have a reason to exist (functional or atmospheric)
+
+**COMPLETION VALIDATION:**
+Before finishing, mentally verify:
+1. **HAVE YOU DEFINED A CLEAR MAIN OBJECTIVE?** (MANDATORY)
+2. **Are ALL locations accessible from the initial location?** (MANDATORY – there must be no isolated locations)
+3. Can the player complete the objective using the available elements?
+4. Is there at least one solution path from the starting state?
+5. Do all referenced elements actually exist in the world?
+6. Are all character interactions complete?
+
+**EXAMPLE OF A VALID DEPENDENCY CHAIN:**
+1. Player wants [main objective]
+2. To [achieve objective] they need [object/location X]
+3. To get X they need to [interact with character Y]
+4. Character Y requires [completing task/having object Z]
+5. The player can get Z directly or through another step
+
+You must create:
+- Fully described locations with atmospheric detail and logical bidirectional connections
+- Detailed objects with appropriate descriptions and properties
+- Characters with personalities, locations, and complete basic interactions
+- A clear and specific objective with defined and achievable components
+- The player character in a suitable starting location
+- Dependency chains showing how to complete the objective
+
+IMPORTANT: Focus only on the main path. Do not add complex puzzles yet – that will come in the next step. Character interactions should be straightforward and simple, but COMPLETE.
+
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
+"""
+
+def PROMPT_STEP_4_PUZZLES(world_data: str, language: str = 'es') -> str:
+    if language == 'es':
+        return f"""Eres un diseñador de puzzles para ficción interactiva. Tu tarea es añadir puzzles y obstáculos al mundo existente para hacer la aventura más desafiante e interesante.
 
 Mundo actual:
 {world_data}
@@ -1213,8 +1473,80 @@ Tu misión es convertir un mundo simple y directo en una aventura rica en la que
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
+    else:
+        return  f"""You are a puzzle designer for interactive fiction. Your task is to add puzzles and obstacles to the existing world to make the adventure more challenging and interesting.
 
-PROMPT_STEP_5_EXPANSION = """Eres un enriquecedor de mundos de ficción interactiva. Tu tarea es expandir el mundo existente con contenido adicional opcional que añada profundidad y exploration sin complicar excesivamente la ruta principal.
+Current world:
+{world_data}
+
+**MANDATORY PUZZLE RULES:**
+1. **Discoverable solutions**: Every puzzle MUST have a solution that the player can DISCOVER through gameplay
+   - FORBIDDEN: Codes or solutions the player cannot figure out by exploring the world
+   - MANDATORY: Physical clues in the environment, character dialogues, or documents that reveal the solution
+2. **Clear solutions**: Every puzzle MUST have a specific and unambiguous answer
+3. **Existing rewards**: All rewards (objects, locations) MUST already exist in the world
+4. **Internal logic**: Puzzles must make sense within the context of your story
+5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
+6. **Wordplay**: If present, wordplay puzzles must work well in English
+
+**ALLOWED PUZZLE TYPES:**
+1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
+2. **Item puzzles**: Require using a specific object to solve a problem (like a key to open a door)
+3. **Sequence puzzles**: Require performing actions in a specific order (like pressing buttons in a certain sequence)
+4. **Riddle puzzles**: The player must solve a riddle or enigma based on environmental clues
+5. **Combined puzzles**: Mix several of the above types
+
+**EXAMPLE OF A GOOD PUZZLE:**
+- Puzzle: Open a safe with a code
+- Discoverable clue 1: A notebook found on the desk shows a date: "15/7/89"
+- Discoverable clue 2: A character mentions "my daughter’s birthday is very important to me"
+- Solution: The code 1589 (derived from the date the player can find)
+
+**EXAMPLE OF A BAD PUZZLE (FORBIDDEN):**
+- Puzzle: Open a door with a code
+- There are no clues in the world about what the code is
+- The solution is an arbitrary number the player cannot discover
+
+**BLOCKED PASSAGE RULES:**
+1. **MANDATORY global connectivity**: Even with blocked passages, ALL locations must still be accessible from anywhere – DO NOT create isolated groups
+2. **Separate obstacles**: The `obstacle_name` must be different from the `required_to_unblock.item_name`
+   - Obstacle = what physically blocks (door, lock, barrier)
+   - Requirement = what removes the obstacle (key, tool, knowledge)
+3. **Existing elements**: Both obstacles and requirements MUST exist as objects in the world
+4. **Pre-existing connectivity**: You may only block passages between already connected locations
+
+**CHARACTER PUZZLE RULES:**
+1. **Coherent puzzles**: If a character proposes a puzzle, the puzzle MUST exist and have `proposed_by_character` set
+2. **Complete interactions**: If a character has `interaction`, it MUST have `interaction_text`
+
+You must add:
+- Puzzles that block progress toward the objective BUT are solvable through exploration
+- Obstacles that require problem-solving with discoverable clues
+- Blocked passages that require keys, puzzles, or interactions (following the above rules)
+- Appropriate rewards for each solved puzzle that ALREADY EXIST in the world
+
+The puzzles must:
+- Be thematically consistent with the world
+- Be logical and solvable THROUGH EXPLORATION
+- Provide natural progression toward the objective
+- Include DISCOVERABLE clues or hints for the player
+
+**PUZZLE VALIDATION:**
+Before finalizing, mentally verify:
+1. **Are ALL locations still accessible even with the new obstacles?** (MANDATORY)
+2. Is there a way for the player to discover every code or necessary piece of information?
+3. Do the puzzles make sense and are they solvable THROUGH EXPLORATION?
+4. Do all obstacles and requirements exist as objects in the world?
+5. Do characters who propose puzzles have complete interactions?
+
+Modify existing character interactions so they propose puzzles when appropriate, but ensure they have complete `interaction_text`.
+
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
+"""
+
+def PROMPT_STEP_5_EXPANSION(world_data: str, language: str = 'es') -> str:
+    if language == 'es':
+        return  f"""Eres un enriquecedor de mundos de ficción interactiva. Tu tarea es expandir el mundo existente con contenido adicional opcional que añada profundidad y exploration sin complicar excesivamente la ruta principal.
 
 Mundo actual:
 {world_data}
@@ -1263,4 +1595,55 @@ Antes de finalizar, verifica mentalmente:
 6. ¿Los nuevos personajes tienen interacciones completas?
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
+"""
+    else:
+        return f"""You are an enhancer of interactive fiction worlds. Your task is to expand the existing world with optional additional content that adds depth and exploration without overly complicating the main path.
+
+Current world:
+{world_data}
+
+**MANDATORY EXPANSION RULES:**
+1. **Bidirectional connections**: If you add new connections, if A connects to B then B MUST connect to A
+2. **Global connectivity**: ALL locations (including new ones) must be accessible from any point – DO NOT create isolated groups
+3. **Existing elements**: All references to objects, locations, or characters MUST exist
+4. **Thematic coherence**: All new content must be consistent with the existing world
+5. **No interference**: Additional content MUST NOT alter the main path to the objective
+6. **Valid inventories**: If you add items to characters’ inventories, they MUST exist in the object list
+
+**RULES FOR OPTIONAL NEW PUZZLES:**
+If you add optional puzzles, they must follow the same rules as main puzzles:
+- **Discoverable solutions**: Physical clues, dialogues, or documents that reveal the solution
+- **Internal logic**: They must make sense within the context
+- **Existing rewards**: The rewards MUST exist in the world
+
+**RECOMMENDED TYPES OF EXPANSION:**
+1. **Atmospheric locations**: Places that enrich the setting without being necessary
+2. **Decorative objects**: Elements that add immersion (`gettable: false` is fine)
+3. **Secondary characters**: NPCs with side stories or additional information
+4. **Descriptive details**: Enrichment of existing descriptions
+
+You must add:
+- **Optional secondary locations** that enhance exploration while maintaining logical connections
+- **Decorative or ambient objects** that add immersion without altering core gameplay
+- **Secondary characters** who provide context or side stories (with complete interactions)
+- **Optional puzzles** with minor rewards (following the rules for discoverable puzzles)
+- **Additional details** that enrich existing descriptions
+
+The additional content must:
+- Be optional to complete the main objective
+- Enrich the experience without confusing the player
+- Maintain ABSOLUTE thematic coherence
+- Provide minor but satisfying rewards
+- Follow all technical rules of the main world
+
+**EXPANSION VALIDATION:**
+Before finalizing, mentally verify:
+1. **Are ALL locations (original and new) accessible from any point?** (MANDATORY)
+2. Are all new connections bidirectional?
+3. Do all referenced elements exist in the world?
+4. Does the additional content maintain thematic coherence?
+5. Is the main path still clear and unaffected?
+6. Do the new characters have complete interactions?
+
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
 """
