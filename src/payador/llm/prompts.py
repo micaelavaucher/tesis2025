@@ -455,7 +455,14 @@ def prompt_world_update_english (world_state: str, input: str):
     - Blocked passages now available: None
     - Your location changed: None
     - Puzzle solved: None
-    #As you examine the strange symbol etched into the wall, you recognize it as an ancient sigil representing protection and hidden knowledge. The craftsmanship is remarkable, with intricate swirling patterns that seem to shift slightly when viewed from different angles. Legends speak of such markings being used by the old practitioners to ward off evil spirits while conducting their arcane research. The fact that it remains intact after all these centuries speaks to the power it was believed to hold.#"""
+    #As you examine the strange symbol etched into the wall, you recognize it as an ancient sigil representing protection and hidden knowledge. The craftsmanship is remarkable, with intricate swirling patterns that seem to shift slightly when viewed from different angles. Legends speak of such markings being used by the old practitioners to ward off evil spirits while conducting their arcane research. The fact that it remains intact after all these centuries speaks to the power it was believed to hold.#
+
+    Example 12 (The player moves from a tavern to a house with detailed transition narration)
+    - Moved object: None
+    - Blocked passages now available: None
+    - Your location changed: <Maria's House>
+    - Puzzle solved: None
+    #You push through the heavy wooden door of the tavern, leaving behind the warm glow of the fireplace and the murmur of evening conversations. The brass hinges creak in protest as you step out into the night. A sharp gust of cold air immediately greets you, carrying the scent of rain and woodsmoke from distant chimneys. Your breath forms small clouds in the frigid air as you pull your cloak tighter around your shoulders. The cobblestone street gleams wetly under the flickering light of oil lamps, their flames dancing in the wind. You navigate carefully across the uneven stones, your footsteps echoing between the narrow houses that line the street. The warm yellow light spilling from Maria's House windows grows larger as you approach, a welcoming beacon against the harsh night. You reach for the iron door knocker, shaped like a sleeping cat, and rap it twice against the weathered oak door. After a moment, you hear footsteps approaching from within, and the door swings open to reveal Maria's cozy home, filled with the comforting aroma of fresh bread and herbs drying from the ceiling beams.#"""
     
     
     user_msg = f"""Give the changes in the world following the specified format, after this player input "{input}" on this world state:
