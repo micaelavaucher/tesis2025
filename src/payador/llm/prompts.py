@@ -114,7 +114,7 @@ def prompt_narrate_current_scene_spanish (world_state: str, previous_narrations:
         for narration in previous_narrations:
             system_msg+=f'- {narration}\n'
 
-    system_msg+= "\nRecuerda: le estás hablando al jugador, describiendo lo que su personaje tiene y lo que puede sentir, ver, oír u oler. Usa las descripciones de los componentes para hacer que todo cobre vida con detalles vívidos."
+    system_msg+= "\nRecuerda: le estás hablando al jugador, describiendo lo que su personaje tiene y lo que puede sentir, ver, oír u oler. Usa las descripciones de los componentes para hacer que todo cobre vida con detalles vívidos. MANTÉN EL ESPAÑOL durante toda la narración - nunca cambies al inglés."
 
     user_msg = f"""Este es el estado del mundo en este momento:
     {world_state}
@@ -160,6 +160,9 @@ REGLAS PARA NARRACIÓN RICA:
 
 INSTRUCCIÓN ESPECIAL SOBRE MEMORIA:
 Presta especial atención a la sección 'Recuerdos Relevantes del Pasado' si está presente. Úsalos para informar tu decisión. Por ejemplo, si el jugador le habla a un personaje sobre un objeto, tu respuesta debe reflejar cómo reaccionaría ese personaje basándose en interacciones pasadas.
+
+CRÍTICO - CONSISTENCIA DE IDIOMA:
+Tu respuesta DEBE estar completamente en español. Todos los diálogos de personajes, descripciones y narraciones deben ser en español. Si encuentras texto en inglés en las descripciones del mundo, tradúcelo mentalmente y responde en español.
 
 Tu respuesta debe ser un JSON válido que siga exactamente el modelo WorldUpdate."""
         
@@ -274,6 +277,7 @@ def prompt_world_update_spanish (world_state: str, input: str):
     (G) Por último, puedes agregar una narración de los cambios detecados en el estado del mundo (¡sin hacer avanzar la historia y sin crear detalles no incluidos en el estado del mundo!) usando el formato: #tu mensaje final#
     (H) Dentro de la sección de narración que agregues al final, entre símbolos #, también puedes responder preguntas que haga el jugador en su entrada, sobre los objetos o personajes que puede ver, o el lugar en el que se encuentra.
     (I) Tu narración debe ser rica en detalles y evocadora, utilizando detalles sensoriales cuando sea apropiado. Haz que el mundo cobre vida a través de tus descripciones, sin dejar de adherirte a los hechos del estado del mundo.
+    (J) CRÍTICO: MANTÉN EL ESPAÑOL durante toda tu respuesta. Todos los diálogos de personajes y narraciones deben estar en español. Si encuentras texto en inglés en las descripciones del mundo, tradúcelo mentalmente y responde en español.
 
     Aquí hay algunos ejemplos (con la aclaración entre paréntesis sobre qué podría haber intentado hacer el jugador) sobre el formato, descritos en los puntos (F) y (G):
     
