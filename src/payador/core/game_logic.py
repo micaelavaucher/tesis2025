@@ -229,6 +229,44 @@ def generate_world_overview(world, language):
     
     return overview
 
+def get_objective_info(world, language):
+    """Get formatted objective information for the player."""
+    if not hasattr(world, 'objective') or not world.objective:
+        if language == 'es':
+            return "🎯 No se ha definido un objetivo específico para este mundo."
+        else:
+            return "🎯 No specific objective has been defined for this world."
+    
+    # Get the raw objective description
+    raw_objective = ""
+    
+    # Handle different objective formats
+    if hasattr(world.objective, 'description'):
+        # New structured objective format
+        raw_objective = world.objective.description
+    elif isinstance(world.objective, tuple) and len(world.objective) >= 2:
+        # Legacy tuple format
+        obj_component = world.objective[1]
+        if hasattr(obj_component, 'description'):
+            raw_objective = obj_component.description
+        else:
+            # Fallback to basic description
+            if language == 'es':
+                raw_objective = f"Completar la tarea relacionada con {world.objective[0].__class__.__name__.lower()}."
+            else:
+                raw_objective = f"Complete the task related to {world.objective[0].__class__.__name__.lower()}."
+    elif isinstance(world.objective, str):
+        # Simple string objective
+        raw_objective = world.objective
+    else:
+        # Fallback for unknown formats
+        if language == 'es':
+            raw_objective = "Objetivo no especificado claramente."
+        else:
+            raw_objective = "Objective not clearly specified."
+    
+    return raw_objective
+
 def handle_debug_command(message, world, language):
     """Handle debug inspection commands."""
     message_lower = message.lower()
@@ -240,6 +278,12 @@ def handle_debug_command(message, world, language):
     elif message_lower in ["see world", "ver mundo", "world overview", "resumen mundo"]:
         world_overview = generate_world_overview(world, language)
         return world_overview.replace("<", r"\<").replace(">", r"\>")
+    
+    elif message_lower in ["objective", "objetivo", "what is my objective", "what is my objective?", 
+                           "cuál es mi objetivo", "cuál es mi objetivo?", "cual es mi objetivo", 
+                           "cual es mi objetivo?", "my objective", "mi objetivo", "goal", "meta"]:
+        objective_info = get_objective_info(world, language)
+        return objective_info.replace("<", r"\<").replace(">", r"\>")
     
     return None
 
