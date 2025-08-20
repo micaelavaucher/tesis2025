@@ -42,6 +42,6 @@ In the current version, the system can be used both in English ('en') and Spanis
 ### Web application
 To start the web app, just run 
 ```
-python app.py
+python main.py
 ```
 and the Gradio web app will be accessible at http://127.0.0.1:7860/.
