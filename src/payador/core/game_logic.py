@@ -141,11 +141,106 @@ def initialize_game_state(world, language, log_filename, narrative_model_name, r
     
     return last_player_position, number_of_turns, game_log_dictionary
 
+def generate_world_overview(world, language):
+    """Generate a comprehensive overview of all locations, connections, items, and NPCs."""
+    overview = ""
+    
+    if language == 'es':
+        header = "🌎 Resumen del Mundo 🌍\n\n"
+    else:
+        header = "🌎 World Overview 🌍\n\n"
+    
+    overview += header
+    
+    # Get all locations
+    locations = {}
+    if hasattr(world, 'locations') and world.locations:
+        locations = world.locations
+    else:
+        # Fallback: collect locations from player and character positions
+        locations = {world.player.location.name: world.player.location}
+        if hasattr(world, 'characters') and world.characters:
+            for char in world.characters.values():
+                if hasattr(char, 'location') and char.location:
+                    locations[char.location.name] = char.location
+    
+    # Process each location
+    for location_name, location in locations.items():
+        overview += f"{location_name}:\n"
+        
+        # Connections
+        connections = []
+        if hasattr(location, 'connecting_locations') and location.connecting_locations:
+            connections = [loc.name for loc in location.connecting_locations]
+        
+        if connections:
+            if language == 'es':
+                overview += f" - Conecta con:\n"
+            else:
+                overview += f" - Connects to:\n"
+            for conn in connections:
+                overview += f"   - {conn}\n"
+        else:
+            if language == 'es':
+                overview += f" - Conecta con: Ninguna\n"
+            else:
+                overview += f" - Connects to: None\n"
+        
+        # Items in this location
+        items = []
+        if hasattr(location, 'items') and location.items:
+            items = [item.name for item in location.items]
+        
+        if items:
+            if language == 'es':
+                overview += f" - Objetos:\n"
+            else:
+                overview += f" - Items:\n"
+            for item in items:
+                overview += f"   - {item}\n"
+        else:
+            if language == 'es':
+                overview += f" - Objetos: Ninguno\n"
+            else:
+                overview += f" - Items: None\n"
+        
+        # NPCs in this location
+        npcs = []
+        if hasattr(world, 'characters') and world.characters:
+            for char in world.characters.values():
+                if (hasattr(char, 'location') and char.location is location and 
+                    char is not world.player):  # Don't include the player
+                    npcs.append(char.name)
+        
+        if npcs:
+            if language == 'es':
+                overview += f" - PNJs:\n"
+            else:
+                overview += f" - NPCs:\n"
+            for npc in npcs:
+                overview += f"   - {npc}\n"
+        else:
+            if language == 'es':
+                overview += f" - PNJs: Ninguno\n"
+            else:
+                overview += f" - NPCs: None\n"
+        
+        overview += "\n"
+    
+    return overview
+
 def handle_debug_command(message, world, language):
     """Handle debug inspection commands."""
-    if message.lower() in ["inspect", "inspeccionar", "inspect world", "inspeccionar mundo"]:
+    message_lower = message.lower()
+    
+    if message_lower in ["inspect", "inspeccionar", "inspect world", "inspeccionar mundo"]:
         debug_info = inspect_generated_world(world, language)
         return debug_info.replace("<", r"\<").replace(">", r"\>")
+    
+    elif message_lower in ["see world", "ver mundo", "world overview", "resumen mundo"]:
+        world_overview = generate_world_overview(world, language)
+        return world_overview.replace("<", r"\<").replace(">", r"\>")
+    
     return None
 
 def process_player_input_structured(world, message, language, reasoning_model,
