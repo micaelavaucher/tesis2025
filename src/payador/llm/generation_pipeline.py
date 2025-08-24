@@ -13,21 +13,27 @@ from .structured_data_models import (
 )
 from .models import get_llm
 from . import prompts
+from ..config import load_config, get_model_names
 import configparser
 
 #---- Pipeline Functions -----------------------------------------------------
 
-def run_step_1_concept(theme: str, language) -> WorldConcept:
+def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
     """
     Generation of the general concept of the world.
     
     Args:
-        theme: Base theme or concept for the world 
+        theme: Base theme or concept for the world
+        language: Language for generation
+        model: Model instance to use (if None, will get from config)
         
     Returns:
         WorldConcept: Validated object with the concept of the world
     """
-    model = get_llm()
+    if model is None:
+        config = load_config()
+        reasoning_model_name, _ = get_model_names(config)
+        model = get_llm(reasoning_model_name)
     prompt_text = prompts.PROMPT_STEP_1_CONCEPT_BY_THEME(theme=theme, language=language)
     print(f"[INFO] Generating world concept with theme: '{theme}'")
     print(f"[INFO] Prompt text: {prompt_text}")
@@ -42,14 +48,21 @@ def run_step_1_concept(theme: str, language) -> WorldConcept:
     print(f"[INFO] Concepto generado: {concept.title} - {concept.backstory}")
     return concept
 
-def run_step_1_generate_concept(language) -> WorldConcept:
+def run_step_1_generate_concept(language, model=None) -> WorldConcept:
     """
     Generation of the general concept of the world.
+    
+    Args:
+        language: Language for generation
+        model: Model instance to use (if None, will get from config)
         
     Returns:
         WorldConcept: Validated object with the concept of the world
     """
-    model = get_llm()
+    if model is None:
+        config = load_config()
+        reasoning_model_name, _ = get_model_names(config)
+        model = get_llm(reasoning_model_name)
     prompt_text = prompts.PROMPT_STEP_1_CONCEPT(language=language)
     print(f"[INFO] Generating a new world concept")
     print(f"[INFO] Prompt text: {prompt_text}")
@@ -64,17 +77,22 @@ def run_step_1_generate_concept(language) -> WorldConcept:
     print(f"[INFO] Concepto generado: {concept.title} - {concept.backstory}")
     return concept
 
-def run_step_2_skeleton(concept: WorldConcept, language) -> WorldSkeleton:
+def run_step_2_skeleton(concept: WorldConcept, language, model=None) -> WorldSkeleton:
     """
     Generation of the skeleton with key entities.
     
     Args:
         concept: World's concept from step from the previous step
+        language: Language for generation
+        model: Model instance to use (if None, will get from config)
         
     Returns:
         WorldSkeleton: Validated object with the key entities
     """
-    model = get_llm()
+    if model is None:
+        config = load_config()
+        reasoning_model_name, _ = get_model_names(config)
+        model = get_llm(reasoning_model_name)
     prompt_text = prompts.PROMPT_STEP_2_SKELETON(
         title=concept.title,
         backstory=concept.backstory,
@@ -90,18 +108,23 @@ def run_step_2_skeleton(concept: WorldConcept, language) -> WorldSkeleton:
     else:
         return skeleton_response
 
-def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language) -> GeneratedWorld:
+def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language, model=None) -> GeneratedWorld:
     """
     Generation of details and connections of the main route.
     
     Args:
         concept: World's concept from step 1
         skeleton: Skeleton from the previous step
+        language: Language for generation
+        model: Model instance to use (if None, will get from config)
         
     Returns:
         GeneratedWorld: Partially completed object with the main route
     """
-    model = get_llm()
+    if model is None:
+        config = load_config()
+        reasoning_model_name, _ = get_model_names(config)
+        model = get_llm(reasoning_model_name)
     
     # Preparar los datos del esqueleto para el prompt
     skeleton_data = f"""
@@ -131,17 +154,22 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language)
     else:
         return world_response
 
-def run_step_4_puzzles(world_data: GeneratedWorld, language) -> GeneratedWorld:
+def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
     """
     Generation of dependency chains with integrated puzzles.
     
     Args:
         world_data: World from the previous step
+        language: Language for generation
+        model: Model instance to use (if None, will get from config)
         
     Returns:
         GeneratedWorld: Modified object with complex dependency chains
     """
-    model = get_llm()
+    if model is None:
+        config = load_config()
+        reasoning_model_name, _ = get_model_names(config)
+        model = get_llm(reasoning_model_name)
     
     world_json = world_data.model_dump_json(indent=2)
     
@@ -157,17 +185,22 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language) -> GeneratedWorld:
     else:
         return enhanced_world_response
 
-def run_step_5_expansion(world_data: GeneratedWorld, language) -> GeneratedWorld:
+def run_step_5_expansion(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
     """
     Paso 5: Expansion with optional content.
     
     Args:
         world_data: World from the previous step
+        language: Language for generation
+        model: Model instance to use (if None, will get from config)
         
     Returns:
         GeneratedWorld: Final and complete object
     """
-    model = get_llm()
+    if model is None:
+        config = load_config()
+        reasoning_model_name, _ = get_model_names(config)
+        model = get_llm(reasoning_model_name)
     
     world_json = world_data.model_dump_json(indent=2)
     
@@ -191,6 +224,7 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     
     Args:
         theme: Base theme or concept for the world
+        language: Language for generation
         progress_callback: Optional function to call with progress updates
         
     Returns:
@@ -198,12 +232,18 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     """
     print(f"⚙️ Iniciando generación incremental del mundo con tema: '{theme}'")
     
+    # Get model from config once
+    config = load_config()
+    reasoning_model_name, _ = get_model_names(config)
+    model = get_llm(reasoning_model_name)
+    print(f"🤖 Using model for world generation: {reasoning_model_name}")
+    
     # Paso 1: Generar el concepto general
     step_msg = "📝 Paso 1: Generando concepto del mundo..."
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    concept = run_step_1_concept(theme, language)
+    concept = run_step_1_concept(theme, language, model)
     completion_msg = f"✅ Concepto creado: '{concept.title}'"
     print(completion_msg)
     if progress_callback:
@@ -217,7 +257,7 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     max_attempts = 3
     skeleton = None
     for attempt in range(1, max_attempts + 1):
-        skeleton = run_step_2_skeleton(concept, language)
+        skeleton = run_step_2_skeleton(concept, language, model)
         # Verify skeleton sizes
         valid_locations = hasattr(skeleton, 'key_locations') and skeleton.key_locations and isinstance(skeleton.key_locations, list)
         valid_items = hasattr(skeleton, 'key_items') and skeleton.key_items and isinstance(skeleton.key_items, list)
@@ -258,7 +298,7 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
         progress_callback(step_msg)
     world_basic = None
     for attempt in range(1, max_attempts + 1):
-        world_basic = run_step_3_details(concept, skeleton, language)
+        world_basic = run_step_3_details(concept, skeleton, language, model)
         json_ok = verify_pydantic_model(world_basic, GeneratedWorld)
         if json_ok:
             break
@@ -281,7 +321,7 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
         progress_callback(step_msg)
     world_with_puzzles = None
     for attempt in range(1, max_attempts + 1):
-        world_with_puzzles = run_step_4_puzzles(world_basic, language)
+        world_with_puzzles = run_step_4_puzzles(world_basic, language, model)
         json_ok = verify_pydantic_model(world_with_puzzles, GeneratedWorld)
         if json_ok:
             break
@@ -304,7 +344,7 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
         progress_callback(step_msg)
     final_world = None
     for attempt in range(1, max_attempts + 1):
-        final_world = run_step_5_expansion(world_with_puzzles, language)
+        final_world = run_step_5_expansion(world_with_puzzles, language, model)
         json_ok = verify_pydantic_model(final_world, GeneratedWorld)
         if json_ok:
             break
@@ -340,12 +380,18 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     """
     print(f"⚙️ Iniciando generación incremental del mundo en modo 'generate'")
 
+    # Get model from config once
+    config = load_config()
+    reasoning_model_name, _ = get_model_names(config)
+    model = get_llm(reasoning_model_name)
+    print(f"🤖 Using model for world generation: {reasoning_model_name}")
+
     # Paso 1: Generar el concepto general
     step_msg = "📝 Paso 1: Generando concepto del mundo..."
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    concept = run_step_1_generate_concept(language)
+    concept = run_step_1_generate_concept(language, model)
     completion_msg = f"✅ Concepto creado: '{concept.title}'"
     print(completion_msg)
     if progress_callback:
@@ -359,7 +405,7 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     max_attempts = 3
     skeleton = None
     for attempt in range(1, max_attempts + 1):
-        skeleton = run_step_2_skeleton(concept, language)
+        skeleton = run_step_2_skeleton(concept, language, model)
         # Verify skeleton sizes
         valid_locations = hasattr(skeleton, 'key_locations') and skeleton.key_locations and isinstance(skeleton.key_locations, list)
         valid_items = hasattr(skeleton, 'key_items') and skeleton.key_items and isinstance(skeleton.key_items, list)
@@ -398,7 +444,7 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    world_basic = run_step_3_details(concept, skeleton, language)
+    world_basic = run_step_3_details(concept, skeleton, language, model)
     completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos"
     print(completion_msg)
     if progress_callback:
@@ -409,7 +455,7 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    final_world = run_step_4_puzzles(world_basic, language)
+    final_world = run_step_4_puzzles(world_basic, language, model)
     completion_msg = f"✅ Puzzles añadidos: {len(final_world.puzzles)} puzzles en total"
     print(completion_msg)
     if progress_callback:
