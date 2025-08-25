@@ -352,7 +352,7 @@ class World:
 
       # Characters present
       if characters_in_the_scene:
-        formatted_state += f"👥 **Personajes presentes:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}"
+        formatted_state += f"👥 **Personajes presentes:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}\n"
     else:
       formatted_state = f"📍 **Current location:** {player_location.name}\n"
       
@@ -385,7 +385,7 @@ class World:
 
       # Characters present
       if characters_in_the_scene:
-        formatted_state += f"👥 **Characters present:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}"
+        formatted_state += f"👥 **Characters present:** {', '.join([f'**{c.name}**' for c in characters_in_the_scene])}\n"
 
     return formatted_state
   
