@@ -1,80 +1,29 @@
-"""PAYADOR - Dynamic Text Adventure World Generator
+"""Run PAYADOR with Streamlit interface.
 
-Main application entry point. This module orchestrates the different
-generation modes and initializes the appropriate interface.
+Simple script to launch the Streamlit version of PAYADOR.
 """
 
-from src.payador.llm.models import get_llm
-from src.payador.config import load_config, get_language, get_generation_mode, get_model_names, create_log_filename, get_world_id, get_enable_rag
-from src.payador.ui.app_interface import create_inspiration_interface, create_standard_interface, generate_starting_narration
-from src.payador.core.world_generation import generate_world_simple
-from src.payador.core.game_logic import initialize_game_state
-import examples.example_worlds as example_worlds
+import subprocess
+import sys
+import os
 
-# Load configuration
-config = load_config()
-language = get_language(config)
-generation_mode = get_generation_mode(config)
-reasoning_model_name, narrative_model_name = get_model_names(config)
-log_filename = create_log_filename()
-enable_rag = get_enable_rag(config)
-
-# Initialize models
-reasoning_model = get_llm(reasoning_model_name)
-narrative_model = get_llm(narrative_model_name)
-
-# Initialize world expansion variables
-visited_locations = set()
-
-if generation_mode == "inspiration":
-    # Launch inspiration mode interface
-    interfaz = create_inspiration_interface(
-        language, narrative_model, reasoning_model, 
-        reasoning_model_name, narrative_model_name, 
-        log_filename, visited_locations, enable_rag
-    )
-    interfaz.launch(inbrowser=False)
-    exit()
-
-elif generation_mode == 'generate':
-    if language == 'es':
-        print("⚙️ Modo de generación: Generando un nuevo mundo desde cero...")
-    else:
-        print("⚙️ Generation mode: Generating a new world from scratch...")
-
-    from src.payador.llm.generation_pipeline import create_world_incrementally_generate
-    from src.payador.core.world_builder import create_world_from_llm_response
-    generated_world = create_world_incrementally_generate(language)
-    world = create_world_from_llm_response(generated_world)
+def main():
+    """Launch the Streamlit application."""
+    # Change to the project directory
+    project_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(project_dir)
     
-    if world is None:
-        # Fallback to preset world
-        world_id = get_world_id(config)
-        world = example_worlds.get_world(world_id, language=language)
+    # Run streamlit
+    cmd = [sys.executable, "-m", "streamlit", "run", "streamlit_app.py", "--server.headless", "true"]
+    
+    print("🚀 Starting PAYADOR with Streamlit interface...")
+    print("🌐 The app will open in your default browser")
+    print("📌 Press Ctrl+C to stop the application")
+    
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        print("\n👋 PAYADOR application stopped")
 
-else:  # generation_mode == 'preset'
-    if language == 'es':
-        print("⚙️ Modo de generación: Usando mundo predefinido...")
-    else:
-        print("⚙️ Generation mode: Using preset world...")
-    world_id = get_world_id(config)
-    world = example_worlds.get_world(world_id, language=language)
-
-# Initialize game state for preset/generate modes
-print(f"\n🌎 World state 🌍\n{world.render_world(language=language)}\n")
-
-# Generate starting narration
-starting_narration = generate_starting_narration(world, language, narrative_model)
-
-# Initialize game variables
-last_player_position, number_of_turns, game_log_dictionary = initialize_game_state(
-    world, language, log_filename, narrative_model_name, reasoning_model_name, starting_narration
-)
-
-# Launch standard interface
-gradio_interface = create_standard_interface(
-    world, starting_narration, language, reasoning_model, 
-    narrative_model, log_filename, visited_locations, enable_rag
-)
-
-gradio_interface.launch(inbrowser=False)
+if __name__ == "__main__":
+    main()

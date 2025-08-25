@@ -1,0 +1,10 @@
+"""PAYADOR - Streamlit Main Application
+
+Main entry point for the Streamlit interface of PAYADOR.
+This provides a modern, beautiful web interface for the dynamic
+text adventure world generator.
+"""
+
+if __name__ == "__main__":
+    from src.payador.ui.streamlit_interface import main
+    main()
