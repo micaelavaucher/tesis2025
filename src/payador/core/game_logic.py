@@ -9,11 +9,55 @@ import json
 import os
 import jsonpickle
 import time
-from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured
+from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured, prompt_describe_objective
 from .world_builder import inspect_generated_world
 from ..config import PATH_GAMELOGS
 from ..llm.structured_data_models import WorldUpdate
 from ..llm.memory_system import create_memory_system
+
+def generate_starting_narration(world, language, narrative_model):
+    """Generate the starting narration for a world."""
+    system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
+        world.render_world(language=language),
+        previous_narrations=world.player.visited_locations[world.player.location.name],
+        language=language, 
+        starting_scene=True
+    )
+    starting_narration = narrative_model.prompt_model(system_msg=system_msg_current_scene, user_msg=user_msg_current_scene)
+    world.player.visited_locations[world.player.location.name] += [starting_narration]
+    
+    # Add objective description
+    if hasattr(world, 'objective') and world.objective:
+        system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
+        narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
+        import re
+        try:
+            objective_texts = re.findall(r'#(.*?)#', narrated_objective, re.DOTALL)
+            if objective_texts:
+                objective_text = " ".join([t.strip() for t in objective_texts])
+                # Fallback if objective is too short or incomplete
+                if len(objective_text.split()) < 8 or not objective_text.strip().endswith(('.', '!', '?')):
+                    print("⚠️ Objective seems incomplete, using full LLM response instead.")
+                    if not narrated_objective.strip().endswith(('.', '!', '?')):
+                        narrated_objective += '.'
+                    starting_narration += f"\n\n🎯 {narrated_objective}"
+                else:
+                    starting_narration += f"\n\n🎯 {objective_text}"
+            else:
+                raise IndexError
+        except (IndexError, TypeError):
+            print("⚠️ No se pudo extraer el objetivo narrado con el formato #...#, usando la respuesta completa.")
+            if not narrated_objective.strip().endswith(('.', '!', '?')):
+                narrated_objective += '.'
+            starting_narration += f"\n\n🎯 {narrated_objective}"
+    else:
+        print("ℹ️ No se encontró un objetivo principal en el mundo generado/cargado.")
+    
+    # Add formatted world state to starting narration
+    world_state_formatted = world.format_world_state_for_chat(language=language)
+    starting_narration += f"\n\n---\n{world_state_formatted}"
+    
+    return starting_narration
 
 def create_world_state_summary(world, player_action, language='en'):
     """Create a rich contextual summary of the world state for memory embedding."""

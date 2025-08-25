@@ -42,3 +42,16 @@ def get_world_id(config):
 def get_enable_rag(config):
     """Get the RAG enable setting from config."""
     return config["Options"].getboolean("EnableRAG", fallback=True)
+
+def update_config(section, key, value):
+    """Update a configuration value and save to file."""
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    
+    if section not in config:
+        config.add_section(section)
+    
+    config[section][key] = str(value)
+    
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
