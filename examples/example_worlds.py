@@ -15,6 +15,11 @@ def get_world(arg: str, language: str ='en') -> World:
             return get_world_2_spanish()
         else:
             return get_world_2_english()
+    elif arg=='tutorial':
+        if language == 'es':
+            return get_tutorial_world_spanish()
+        else:
+            return get_tutorial_world_english()
     else:
         if language == 'es':
             return get_world_0_spanish()
@@ -299,3 +304,71 @@ def get_world_2_english() -> World:
     the_world.set_objective(player,npc)
 
     return the_world
+
+def get_tutorial_world_english() -> World:
+    """Simple tutorial world with 2 locations and a turtle object."""
+    
+    # Create the turtle item (the objective)
+    turtle = Item("Turtle",
+                  ["A small, friendly turtle", "It has a green shell with brown spots", "The turtle seems to want to come with you"])
+    
+    # Create locations
+    starting_room = Location("Starting Room",
+                            ["A simple room with wooden floors", "There's a door leading north", "This is where your adventure begins"],
+                            items=[])
+    
+    garden = Location("Garden",
+                     ["A peaceful garden with flowers and plants", "You can hear birds chirping", "There's a small turtle here looking for a new home"],
+                     items=[turtle])
+    
+    # Connect the locations bidirectionally
+    starting_room.connecting_locations.append(garden)
+    garden.connecting_locations.append(starting_room)
+    
+    # Create the player
+    player = Character("Player",
+                      ["You are an adventurer", "You love animals", "You are on a quest to find a turtle"],
+                      inventory=[],
+                      location=starting_room)
+    
+    # Create the world
+    the_world = World(player)
+    the_world.add_locations([starting_room, garden])
+    the_world.add_items([turtle])
+    the_world.set_objective(player, turtle)  # Objective: player should get the turtle
+    
+    return the_world
+
+def get_tutorial_world_spanish() -> World:
+    """Mundo tutorial simple con 2 ubicaciones y un objeto tortuga."""
+    
+    # Crear el objeto tortuga (el objetivo)
+    tortuga = Item("Tortuga",
+                   ["Una pequeña tortuga amigable", "Tiene un caparazón verde con manchas marrones", "La tortuga parece querer venir contigo"])
+    
+    # Crear ubicaciones
+    habitacion_inicial = Location("Habitación Inicial",
+                                 ["Una habitación simple con pisos de madera", "Hay una puerta que lleva al norte", "Aquí es donde comienza tu aventura"],
+                                 items=[])
+    
+    jardin = Location("Jardín",
+                     ["Un jardín pacífico con flores y plantas", "Puedes escuchar pájaros cantando", "Hay una pequeña tortuga aquí buscando un nuevo hogar"],
+                     items=[tortuga])
+    
+    # Conectar las ubicaciones bidireccionalmente  
+    habitacion_inicial.connecting_locations.append(jardin)
+    jardin.connecting_locations.append(habitacion_inicial)
+    
+    # Crear el jugador
+    jugador = Character("Jugador",
+                       ["Eres un aventurero", "Amas a los animales", "Estás en una misión para encontrar una tortuga"],
+                       inventory=[],
+                       location=habitacion_inicial)
+    
+    # Crear el mundo
+    el_mundo = World(jugador)
+    el_mundo.add_locations([habitacion_inicial, jardin])
+    el_mundo.add_items([tortuga])
+    el_mundo.set_objective(jugador, tortuga)  # Objetivo: el jugador debe conseguir la tortuga
+    
+    return el_mundo
