@@ -98,13 +98,13 @@ class GeneratedPuzzle(BaseModel):
     descriptions: List[str] = Field(description="List of descriptive texts explaining the puzzle")
     problem: str = Field(description="Clear statement of the puzzle problem")
     answer: str = Field(description="The solution to the puzzle")
+    hints: List[str] = Field(description="Array of progressive hints to help solve the puzzle. Each hint should be more specific than the previous one, but never reveal the complete answer. Minimum 2 hints, maximum 4 hints.")
     location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character. Note: if specified, this location must exist in the world")
     proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental. Note: if specified, this character must exist in the world")
     rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
         description="What you get when you solve this puzzle. Note: all reward items and locations must exist in the world"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
-    hint: str = Field(description="How the character or the narration hints to the puzzle")
 
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
