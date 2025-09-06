@@ -45,8 +45,7 @@ def create_world_from_llm_response(world_data) -> World:
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
-                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None),
-                hints=getattr(puzzle_data, 'hints', [])
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
             )
             puzzles_dict[puzzle_data.name] = puzzle
         
@@ -238,15 +237,63 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
                             return (items_dict[item_component.name], character)
         
         elif obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
-            # For mystery objectives, create a special marker using the objective description
-            # This allows the game to track mystery completion through narrative
-            mystery_marker = type('MysteryObjective', (), {
-                'name': f"Mystery: {objective_data.description}",
-                'description': objective_data.description,
-                'type': objective_data.type,
-                'components': components
-            })()
-            return (player, mystery_marker)
+            # Create a proper MysteryObjective with clue validation
+            from .world import MysteryObjective, MysteryClue
+            
+            # Validate and create clues
+            valid_clues = []
+            if hasattr(objective_data, 'mystery_clues') and objective_data.mystery_clues:
+                for clue_data in objective_data.mystery_clues:
+                    # Validate that the associated item exists
+                    if clue_data.associated_item in items_dict:
+                        # Validate item location if specified
+                        if clue_data.item_location:
+                            # Check if location exists
+                            if clue_data.item_location in locations_dict:
+                                # Check if item is actually in that location
+                                location = locations_dict[clue_data.item_location]
+                                item_in_location = clue_data.associated_item in [item.name for item in location.items]
+                                if item_in_location:
+                                    clue = MysteryClue(
+                                        name=clue_data.name,
+                                        description=clue_data.description,
+                                        associated_item=clue_data.associated_item,
+                                        relevance_to_mystery=clue_data.relevance_to_mystery,
+                                        discovered=clue_data.discovered,
+                                        item_location=clue_data.item_location
+                                    )
+                                    valid_clues.append(clue)
+                                else:
+                                    print(f"   ⚠️ Clue '{clue_data.name}' skipped: item '{clue_data.associated_item}' not found in location '{clue_data.item_location}'")
+                            else:
+                                print(f"   ⚠️ Clue '{clue_data.name}' skipped: location '{clue_data.item_location}' does not exist")
+                        else:
+                            # No specific location validation needed
+                            clue = MysteryClue(
+                                name=clue_data.name,
+                                description=clue_data.description,
+                                associated_item=clue_data.associated_item,
+                                relevance_to_mystery=clue_data.relevance_to_mystery,
+                                discovered=clue_data.discovered
+                            )
+                            valid_clues.append(clue)
+                    else:
+                        print(f"   ⚠️ Clue '{clue_data.name}' skipped: associated item '{clue_data.associated_item}' does not exist")
+            
+            # Only create mystery objective if there are valid clues
+            if valid_clues:
+                mystery_solution = getattr(objective_data, 'mystery_solution', 'Mystery solution not specified')
+                mystery_objective = MysteryObjective(
+                    name=f"Mystery: {objective_data.description}",
+                    description=objective_data.description,
+                    clues=valid_clues,
+                    mystery_solution=mystery_solution
+                )
+                print(f"   ✅ Created mystery objective with {len(valid_clues)} valid clues")
+                return (player, mystery_objective)
+            else:
+                print(f"   ❌ No valid clues for mystery objective - skipping mystery creation")
+                return None
         
         # Fallback: try to infer from description
         description = objective_data.description.lower()
@@ -425,8 +472,7 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
-                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None),
-                hints=getattr(puzzle_data, 'hints', [])
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
             )
             puzzles_dict[puzzle_data.name] = puzzle
             world.add_puzzle(puzzle)

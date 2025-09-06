@@ -98,13 +98,13 @@ class GeneratedPuzzle(BaseModel):
     descriptions: List[str] = Field(description="List of descriptive texts explaining the puzzle")
     problem: str = Field(description="Clear statement of the puzzle problem")
     answer: str = Field(description="The solution to the puzzle")
-    hints: List[str] = Field(description="Array of progressive hints to help solve the puzzle. Each hint should be more specific than the previous one, but never reveal the complete answer. Minimum 2 hints, maximum 4 hints.")
     location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character. Note: if specified, this location must exist in the world")
     proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental. Note: if specified, this character must exist in the world")
     rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
         description="What you get when you solve this puzzle. Note: all reward items and locations must exist in the world"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
+    hint: str = Field(description="How the character or the narration hints to the puzzle")
 
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
@@ -158,11 +158,22 @@ class ObjectiveComponent(BaseModel):
     component_type: ComponentType = Field(description="Type of component")
     role_in_objective: str = Field(description="What role this component plays in completing the objective")
 
+#---- Mystery Models ---------------------------------------------------------
+class MysteryClue(BaseModel):
+    name: str = Field(description="Name of the mystery clue")
+    description: str = Field(description="Description of what the clue reveals")
+    associated_item: str = Field(description="Item that this clue is associated with. Note: this item must exist in the world")
+    item_location: Optional[str] = Field(default=None, description="Location where the associated item can be found. Note: this location must exist in the world")
+    relevance_to_mystery: str = Field(description="How this clue helps solve the mystery")
+    discovered: bool = Field(default=False, description="Whether this clue has been discovered by the player")
+
 class GeneratedObjective(BaseModel):
     type: ObjectiveType = Field(description="Type of the main objective")
     components: List[ObjectiveComponent] = Field(description="All components involved in this objective. Note: all referenced components must exist in the world")
     description: str = Field(description="Clear description of what the player needs to accomplish")
     success_conditions: List[str] = Field(description="Specific conditions that must be met to complete the objective. Note: ensure these conditions are actually achievable given the world setup")
+    mystery_clues: Optional[List[MysteryClue]] = Field(default=None, description="List of clues for mystery objectives. Only used when type is SOLVE_MYSTERY")
+    mystery_solution: Optional[str] = Field(default=None, description="The solution to the mystery. Only used when type is SOLVE_MYSTERY")
 
 class DependencyChain(BaseModel):
     """Represents a chain of dependencies leading to the objective."""

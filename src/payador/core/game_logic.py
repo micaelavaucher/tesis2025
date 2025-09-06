@@ -35,34 +35,21 @@ def generate_starting_narration(world, language, narrative_model):
             objective_texts = re.findall(r'#(.*?)#', narrated_objective, re.DOTALL)
             if objective_texts:
                 objective_text = " ".join([t.strip() for t in objective_texts])
-                # Clean up the objective text: remove extra periods and # symbols
-                objective_text = objective_text.strip()
-                if objective_text.endswith('#.'):
-                    objective_text = objective_text[:-2]
-                elif objective_text.endswith('.#'):
-                    objective_text = objective_text[:-2]
-                elif objective_text.endswith('#'):
-                    objective_text = objective_text[:-1]
-                
-                # Ensure proper ending punctuation
-                if not objective_text.endswith(('.', '!', '?')):
-                    objective_text += '.'
-                
-                starting_narration += f"\n\n🎯 {objective_text}"
+                # Fallback if objective is too short or incomplete
+                if len(objective_text.split()) < 8 or not objective_text.strip().endswith(('.', '!', '?')):
+                    print("⚠️ Objective seems incomplete, using full LLM response instead.")
+                    if not narrated_objective.strip().endswith(('.', '!', '?')):
+                        narrated_objective += '.'
+                    starting_narration += f"\n\n🎯 {narrated_objective}"
+                else:
+                    starting_narration += f"\n\n🎯 {objective_text}"
             else:
                 raise IndexError
         except (IndexError, TypeError):
             print("⚠️ No se pudo extraer el objetivo narrado con el formato #...#, usando la respuesta completa.")
-            # Clean up the raw objective response
-            clean_objective = narrated_objective.strip()
-            # Remove # symbols at the beginning and end
-            clean_objective = re.sub(r'^#\s*', '', clean_objective)
-            clean_objective = re.sub(r'\s*#\.?$', '', clean_objective)
-            clean_objective = re.sub(r'\s*#$', '', clean_objective)
-            
-            if not clean_objective.strip().endswith(('.', '!', '?')):
-                clean_objective += '.'
-            starting_narration += f"\n\n🎯 {clean_objective}"
+            if not narrated_objective.strip().endswith(('.', '!', '?')):
+                narrated_objective += '.'
+            starting_narration += f"\n\n🎯 {narrated_objective}"
     else:
         print("ℹ️ No se encontró un objetivo principal en el mundo generado/cargado.")
     
@@ -306,54 +293,49 @@ def get_objective_info(world, language):
         obj_component = world.objective[1]
         if hasattr(obj_component, 'description'):
             raw_objective = obj_component.description
-        else:
-            # Fallback to basic description - determine objective type based on component classes
-            first_component_class = world.objective[0].__class__.__name__
-            second_component_class = world.objective[1].__class__.__name__
+        elif hasattr(obj_component, '__class__') and obj_component.__class__.__name__ == 'MysteryObjective':
+            # Special handling for mystery objectives
+            mystery_obj = obj_component
+            raw_objective = mystery_obj.description
             
-            if hasattr(world.objective[1], 'name'):
-                target_name = world.objective[1].name
+            # Add progress information
+            discovered, total = mystery_obj.get_completion_progress()
+            if language == 'es':
+                raw_objective += f"\n\n🔍 **Progreso del Misterio:** {discovered}/{total} pistas descubiertas"
                 
-                # Generate appropriate objective text based on component types
-                if first_component_class == "Character" and second_component_class == "Location":
-                    if language == 'es':
-                        raw_objective = f"Llegar a '{target_name}'."
-                    else:
-                        raw_objective = f"Reach '{target_name}'."
-                elif first_component_class == "Character" and second_component_class == "Item":
-                    if language == 'es':
-                        raw_objective = f"Encontrar el objeto '{target_name}'."
-                    else:
-                        raw_objective = f"Find the item '{target_name}'."
-                elif first_component_class == "Character" and second_component_class == "Character":
-                    if language == 'es':
-                        raw_objective = f"Encontrar a '{target_name}'."
-                    else:
-                        raw_objective = f"Find '{target_name}'."
-                elif first_component_class == "Item" and second_component_class == "Location":
-                    item_name = world.objective[0].name
-                    if language == 'es':
-                        raw_objective = f"Llevar '{item_name}' a '{target_name}'."
-                    else:
-                        raw_objective = f"Bring '{item_name}' to '{target_name}'."
-                elif first_component_class == "Item" and second_component_class == "Character":
-                    item_name = world.objective[0].name
-                    if language == 'es':
-                        raw_objective = f"Dar '{item_name}' a '{target_name}'."
-                    else:
-                        raw_objective = f"Give '{item_name}' to '{target_name}'."
-                else:
-                    # Generic fallback
-                    if language == 'es':
-                        raw_objective = f"Interactuar con '{target_name}'."
-                    else:
-                        raw_objective = f"Interact with '{target_name}'."
+                # Show discovered clues
+                discovered_clues = mystery_obj.get_discovered_clues()
+                if discovered_clues:
+                    raw_objective += "\n\n📚 **Pistas Descubiertas:**"
+                    for clue in discovered_clues:
+                        raw_objective += f"\n• **{clue.name}:** {clue.description}"
+                        raw_objective += f"\n  *Relevancia:* {clue.relevance_to_mystery}"
+                
+                # Show remaining clues count
+                remaining = total - discovered
+                if remaining > 0:
+                    raw_objective += f"\n\n🔍 Quedan {remaining} pistas por descubrir. Interactúa con objetos para encontrarlas."
             else:
-                # Last resort fallback
-                if language == 'es':
-                    raw_objective = f"Completar la tarea relacionada con {world.objective[0].__class__.__name__.lower()}."
-                else:
-                    raw_objective = f"Complete the task related to {world.objective[0].__class__.__name__.lower()}."
+                raw_objective += f"\n\n🔍 **Mystery Progress:** {discovered}/{total} clues discovered"
+                
+                # Show discovered clues
+                discovered_clues = mystery_obj.get_discovered_clues()
+                if discovered_clues:
+                    raw_objective += "\n\n📚 **Discovered Clues:**"
+                    for clue in discovered_clues:
+                        raw_objective += f"\n• **{clue.name}:** {clue.description}"
+                        raw_objective += f"\n  *Relevance:* {clue.relevance_to_mystery}"
+                
+                # Show remaining clues count
+                remaining = total - discovered
+                if remaining > 0:
+                    raw_objective += f"\n\n🔍 {remaining} clues remain to be discovered. Interact with objects to find them."
+        else:
+            # Fallback to basic description
+            if language == 'es':
+                raw_objective = f"Completar la tarea relacionada con {world.objective[0].__class__.__name__.lower()}."
+            else:
+                raw_objective = f"Complete the task related to {world.objective[0].__class__.__name__.lower()}."
     elif isinstance(world.objective, str):
         # Simple string objective
         raw_objective = world.objective
@@ -364,127 +346,7 @@ def get_objective_info(world, language):
         else:
             raw_objective = "Objective not clearly specified."
     
-    # Clean up the objective text (remove # symbols if present)
-    import re
-    clean_objective = raw_objective.strip()
-    clean_objective = re.sub(r'^#\s*', '', clean_objective)
-    clean_objective = re.sub(r'\s*#\.?$', '', clean_objective)
-    clean_objective = re.sub(r'\s*#$', '', clean_objective)
-    
-    if not clean_objective.strip().endswith(('.', '!', '?')):
-        clean_objective += '.'
-    
-    return f"🎯 {clean_objective}"
-
-def get_hint_puzzle_info(world, language):
-    """Get the next hint for puzzles in the current location."""
-    import re
-    
-    # Check if player is in a location
-    if not hasattr(world, 'player') or not hasattr(world.player, 'location'):
-        if language == 'es':
-            return "❌ No se puede determinar tu ubicación actual."
-        else:
-            return "❌ Cannot determine your current location."
-    
-    current_location = world.player.location
-    
-    # Find puzzles in current location
-    location_puzzles = []
-    
-    # Check if there are puzzles in the world
-    if not hasattr(world, 'puzzles') or not world.puzzles:
-        if language == 'es':
-            return "🧩 ¡No hay ningún puzzle aquí!"
-        else:
-            return "🧩 There is no puzzle here!"
-    
-    # Look for puzzles in current location or environmental puzzles
-    for puzzle_name, puzzle in world.puzzles.items():
-        # Check if puzzle is in current location (environmental)
-        if hasattr(puzzle, 'location') and puzzle.location == current_location.name:
-            location_puzzles.append(puzzle)
-        # Check if puzzle is proposed by a character in current location
-        elif hasattr(puzzle, 'proposed_by_character') and puzzle.proposed_by_character:
-            # Find the character
-            if hasattr(world, 'characters') and world.characters:
-                for char in world.characters.values():
-                    if (char.name == puzzle.proposed_by_character and 
-                        hasattr(char, 'location') and char.location is current_location):
-                        location_puzzles.append(puzzle)
-                        break
-        # Check if puzzle has rewards that indicate it's at current location
-        elif hasattr(puzzle, 'rewards') and puzzle.rewards:
-            for reward in puzzle.rewards:
-                # Check for PassageReward with from_location matching current location
-                if (hasattr(reward, 'from_location') and 
-                    reward.from_location == current_location.name):
-                    location_puzzles.append(puzzle)
-                    break
-        # Check if puzzle doesn't have a specific location (general/environmental)
-        elif not hasattr(puzzle, 'location') or puzzle.location is None:
-            # Only add if no rewards specify a location (truly environmental)
-            if not hasattr(puzzle, 'rewards') or not puzzle.rewards:
-                location_puzzles.append(puzzle)
-    
-    # If no puzzles in current location
-    if not location_puzzles:
-        if language == 'es':
-            return "🧩 ¡No hay ningún puzzle aquí!"
-        else:
-            return "🧩 There is no puzzle here!"
-    
-    # If multiple puzzles, try to find unsolved ones first
-    unsolved_puzzles = []
-    for puzzle in location_puzzles:
-        # Check if puzzle has hints available
-        if hasattr(puzzle, 'hints') and puzzle.hints and hasattr(puzzle, 'has_more_hints') and puzzle.has_more_hints():
-            unsolved_puzzles.append(puzzle)
-    
-    # If no unsolved puzzles with hints available
-    if not unsolved_puzzles:
-        # Check if there are puzzles but all hints exhausted
-        if location_puzzles:
-            if language == 'es':
-                return "🧩 No hay más pistas disponibles para los puzzles en esta ubicación. 😢"
-            else:
-                return "🧩 No more hints available for puzzles in this location. 😢"
-        else:
-            if language == 'es':
-                return f"🧩 No hay puzzles con pistas en tu ubicación actual ({current_location.name})."
-            else:
-                return f"🧩 No puzzles with hints in your current location ({current_location.name})."
-    
-    # Get hint from the first puzzle with available hints
-    target_puzzle = unsolved_puzzles[0]
-    hint = target_puzzle.get_next_hint()
-    
-    if hint is None:
-        if language == 'es':
-            return "🧩 No hay más pistas disponibles para este puzzle. 😢"
-        else:
-            return "🧩 No more hints available for this puzzle. 😢"
-    
-    # Format the hint response
-    hint_number = len(target_puzzle.given_hints)
-    total_hints = len(target_puzzle.hints)
-    
-    if language == 'es':
-        response = f"💡 **Pista {hint_number}/{total_hints} para '{target_puzzle.name}':**\n\n{hint}"
-        
-        if target_puzzle.has_more_hints():
-            response += f"\n\n_Escribe 'pista' o 'hint' para obtener la siguiente pista._"
-        else:
-            response += f"\n\n_Esta era la última pista disponible para este puzzle._"
-    else:
-        response = f"💡 **Hint {hint_number}/{total_hints} for '{target_puzzle.name}':**\n\n{hint}"
-        
-        if target_puzzle.has_more_hints():
-            response += f"\n\n_Type 'hint' or 'pista' to get the next hint._"
-        else:
-            response += f"\n\n_This was the last available hint for this puzzle._"
-    
-    return response
+    return raw_objective
 
 def handle_debug_command(message, world, language):
     """Handle debug inspection commands."""
@@ -503,13 +365,6 @@ def handle_debug_command(message, world, language):
                            "cual es mi objetivo?", "my objective", "mi objetivo", "goal", "meta"]:
         objective_info = get_objective_info(world, language)
         return objective_info.replace("<", r"\<").replace(">", r"\>")
-    
-    elif message_lower in ["hint", "pista", "give me a hint", "dame una pista", 
-                           "hint for the puzzle", "pista para el puzzle", "pista del puzzle",
-                           "give me a hint for the puzzle", "dame una pista para el puzzle", 
-                           "help", "ayuda", "clue", "pista puzzle", "hint puzzle"]:
-        hint_info = get_hint_puzzle_info(world, language)
-        return hint_info.replace("<", r"\<").replace(">", r"\>")
     
     return None
 
