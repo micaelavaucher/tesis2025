@@ -26,7 +26,7 @@ class Puzzle (Component):
 
   def __init__(self, name: str, descriptions: 'list[str]', problem: str, answer: str, 
                puzzle_type: str = "riddle", proposed_by_character: str = None, 
-               rewards: list = None, relevance_to_objective: str = None):
+               rewards: list = None, relevance_to_objective: str = None, hints: list = None):
     
     super().__init__(name, descriptions)
     """inherited from Component"""
@@ -48,6 +48,36 @@ class Puzzle (Component):
     
     self.relevance_to_objective = relevance_to_objective
     """how solving this puzzle helps achieve the main objective"""
+    
+    self.hints = hints or []
+    """list of progressive hints to help solve the puzzle"""
+    
+    self.given_hints = set()
+    """set of hint indices that have already been given to the player"""
+
+  def get_next_hint(self):
+    """Get the next available hint for this puzzle."""
+    if not self.hints:
+      return None
+    
+    # Find the next hint that hasn't been given yet
+    for i, hint in enumerate(self.hints):
+      if i not in self.given_hints:
+        self.given_hints.add(i)
+        return hint
+    
+    # All hints have been given
+    return None
+  
+  def has_more_hints(self):
+    """Check if there are more hints available."""
+    if not self.hints:
+      return False
+    return len(self.given_hints) < len(self.hints)
+  
+  def reset_hints(self):
+    """Reset the given hints (for debugging or restarting)."""
+    self.given_hints.clear()
 
 class Item (Component):
   """A class to represent an Item."""

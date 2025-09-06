@@ -16,6 +16,62 @@ from . import prompts
 from ..config import load_config, get_model_names
 import configparser
 
+#---- Debug Functions --------------------------------------------------------
+
+def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
+    """Print detailed world structure for debugging."""
+    print(f"\n[DEBUG] 🌍 {step_name} World Structure:")
+    print(f"{'='*60}")
+    
+    # Basic counts
+    print(f"📊 SUMMARY:")
+    print(f"  Locations: {len(world.locations)}")
+    print(f"  Items: {len(world.items)}")
+    print(f"  Characters: {len(world.characters)}")
+    print(f"  Puzzles: {len(world.puzzles)}")
+    
+    # Locations
+    print(f"\n📍 LOCATIONS:")
+    for loc in world.locations:
+        connections = [conn.name for conn in loc.connections] if loc.connections else []
+        print(f"  • {loc.name}: {connections}")
+    
+    # Items
+    print(f"\n🎒 ITEMS:")
+    for item in world.items:
+        location = item.location if hasattr(item, 'location') else "Unknown"
+        gettable = "✓" if item.gettable else "✗"
+        print(f"  • {item.name} [{gettable}] @ {location}")
+    
+    # Characters
+    print(f"\n👥 CHARACTERS:")
+    for char in world.characters:
+        location = char.location if hasattr(char, 'location') else "Unknown"
+        has_interaction = "✓" if hasattr(char, 'interaction') and char.interaction else "✗"
+        inventory = [item for item in char.inventory] if hasattr(char, 'inventory') and char.inventory else []
+        print(f"  • {char.name} [{has_interaction}] @ {location} | Inventory: {inventory}")
+    
+    # Puzzles
+    print(f"\n🧩 PUZZLES:")
+    for puzzle in world.puzzles:
+        hints_count = len(puzzle.hints) if hasattr(puzzle, 'hints') and puzzle.hints else 0
+        proposed_by = puzzle.proposed_by_character if hasattr(puzzle, 'proposed_by_character') else "None"
+        print(f"  • {puzzle.name} | Hints: {hints_count} | Proposed by: {proposed_by}")
+        if hasattr(puzzle, 'hints') and puzzle.hints:
+            for i, hint in enumerate(puzzle.hints, 1):
+                print(f"    Hint {i}: {hint[:50]}...")
+    
+    # Objective
+    if world.objective:
+        print(f"\n🎯 OBJECTIVE:")
+        print(f"  Description: {world.objective.description}")
+        if hasattr(world.objective, 'components') and world.objective.components:
+            print(f"  Components: {len(world.objective.components)}")
+            for comp in world.objective.components:
+                print(f"    • {comp.description}")
+    
+    print(f"{'='*60}\n")
+
 #---- Pipeline Functions -----------------------------------------------------
 
 def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
@@ -35,8 +91,7 @@ def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
         reasoning_model_name, _ = get_model_names(config)
         model = get_llm(reasoning_model_name)
     prompt_text = prompts.PROMPT_STEP_1_CONCEPT_BY_THEME(theme=theme, language=language)
-    print(f"[INFO] Generating world concept with theme: '{theme}'")
-    print(f"[INFO] Prompt text: {prompt_text}")
+    print(f"[DEBUG] Generating world concept with theme: '{theme}'")
     concept_response = model.prompt_model_structured(prompt_text, WorldConcept)
 
     # Convert dict to WorldConcept if needed
@@ -45,7 +100,11 @@ def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
     else:
         concept = concept_response
 
-    print(f"[INFO] Concepto generado: {concept.title} - {concept.backstory}")
+    print(f"[DEBUG] ✅ Step 1 - Concept generated:")
+    print(f"  Title: {concept.title}")
+    print(f"  Backstory: {concept.backstory[:100]}...")
+    print(f"  Player concept: {concept.player_concept}")
+    print(f"  Main objective: {concept.main_objective}")
     return concept
 
 def run_step_1_generate_concept(language, model=None) -> WorldConcept:
@@ -64,8 +123,7 @@ def run_step_1_generate_concept(language, model=None) -> WorldConcept:
         reasoning_model_name, _ = get_model_names(config)
         model = get_llm(reasoning_model_name)
     prompt_text = prompts.PROMPT_STEP_1_CONCEPT(language=language)
-    print(f"[INFO] Generating a new world concept")
-    print(f"[INFO] Prompt text: {prompt_text}")
+    print(f"[DEBUG] Generating a new world concept")
     concept_response = model.prompt_model_structured(prompt_text, WorldConcept)
 
     # Convert dict to WorldConcept if needed
@@ -74,7 +132,11 @@ def run_step_1_generate_concept(language, model=None) -> WorldConcept:
     else:
         concept = concept_response
 
-    print(f"[INFO] Concepto generado: {concept.title} - {concept.backstory}")
+    print(f"[DEBUG] ✅ Step 1 - Concept generated:")
+    print(f"  Title: {concept.title}")
+    print(f"  Backstory: {concept.backstory[:100]}...")
+    print(f"  Player concept: {concept.player_concept}")
+    print(f"  Main objective: {concept.main_objective}")
     return concept
 
 def run_step_2_skeleton(concept: WorldConcept, language, model=None) -> WorldSkeleton:
@@ -101,12 +163,19 @@ def run_step_2_skeleton(concept: WorldConcept, language, model=None) -> WorldSke
         language=language
     )
     
+    print(f"[DEBUG] Generating skeleton from concept: {concept.title}")
     skeleton_response = model.prompt_model_structured(prompt_text, WorldSkeleton)
     
     if isinstance(skeleton_response, dict):
-        return WorldSkeleton(**skeleton_response)
+        skeleton = WorldSkeleton(**skeleton_response)
     else:
-        return skeleton_response
+        skeleton = skeleton_response
+        
+    print(f"[DEBUG] ✅ Step 2 - Skeleton generated:")
+    print(f"  Key locations: {[loc.name for loc in skeleton.key_locations]}")
+    print(f"  Key items: {[item.name for item in skeleton.key_items]}")
+    print(f"  Key characters: {[char.name for char in skeleton.key_characters]}")
+    return skeleton
 
 def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language, model=None) -> GeneratedWorld:
     """
@@ -121,11 +190,21 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language,
     Returns:
         GeneratedWorld: Partially completed object with the main route
     """
+    # Validate that concept is not None and has required attributes
+    if concept is None:
+        raise ValueError("Concept parameter cannot be None. Failed to generate world concept in previous step.")
+    
+    # Check if concept has all required attributes with non-None values
+    required_attrs = ['title', 'backstory', 'player_concept', 'main_objective']
+    for attr in required_attrs:
+        if not hasattr(concept, attr) or getattr(concept, attr) is None:
+            raise ValueError(f"Concept is missing required attribute '{attr}' or it is None. Failed to generate complete world concept.")
+    
     if model is None:
         config = load_config()
         reasoning_model_name, _ = get_model_names(config)
         model = get_llm(reasoning_model_name)
-    
+
     # Preparar los datos del esqueleto para el prompt
     skeleton_data = f"""
     Ubicaciones clave:
@@ -147,12 +226,26 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language,
         language=language
     )
     
+    print(f"[DEBUG] Generating details from skeleton with {len(skeleton.key_locations)} locations")
     world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
     
     if isinstance(world_response, dict):
-        return GeneratedWorld(**world_response)
+        world = GeneratedWorld(**world_response)
     else:
-        return world_response
+        world = world_response
+        
+    print(f"[DEBUG] ✅ Step 3 - Details generated:")
+    print(f"  Total locations: {len(world.locations)}")
+    print(f"  Location names: {[loc for loc in world.locations]}")
+    print(f"  Total items: {len(world.items)}")
+    print(f"  Item names: {[item.name for item in world.items]}")
+    print(f"  Total characters: {len(world.characters)}")
+    print(f"  Character names: {[char.name for char in world.characters]}")
+    print(f"  Total puzzles: {len(world.puzzles)}")
+    print(f"  Puzzle names: {[puzzle.name for puzzle in world.puzzles]}")
+    if world.objective:
+        print(f"  Main objective: {world.objective}")
+    return world
 
 def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
     """
@@ -178,12 +271,27 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> Gene
         language=language
     )
     
+    print(f"[DEBUG] Adding puzzles and obstacles to world with {len(world_data.puzzles)} existing puzzles")
     enhanced_world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
     
     if isinstance(enhanced_world_response, dict):
-        return GeneratedWorld(**enhanced_world_response)
+        enhanced_world = GeneratedWorld(**enhanced_world_response)
     else:
-        return enhanced_world_response
+        enhanced_world = enhanced_world_response
+        
+    print(f"[DEBUG] ✅ Step 4 - Puzzles enhanced:")
+    print(f"  Total locations: {len(enhanced_world.locations)}")
+    print(f"  Total items: {len(enhanced_world.items)}")
+    print(f"  Total characters: {len(enhanced_world.characters)}")
+    print(f"  Total puzzles: {len(enhanced_world.puzzles)} (was {len(world_data.puzzles)})")
+    print(f"  Puzzle names: {[puzzle.name for puzzle in enhanced_world.puzzles]}")
+    # Show puzzle hints if available
+    for puzzle in enhanced_world.puzzles:
+        print(f"  • {puzzle}:")
+        if hasattr(puzzle, 'hints') and puzzle.hints:
+            print(f"    {puzzle.name} hints: {len(puzzle.hints)} hints:")
+            print(f"      " + "\n      ".join([f"- {hint}" for hint in puzzle.hints]))
+    return enhanced_world
 
 def run_step_5_expansion(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
     """
@@ -209,12 +317,20 @@ def run_step_5_expansion(world_data: GeneratedWorld, language, model=None) -> Ge
         language=language
     )
     
+    print(f"[DEBUG] Expanding world with optional content")
     final_world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
-    
+
     if isinstance(final_world_response, dict):
-        return GeneratedWorld(**final_world_response)
+        final_world = GeneratedWorld(**final_world_response)
     else:
-        return final_world_response
+        final_world = final_world_response
+        
+    print(f"[DEBUG] ✅ Step 5 - Expansion completed:")
+    print(f"  Final locations: {len(final_world.locations)} (was {len(world_data.locations)})")
+    print(f"  Final items: {len(final_world.items)} (was {len(world_data.items)})")
+    print(f"  Final characters: {len(final_world.characters)} (was {len(world_data.characters)})")
+    print(f"  Final puzzles: {len(final_world.puzzles)} (was {len(world_data.puzzles)})")
+    return final_world
 
 def create_world_incrementally(theme: str, language: str, progress_callback=None) -> GeneratedWorld:
     """

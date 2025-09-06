@@ -132,14 +132,36 @@ def create_world_with_starting_narration(world, language, narrative_model, log_f
         narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
         
         try:
-            objective_text = re.findall(r'#([^#]*?)#', narrated_objective)[0]
-            if not objective_text.strip().endswith(('.', '!', '?')):
-                objective_text += '.'
-            starting_narration += f"\n\n🎯 {objective_text}"
+            objective_texts = re.findall(r'#(.*?)#', narrated_objective, re.DOTALL)
+            if objective_texts:
+                objective_text = " ".join([t.strip() for t in objective_texts])
+                # Clean up the objective text: remove extra periods and # symbols
+                objective_text = objective_text.strip()
+                if objective_text.endswith('#.'):
+                    objective_text = objective_text[:-2]
+                elif objective_text.endswith('.#'):
+                    objective_text = objective_text[:-2]
+                elif objective_text.endswith('#'):
+                    objective_text = objective_text[:-1]
+                
+                # Ensure proper ending punctuation
+                if not objective_text.endswith(('.', '!', '?')):
+                    objective_text += '.'
+                
+                starting_narration += f"\n\n🎯 {objective_text}"
+            else:
+                raise IndexError
         except (IndexError, TypeError):
-            if not narrated_objective.strip().endswith(('.', '!', '?')):
-                narrated_objective += '.'
-            starting_narration += f"\n\n🎯 {narrated_objective}"
+            # Clean up the raw objective response
+            clean_objective = narrated_objective.strip()
+            # Remove # symbols at the beginning and end
+            clean_objective = re.sub(r'^#\s*', '', clean_objective)
+            clean_objective = re.sub(r'\s*#\.?$', '', clean_objective)
+            clean_objective = re.sub(r'\s*#$', '', clean_objective)
+            
+            if not clean_objective.strip().endswith(('.', '!', '?')):
+                clean_objective += '.'
+            starting_narration += f"\n\n🎯 {clean_objective}"
     
     # Add formatted world state to starting narration
     world_state_formatted = world.format_world_state_for_chat(language=language)
