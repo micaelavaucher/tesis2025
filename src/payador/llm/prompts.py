@@ -525,6 +525,10 @@ def prompt_generate_world(language: str = 'es') -> str:
 3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
 4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
 5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
+6. **Pistas progresivas obligatorias**: Cada puzzle DEBE incluir 2-4 pistas en el campo `hints` que guíen al jugador hacia la solución sin revelarla completamente
+   - Primera pista: General, que dirija la atención hacia el área correcta
+   - Pistas siguientes: Progresivamente más específicas
+   - Última pista: Muy específica pero sin dar la respuesta completa
 
 **TIPOS DE PUZZLES PERMITIDOS:**
 1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
@@ -538,6 +542,11 @@ def prompt_generate_world(language: str = 'es') -> str:
 - Pista descubrible 1: En un cuaderno encontrado en el escritorio hay una fecha: "15/7/89"
 - Pista descubrible 2: Un personaje menciona "el cumpleaños de mi hija es muy importante para mí"
 - Solución: El código 1589 (derivado de la fecha que el jugador puede encontrar)
+
+**EJEMPLO DE PISTAS PROGRESIVAS:**
+- Pista 1: "Busca información personal importante en los objetos de la habitación"
+- Pista 2: "El cuaderno en el escritorio contiene fechas significativas"
+- Pista 3: "La fecha más destacada coincide con lo que mencionó sobre su familia"
 
 **EJEMPLO DE MAL PUZZLE (PROHIBIDO):**
 - Puzzle: Abrir una puerta con un código
@@ -639,6 +648,11 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 - Discoverable clue 2: A character mentions "my daughter's birthday is very important to me"
 - Solution: Code 1589 (derived from the date that player can find)
 
+**EXAMPLE OF PROGRESSIVE HINTS:**
+- Hint 1: "Look for important personal information in the room's objects"
+- Hint 2: "The notebook on the desk contains significant dates"
+- Hint 3: "The most prominent date matches what they mentioned about their family"
+
 **EXAMPLE OF BAD PUZZLE (FORBIDDEN):**
 - Puzzle: Open a door with a code
 - No clues in the world about what the code is
@@ -714,7 +728,7 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 - {objects} objetos (nombres únicos y 2-3 descripciones cada uno)
 - {npcs} personajes no jugadores + 1 personaje jugador
 - {puzzles} puzzles lógicos y solucionables
-- 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
+- 1 objetivo principal claro y completable, que este relacionado con la inspiración (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
 1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
@@ -740,6 +754,10 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
 4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
 5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
+6. **Pistas progresivas obligatorias**: Cada puzzle DEBE incluir 2-4 pistas en el campo `hints` que guíen al jugador hacia la solución sin revelarla completamente
+   - Primera pista: General, que dirija la atención hacia el área correcta
+   - Pistas siguientes: Progresivamente más específicas
+   - Última pista: Muy específica pero sin dar la respuesta completa
 
 **TIPOS DE PUZZLES PERMITIDOS:**
 1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
@@ -754,6 +772,11 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 - Pista descubrible 2: Un personaje menciona "el cumpleaños de mi hija es muy importante para mí"
 - Solución: El código 1589 (derivado de la fecha que el jugador puede encontrar)
 
+**EJEMPLO DE PISTAS PROGRESIVAS:**
+- Pista 1: "Busca información personal importante en los objetos de la habitación"
+- Pista 2: "El cuaderno en el escritorio contiene fechas significativas"
+- Pista 3: "La fecha más destacada coincide con lo que mencionó sobre su familia"
+
 **EJEMPLO DE MAL PUZZLE (PROHIBIDO):**
 - Puzzle: Abrir una puerta con un código
 - No hay pistas en el mundo sobre cuál es el código
@@ -765,6 +788,7 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
    - Requirement = lo que remueve el obstáculo (llave, herramienta, conocimiento)
 2. **Elementos existentes**: Tanto obstáculos como requirements DEBEN existir como objetos en el mundo
 3. **Conectividad previa**: Solo puedes bloquear pasajes entre ubicaciones ya conectadas
+4. **Coherencia**: El obstáculo y el requirement DEBEN tener sentido dentro del contexto de la inspiración
 
 **VALIDACIÓN DE COMPLETABILIDAD Y COHERENCIA CON LA INSPIRACIÓN:**
 Antes de finalizar, verifica mentalmente:
@@ -817,7 +841,7 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 - {objects} objects (unique names and 2-3 descriptions each)
 - {npcs} non-player characters + 1 player character
 - {puzzles} logical and solvable puzzles
-- 1 clear and completable main objective (MANDATORY - your world MUST define a specific objective)
+- 1 clear and completable main objective, which is related to the inspiration (MANDATORY - your world MUST define a specific objective)
 
 **MANDATORY CONNECTION RULES:**
 1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
@@ -843,6 +867,10 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 3. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
 4. **Internal logic**: Puzzles must make sense within your story's context
 5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
+6. **Progressive hints mandatory**: Each puzzle MUST include 2-4 hints in the `hints` field that guide the player toward the solution without revealing it completely
+   - First hint: General, directing attention to the correct area
+   - Following hints: Progressively more specific
+   - Last hint: Very specific but without giving the complete answer
 
 **ALLOWED PUZZLE TYPES:**
 1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
@@ -857,6 +885,11 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 - Discoverable clue 2: A character mentions "my daughter's birthday is very important to me"
 - Solution: Code 1589 (derived from the date that player can find)
 
+**EXAMPLE OF PROGRESSIVE HINTS:**
+- Hint 1: "Look for important personal information in the room's objects"
+- Hint 2: "The notebook on the desk contains significant dates"
+- Hint 3: "The most prominent date matches what they mentioned about their family"
+
 **EXAMPLE OF BAD PUZZLE (FORBIDDEN):**
 - Puzzle: Open a door with a code
 - No clues in the world about what the code is
@@ -868,6 +901,7 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
    - Requirement = what removes the obstacle (key, tool, knowledge)
 2. **Existing elements**: Both obstacles and requirements MUST exist as objects in the world
 3. **Prior connectivity**: You can only block passages between already connected locations
+4. **Coherence**: The obstacle and the requirement MUST make sense within the context of the inspiration
 
 **COMPLETABILITY AND INSPIRATION COHERENCE VALIDATION:**
 Before finalizing, mentally verify:
@@ -917,7 +951,7 @@ def prompt_expand_world(world_state: str, player_location: str, language: str = 
         - Nuevos pasajes que previamente no se habían notado
         - Objetos que encajan con el tema de las nuevas áreas
         - Personajes que tienen relaciones interesantes con elementos existentes
-        - Puzzles que utilicen objetos o conocimientos del mundo existente
+        - Puzzles que utilicen objetos o conocimientos del mundo existente (con 2-4 pistas progresivas obligatorias en el campo `hints`)
 
         La expansión debe sentirse natural, como si estos elementos siempre hubieran estado ahí pero recién ahora se descubrieran.
         """
@@ -937,7 +971,7 @@ def prompt_expand_world(world_state: str, player_location: str, language: str = 
         - New passages that were previously not noticed
         - Items that fit the theme of the new areas
         - Characters that have interesting relationships with existing elements
-        - Puzzles that use objects or knowledge from the existing world
+        - Puzzles that use objects or knowledge from the existing world (with 2-4 mandatory progressive hints in the `hints` field)
 
         The expansion should feel natural, as if these elements were always there but just now discovered.
         """
@@ -1009,6 +1043,7 @@ Emma es una adolescente que busca a su mascota tortuga llamada "Hojita" que est�
 - Resolver el puzzle debe ser requisito para obtener la llave
 - Una vez resuelto el puzzle, Laura le da la llave dorada a Emma
     - La llave dorada deja de estar en el inventario de Laura y pasa a estar en el de Emma
+- **El puzzle DEBE incluir 2-4 pistas progresivas en el campo `hints` que guíen hacia la solución**
 
 **CONEXIONES SEMÁNTICAS OBLIGATORIAS:**
 1. Para llegar al jardín → necesitas abrir el candado
@@ -1159,7 +1194,7 @@ def PROMPT_STEP_1_CONCEPT_BY_THEME(theme: str, language: str = 'es') -> str:
 - Debe ser MOTIVADOR para el jugador
 - Debe ser COMPLETABLE con elementos físicos del mundo
 - Debe estar DIRECTAMENTE RELACIONADO con el tema proporcionado
-- Debe tener una razón narrativa sólida dentro del contexto temático
+- Debe tener una razón narrativa sólida dentro del contexto temático, derivada directamente del tema
 
 **EJEMPLOS DE BUENOS OBJETIVOS:**
 - Si el tema es "piratas": "Encontrar el mapa del tesoro del Capitán Barbanegra en la Isla Calavera"
@@ -1207,7 +1242,7 @@ Tema: {theme}
 - Must be MOTIVATING for the player
 - Must be COMPLETABLE using physical elements from the world
 - Must be DIRECTLY RELATED to the provided theme
-- Must have a solid narrative reason within the thematic context
+- Must have a solid narrative reason within the thematic context, directly derived from the theme
 
 **EXAMPLES OF GOOD OBJECTIVES:**
 - If the theme is "pirates": "Find Captain Blackbeard's treasure map on Skull Island"
@@ -1225,7 +1260,7 @@ The concept must be cohesive, interesting, and provide a solid foundation to bui
 
 Theme: {theme}
 
-**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English.**
 """
 
 
@@ -1243,7 +1278,7 @@ Concepto del mundo:
 - Concepto del jugador: {player_concept}
 - Objetivo principal: {main_objective}
 
-**ESTRUCTURA MÍNIMA REQUERIDA:**
+**ESTRUCTURA REQUERIDA:**
 - {locations} ubicaciones: Los lugares más importantes para la historia y el objetivo
 - {objects} objetos: Los elementos físicos esenciales para completar el objetivo
 - {npcs} personajes no jugadores: Los NPCs importantes que ayudarán o desafiarán al jugador
@@ -1271,7 +1306,7 @@ World concept:
 - Player concept: {player_concept}
 - Main objective: {main_objective}
 
-**MINIMUM REQUIRED STRUCTURE:**
+**REQUIRED STRUCTURE:**
 - {locations} locations: The most important places for the story and the objective
 - {objects} objects: The essential physical elements to complete the objective
 - {npcs} non-player characters: Key NPCs who will help or challenge the player
@@ -1322,15 +1357,17 @@ Entidades clave a desarrollar:
 1. **Objetivos completables**: Si un objeto es requerido para el objetivo (`is_objective_target: true`), DEBE ser `gettable: true`
 2. **Consistencia funcional**: Objetos decorativos pueden ser `gettable: false`, objetos funcionales DEBEN ser `gettable: true`
 3. **Relevancia clara**: Cada objeto debe tener una razón de existir (funcional o atmosférica)
+4. **UBICACIÓN OBLIGATORIA**: TODOS los objetos deben estar colocados en ubicaciones específicas o en inventarios de personajes. NINGÚN objeto puede quedar sin ubicación
 
 **VALIDACIÓN DE COMPLETABILIDAD:**
 Antes de finalizar, verifica mentalmente:
 1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO?** (OBLIGATORIO)
 2. **¿TODAS las ubicaciones son accesibles desde la ubicación inicial?** (OBLIGATORIO - no debe haber ubicaciones aisladas)
-3. ¿Puede el jugador completar el objetivo con los elementos disponibles?
-4. ¿Existe al menos una ruta de solución desde el estado inicial?
-5. ¿Todos los elementos referenciados existen realmente en el mundo?
-6. ¿Las interacciones de personajes están completas?
+3. **¿TODOS los objetos están colocados en ubicaciones específicas o inventarios de personajes?** (OBLIGATORIO - verifica especialmente que los objetos del objetivo estén ubicados)
+4. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+5. ¿Existe al menos una ruta de solución desde el estado inicial?
+6. ¿Todos los elementos referenciados existen realmente en el mundo?
+7. ¿Las interacciones de personajes están completas?
 
 **EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
 1. Jugador quiere [objetivo principal]
@@ -1341,13 +1378,13 @@ Antes de finalizar, verifica mentalmente:
 
 Debes crear:
 - Ubicaciones completas con descripciones atmosféricas y conexiones lógicas bidireccionales
-- Objetos detallados con descripciones y propiedades apropiadas
+- Objetos detallados con descripciones y propiedades apropiadas, TODOS colocados en ubicaciones específicas o inventarios de personajes
 - Personajes con personalidades, ubicaciones e interacciones básicas completas
 - Un objetivo claro y específico con componentes definidos y alcanzables
 - El personaje jugador en una ubicación inicial apropiada
 - Cadenas de dependencias que muestren cómo completar el objetivo
 
-IMPORTANTE: Enfócate solo en la ruta principal. No añadas puzzles complejos todavía - eso vendrá en el siguiente paso. Las interacciones de personajes deben ser directas y simples pero COMPLETAS.
+IMPORTANTE: Enfócate solo en la ruta principal. No añadas puzzles complejos todavía - eso vendrá en el siguiente paso. Las interacciones de personajes deben ser directas y simples pero COMPLETAS. **ASEGÚRATE DE QUE TODOS LOS OBJETOS, ESPECIALMENTE LOS OBJETOS DEL OBJETIVO, ESTÉN COLOCADOS EN UBICACIONES ESPECÍFICAS.**
 
 **INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
 """
@@ -1380,15 +1417,17 @@ Key entities to develop:
 1. **Completable objectives**: If an object is required for the objective (`is_objective_target: true`), it MUST be `gettable: true`
 2. **Functional consistency**: Decorative objects can be `gettable: false`, functional objects MUST be `gettable: true`
 3. **Clear relevance**: Every object must have a reason to exist (functional or atmospheric)
+4. **MANDATORY PLACEMENT**: ALL objects must be placed in specific locations or in character inventories. NO object can be left without a location
 
 **COMPLETION VALIDATION:**
 Before finishing, mentally verify:
 1. **HAVE YOU DEFINED A CLEAR MAIN OBJECTIVE?** (MANDATORY)
 2. **Are ALL locations accessible from the initial location?** (MANDATORY – there must be no isolated locations)
-3. Can the player complete the objective using the available elements?
-4. Is there at least one solution path from the starting state?
-5. Do all referenced elements actually exist in the world?
-6. Are all character interactions complete?
+3. **Are ALL objects placed in specific locations or character inventories?** (MANDATORY – verify especially that objective items are located)
+4. Can the player complete the objective using the available elements?
+5. Is there at least one solution path from the starting state?
+6. Do all referenced elements actually exist in the world?
+7. Are all character interactions complete?
 
 **EXAMPLE OF A VALID DEPENDENCY CHAIN:**
 1. Player wants [main objective]
@@ -1399,13 +1438,13 @@ Before finishing, mentally verify:
 
 You must create:
 - Fully described locations with atmospheric detail and logical bidirectional connections
-- Detailed objects with appropriate descriptions and properties
+- Detailed objects with appropriate descriptions and properties, ALL placed in specific locations or character inventories
 - Characters with personalities, locations, and complete basic interactions
 - A clear and specific objective with defined and achievable components
 - The player character in a suitable starting location
 - Dependency chains showing how to complete the objective
 
-IMPORTANT: Focus only on the main path. Do not add complex puzzles yet – that will come in the next step. Character interactions should be straightforward and simple, but COMPLETE.
+IMPORTANT: Focus only on the main path. Do not add complex puzzles yet – that will come in the next step. Character interactions should be straightforward and simple, but COMPLETE. **ENSURE THAT ALL OBJECTS, ESPECIALLY OBJECTIVE ITEMS, ARE PLACED IN SPECIFIC LOCATIONS.**
 
 **CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
 """
@@ -1454,8 +1493,19 @@ Objetivo: Conseguir el Amuleto Mágico
 1. **Conectividad global**: TODAS las ubicaciones deben seguir siendo accesibles - NO crear grupos aislados
 2. **Elementos existentes**: Todas las referencias DEBEN apuntar a objetos/personajes/ubicaciones que existen
 3. **Soluciones descubribles**: Cada puzzle DEBE tener pistas que el jugador pueda encontrar explorando
-4. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
-5. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
+4. **Pistas progresivas obligatorias**: Cada puzzle DEBE incluir 2-4 pistas en el campo `hints` que guíen al jugador hacia la solución sin revelarla completamente
+   - Primera pista: General, que dirija la atención hacia el área correcta
+   - Pistas siguientes: Progresivamente más específicas
+   - Última pista: Muy específica pero sin dar la respuesta completa
+5. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
+6. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
+
+**EJEMPLO DE PISTAS PARA PUZZLE:**
+Puzzle: "Abrir una caja fuerte con código numérico"
+- Pista 1: "Busca fechas importantes en las pertenencias personales de la habitación"
+- Pista 2: "La fotografía en el escritorio muestra una fecha memorable"
+- Pista 3: "El formato de la fecha en la foto es DD/MM/AA, úsalo como código"
+- Respuesta: 1587 (basado en la fecha 15/8/87 encontrada en la foto)
 
 **ESTRATEGIAS PARA CREAR COMPLEJIDAD:**
 1. **Bloquear acceso directo**: El objetivo no debe ser directamente accesible - añade obstáculos
@@ -1498,7 +1548,18 @@ Current world:
 3. **Existing rewards**: All rewards (objects, locations) MUST already exist in the world
 4. **Internal logic**: Puzzles must make sense within the context of your story
 5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
-6. **Wordplay**: If present, wordplay puzzles must work well in English
+6. **Progressive hints mandatory**: Each puzzle MUST include 2-4 hints in the `hints` field that guide the player toward the solution without revealing it completely
+   - First hint: General, directing attention to the correct area
+   - Following hints: Progressively more specific
+   - Last hint: Very specific but without giving the complete answer
+7. **Wordplay**: If present, wordplay puzzles must work well in English
+
+**EXAMPLE OF HINTS FOR PUZZLE:**
+Puzzle: "Open a safe with numeric code"
+- Hint 1: "Look for important dates in the personal belongings around the room"
+- Hint 2: "The photograph on the desk shows a memorable date"
+- Hint 3: "The date format in the photo is DD/MM/YY, use it as the code"
+- Answer: 1587 (based on the date 15/8/87 found in the photo)
 
 **ALLOWED PUZZLE TYPES:**
 1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
@@ -1575,6 +1636,7 @@ Si añades puzzles opcionales, deben seguir las mismas reglas que los puzzles pr
 - **Soluciones descubribles**: Pistas físicas, diálogos o documentos que revelen la solución
 - **Lógica interna**: Deben hacer sentido dentro del contexto
 - **Recompensas existentes**: Las recompensas DEBEN existir en el mundo
+- **Pistas progresivas obligatorias**: Cada puzzle DEBE incluir 2-4 pistas en el campo `hints` que guíen al jugador hacia la solución sin revelarla completamente
 
 **TIPOS DE EXPANSIÓN RECOMENDADOS:**
 1. **Ubicaciones atmosféricas**: Lugares que enriquezcan la ambientación sin ser necesarios
@@ -1626,6 +1688,7 @@ If you add optional puzzles, they must follow the same rules as main puzzles:
 - **Discoverable solutions**: Physical clues, dialogues, or documents that reveal the solution
 - **Internal logic**: They must make sense within the context
 - **Existing rewards**: The rewards MUST exist in the world
+- **Progressive hints mandatory**: Each puzzle MUST include 2-4 hints in the `hints` field that guide the player toward the solution without revealing it completely
 
 **RECOMMENDED TYPES OF EXPANSION:**
 1. **Atmospheric locations**: Places that enrich the setting without being necessary

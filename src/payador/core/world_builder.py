@@ -45,7 +45,8 @@ def create_world_from_llm_response(world_data) -> World:
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
-                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None),
+                hints=getattr(puzzle_data, 'hints', [])
             )
             puzzles_dict[puzzle_data.name] = puzzle
         
@@ -424,7 +425,8 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
-                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None),
+                hints=getattr(puzzle_data, 'hints', [])
             )
             puzzles_dict[puzzle_data.name] = puzzle
             world.add_puzzle(puzzle)

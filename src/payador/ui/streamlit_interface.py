@@ -45,13 +45,13 @@ def get_inspiration_suggestions(language: str) -> dict:
     if language == 'es':
         return {
             "🕵️ Detectives": "Una historia de misterio y crimen donde eres un detective resolviendo un caso complejo",
-            "🌙 Twilight": "Un mundo de vampiros y licántropos lleno de romance sobrenatural y decisiones difíciles",
+            "🌙 Crepúsculo, la Saga": "Un mundo de vampiros y licántropos lleno de romance sobrenatural y decisiones difíciles, basado en la saga de Crepúsculo",
             "🍄 Super Mario": "Una aventura colorida en el Reino Champiñón con plataformas, power-ups y rescates épicos"
         }
     else:
         return {
             "🕵️ Detectives": "A mystery and crime story where you are a detective solving a complex case",
-            "🌙 Twilight": "A world of vampires and werewolves full of supernatural romance and difficult choices", 
+            "🌙 Twilight Saga": "A world of vampires and werewolves full of supernatural romance and difficult choices, based on the Twilight saga", 
             "🍄 Super Mario": "A colorful adventure in the Mushroom Kingdom with platforms, power-ups and epic rescues"
         }
 
@@ -84,7 +84,8 @@ def render_sidebar():
         mode_options = {
             'Inspiration': 'inspiration',
             'Generate': 'generate', 
-            'Preset': 'preset'
+            'Preset': 'preset',
+            'Tutorial': 'tutorial'
         }
         current_mode = st.session_state.generation_mode
         selected_mode_name = next(k for k, v in mode_options.items() if v == current_mode)
@@ -136,9 +137,9 @@ def render_inspiration_mode():
     suggestions = get_inspiration_suggestions(st.session_state.language)
     
     if st.session_state.language == 'es':
-        st.markdown("#### 💡 Sugerencias populares:")
+        st.markdown("**💡 Sugerencias populares:**")
     else:
-        st.markdown("#### 💡 Popular suggestions:")
+        st.markdown("**💡 Popular suggestions:**")
     
     cols = st.columns(3)
     
@@ -186,7 +187,7 @@ def generate_world_from_inspiration(inspiration: str):
             status_text.text(progress_messages['STEP_1'])
             progress_bar.progress(0.1)
             time.sleep(0.2)
-            
+            print(f"session_state: {st.session_state}")
             concept = run_step_1_concept(inspiration, st.session_state.language)
             status_text.text(progress_messages['STEP_1_COMPLETE'].format(title=concept.title))
             progress_bar.progress(0.2)
@@ -405,6 +406,106 @@ def load_preset_world(world_id: int):
     except Exception as e:
         st.error(f"❌ Error loading preset world: {str(e)}")
 
+def render_tutorial_mode():
+    """Render the tutorial mode interface."""
+    st.markdown("# 🌱 PAYADOR")
+    st.markdown("### Dynamic Text Adventure World Generator")
+    
+    if st.session_state.language == 'es':
+        st.markdown("**Modo Tutorial:** Aprende a jugar con un mundo simple")
+        st.markdown("""
+        **¡Bienvenido al Tutorial de PAYADOR!** 🎮
+        
+        Este es un mundo simple diseñado para enseñarte cómo jugar:
+        
+        🏠 **2 ubicaciones:** Habitación Inicial → Jardín  
+        🐢 **1 objetivo:** Encuentra y toma la tortuga  
+        🎯 **Meta:** Recoger la tortuga del jardín
+        
+        ### 🤖 Estilo de Juego Chatbot
+        PAYADOR funciona como una conversación entre tú y un narrador IA. Cada mensaje que escribas representa **una acción en el juego**.
+        
+        **📝 Mecánicas por Turnos:**
+        - Un mensaje = Un turno de juego
+        - Escribe comandos en lenguaje natural o descripciones de acciones
+        - El narrador responderá describiendo lo que sucede
+        - El mundo reacciona a tus decisiones dinámicamente
+        
+        **Comandos básicos que puedes probar:**
+        - `mirar alrededor` - observar tu entorno
+        - `ir al jardín` - moverte a otra ubicación  
+        - `tomar tortuga` - recoger objetos
+        - `inventario` - ver qué llevas contigo
+        - `objetivo` - recordar tu misión
+        
+        **📊 Aviso de Investigación:** Tu gameplay puede ser registrado de forma anónima para investigación sobre generación de narrativas con IA.
+        """)
+    else:
+        st.markdown("**Tutorial Mode:** Learn to play with a simple world")
+        st.markdown("""
+        **Welcome to the PAYADOR Tutorial!** 🎮
+        
+        This is a simple world designed to teach you how to play:
+        
+        🏠 **2 locations:** Starting Room → Garden  
+        🐢 **1 objective:** Find and take the turtle  
+        🎯 **Goal:** Collect the turtle from the garden
+        
+        ### 🤖 Chatbot-Style Gameplay
+        PAYADOR works like a conversation between you and an AI narrator. Each message you write represents **one action in the game**.
+        
+        **📝 Turn-Based Mechanics:**
+        - One message = One game turn
+        - Write commands in natural language or action descriptions
+        - The narrator will respond describing what happens
+        - The world reacts to your decisions dynamically
+        
+        **Basic commands you can try:**
+        - `look around` - observe your surroundings
+        - `go to garden` - move to another location  
+        - `take turtle` - pick up objects
+        - `inventory` - see what you're carrying
+        - `objective` - remember your mission
+        
+        **📊 Research Notice:** Your gameplay may be recorded anonymously for research on AI narrative generation.
+        """)
+    
+    if not st.session_state.world_generated:
+        if st.button("🎓 Start Tutorial", type="primary"):
+            load_tutorial_world()
+    else:
+        render_chat_interface()
+
+def load_tutorial_world():
+    """Load the tutorial world."""
+    try:
+        world = example_worlds.get_world('tutorial', language=st.session_state.language)
+        st.session_state.world = world
+        st.session_state.world_generated = True
+        
+        config = load_config()
+        narrative_model_name = config.get('Models', 'NarrativeModel', fallback='gpt-4o-mini')
+        narrative_model = get_llm(narrative_model_name)
+        
+        # Generate starting narration
+        starting_narration = generate_starting_narration(
+            world,
+            st.session_state.language,
+            narrative_model
+        )
+        
+        # Initialize chat with starting narration
+        st.session_state.chat_history = [
+            {"role": "assistant", "content": starting_narration}
+        ]
+        
+        st.success("✅ Tutorial world loaded successfully!")
+        time.sleep(1)
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"❌ Error loading tutorial world: {str(e)}")
+
 def render_chat_interface():
     """Render the main chat interface."""
     st.markdown("### 💬 Adventure Chat")
@@ -432,30 +533,73 @@ def render_chat_interface():
             enable_rag
         )
     
+    # Handle pending command if exists (process before displaying anything)
+    if hasattr(st.session_state, 'pending_command') and st.session_state.pending_command:
+        prompt = st.session_state.pending_command
+        st.session_state.pending_command = None  # Clear the pending command
+        
+        # Add user message to chat
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+        
+        # Generate response
+        if st.session_state.game_loop:
+            response = st.session_state.game_loop(prompt, st.session_state.chat_history)
+            # Add assistant response to chat
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+        else:
+            st.session_state.chat_history.append({"role": "assistant", "content": "Game loop not initialized. Please reload the world."})
+    
     # Display chat history
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+    
+    # Define quick actions based on language
+    if st.session_state.language == 'es':
+        quick_actions = [
+            ("🎯 Objetivo", "objetivo"),
+            ("📋 Inventario", "inventario"),
+            ("👀 Mirar", "mirar alrededor"),
+            ("🗺️ Estado", "estado del mundo"),
+            ("💡 Ayuda", "ayuda"),
+            ("📍 Ubicación", "¿dónde estoy?")
+        ]
+    else:
+        quick_actions = [
+            ("🎯 Objective", "objective"),
+            ("📋 Inventory", "inventory"),
+            ("👀 Look", "look around"),
+            ("🗺️ Status", "world status"),
+            ("💡 Help", "help"),
+            ("📍 Location", "where am I?")
+        ]
+    
+    # Quick action buttons - positioned right before chat input
+    st.markdown("**🎯 Quick Actions:**")
+    cols = st.columns(6)
+    
+    # Create buttons for quick actions
+    for i, (button_text, command_text) in enumerate(quick_actions):
+        with cols[i]:
+            if st.button(button_text, key=f"quick_action_{i}", help=f"Send: {command_text}"):
+                # Simulate sending the command
+                st.session_state.pending_command = command_text
+                st.rerun()
     
     # Chat input
     if prompt := st.chat_input("What do you want to do?"):
         # Add user message to chat
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
         # Generate response
         if st.session_state.game_loop:
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    response = st.session_state.game_loop(prompt, st.session_state.chat_history)
-                    st.markdown(response)
-                    
-                    # Add assistant response to chat
-                    st.session_state.chat_history.append({"role": "assistant", "content": response})
+            response = st.session_state.game_loop(prompt, st.session_state.chat_history)
+            # Add assistant response to chat
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
         else:
-            st.error("Game loop not initialized. Please reload the world.")
+            st.session_state.chat_history.append({"role": "assistant", "content": "Game loop not initialized. Please reload the world."})
+        
+        st.rerun()
 
 def main():
     """Main Streamlit application."""
@@ -476,9 +620,66 @@ def main():
             width: 100%;
             margin-top: 1rem;
         }
+        
+        /* Quick action buttons styling */
+        div[data-testid="column"] .stButton > button {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin: 0.1rem;
+            height: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Selectbox styling for light mode */
         .stSelectbox > div > div {
             background-color: #f0f2f6;
+            color: #262730;
         }
+        
+        /* Selectbox styling for dark mode */
+        [data-theme="dark"] .stSelectbox > div > div,
+        .stApp[data-theme="dark"] .stSelectbox > div > div,
+        [data-baseweb="select"] > div {
+            background-color: #262730 !important;
+            color: #fafafa !important;
+            border: 1px solid #464646 !important;
+        }
+        
+        /* Selectbox dropdown options for dark mode */
+        [data-theme="dark"] .stSelectbox [role="listbox"],
+        .stApp[data-theme="dark"] .stSelectbox [role="listbox"] {
+            background-color: #262730 !important;
+            color: #fafafa !important;
+        }
+        
+        /* Selectbox dropdown option items for dark mode */
+        [data-theme="dark"] .stSelectbox [role="option"],
+        .stApp[data-theme="dark"] .stSelectbox [role="option"] {
+            background-color: #262730 !important;
+            color: #fafafa !important;
+        }
+        
+        /* Selectbox dropdown option items hover for dark mode */
+        [data-theme="dark"] .stSelectbox [role="option"]:hover,
+        .stApp[data-theme="dark"] .stSelectbox [role="option"]:hover {
+            background-color: #464646 !important;
+            color: #fafafa !important;
+        }
+        
+        /* Force text color for selectbox in dark mode */
+        [data-theme="dark"] .stSelectbox div[data-baseweb="select"] > div,
+        .stApp[data-theme="dark"] .stSelectbox div[data-baseweb="select"] > div {
+            color: #fafafa !important;
+        }
+        
+        /* Fix for the actual selected value display */
+        [data-theme="dark"] .stSelectbox div[data-baseweb="select"] span,
+        .stApp[data-theme="dark"] .stSelectbox div[data-baseweb="select"] span {
+            color: #fafafa !important;
+        }
+        
         .chat-message {
             padding: 1rem;
             border-radius: 0.5rem;
@@ -491,6 +692,18 @@ def main():
         .assistant-message {
             background-color: #f5f5f5;
             margin-right: 2rem;
+        }
+        
+        /* Chat message styling for dark mode */
+        [data-theme="dark"] .user-message,
+        .stApp[data-theme="dark"] .user-message {
+            background-color: #1e3a8a;
+            color: #fafafa;
+        }
+        [data-theme="dark"] .assistant-message,
+        .stApp[data-theme="dark"] .assistant-message {
+            background-color: #374151;
+            color: #fafafa;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -515,6 +728,16 @@ def main():
     elif st.session_state.generation_mode == 'preset':
         if not st.session_state.world_generated:
             render_preset_mode()
+        else:
+            render_chat_interface()
+    elif st.session_state.generation_mode == 'tutorial':
+        if not st.session_state.world_generated:
+            render_tutorial_mode()
+        else:
+            render_chat_interface()
+    elif st.session_state.generation_mode == 'tutorial':
+        if not st.session_state.world_generated:
+            render_tutorial_mode()
         else:
             render_chat_interface()
 
