@@ -542,6 +542,20 @@ def check_objective_completion(world, answer, language):
             answer += "\n\n🎯¡Completaste el objetivo!"
         else:
             answer += "\n\n🎯You have completed your quest!"
+        
+        # Check if this is a mystery objective and reveal the solution
+        if (hasattr(world, 'objective') and world.objective and 
+            isinstance(world.objective, tuple) and len(world.objective) >= 2):
+            obj_component = world.objective[1]
+            if (hasattr(obj_component, '__class__') and 
+                obj_component.__class__.__name__ == 'MysteryObjective' and
+                hasattr(obj_component, 'mystery_solution')):
+                
+                if language == 'es':
+                    answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
+                else:
+                    answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
+    
     return answer
 
 def save_game_log(game_log_dictionary, log_filename, number_of_turns, answer):
