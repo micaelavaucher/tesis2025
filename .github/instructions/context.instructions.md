@@ -137,3 +137,6 @@ El sistema incluye memoria episódica inteligente que transforma PAYADOR de un g
 - `app.py`: Integración y modos de generación
 - `memory_system.py`: Sistema RAG con memoria episódica inteligente
 - `game_logic.py`: Integración del loop de juego con memoria contextual
+
+**Extra:**
+- NO EJECUTE NINGUN CÓDIGO AUTOMÁTICAMENTE.

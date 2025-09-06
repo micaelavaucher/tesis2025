@@ -21,12 +21,55 @@ class Component:
     self.descriptions = descriptions
     """a set of natural language descriptions for the component"""
   
+class MysteryClue:
+    """A clue in a mystery objective."""
+    def __init__(self, name: str, description: str, associated_item: str, 
+                 relevance_to_mystery: str, discovered: bool = False, item_location: str = None):
+        self.name = name
+        self.description = description
+        self.associated_item = associated_item
+        self.relevance_to_mystery = relevance_to_mystery
+        self.discovered = discovered
+        self.item_location = item_location
+
+class MysteryObjective:
+    """A mystery objective that requires discovering clues."""
+    def __init__(self, name: str, description: str, clues: 'list[MysteryClue]', 
+                 mystery_solution: str):
+        self.name = name
+        self.description = description
+        self.clues = clues
+        self.mystery_solution = mystery_solution
+    
+    def discover_clue_for_item(self, item_name: str):
+        """Mark a clue as discovered when the associated item is interacted with."""
+        for clue in self.clues:
+            if clue.associated_item == item_name and not clue.discovered:
+                clue.discovered = True
+                return clue
+        return None
+    
+    def get_completion_progress(self):
+        """Get the number of discovered clues vs total clues."""
+        discovered = len([clue for clue in self.clues if clue.discovered])
+        total = len(self.clues)
+        return discovered, total
+    
+    def is_completed(self):
+        """Check if all clues have been discovered."""
+        return all(clue.discovered for clue in self.clues)
+    
+    def get_discovered_clues(self):
+        """Get list of discovered clues."""
+        return [clue for clue in self.clues if clue.discovered]
+
+
 class Puzzle (Component):
   """A class to represent a Puzzle"""
 
   def __init__(self, name: str, descriptions: 'list[str]', problem: str, answer: str, 
                puzzle_type: str = "riddle", proposed_by_character: str = None, 
-               rewards: list = None, relevance_to_objective: str = None, hints: list = None):
+               rewards: list = None, relevance_to_objective: str = None):
     
     super().__init__(name, descriptions)
     """inherited from Component"""
@@ -48,36 +91,6 @@ class Puzzle (Component):
     
     self.relevance_to_objective = relevance_to_objective
     """how solving this puzzle helps achieve the main objective"""
-    
-    self.hints = hints or []
-    """list of progressive hints to help solve the puzzle"""
-    
-    self.given_hints = set()
-    """set of hint indices that have already been given to the player"""
-
-  def get_next_hint(self):
-    """Get the next available hint for this puzzle."""
-    if not self.hints:
-      return None
-    
-    # Find the next hint that hasn't been given yet
-    for i, hint in enumerate(self.hints):
-      if i not in self.given_hints:
-        self.given_hints.add(i)
-        return hint
-    
-    # All hints have been given
-    return None
-  
-  def has_more_hints(self):
-    """Check if there are more hints available."""
-    if not self.hints:
-      return False
-    return len(self.given_hints) < len(self.hints)
-  
-  def reset_hints(self):
-    """Reset the given hints (for debugging or restarting)."""
-    self.given_hints.clear()
 
 class Item (Component):
   """A class to represent an Item."""
@@ -236,8 +249,12 @@ class World:
       if self.objective[1] in self.objective[0].inventory: done = True
     elif first_component_class == "Item" and second_component_class == "Location":
       if self.objective[0] in self.objective[1].items: done = True
+    elif second_component_class == "MysteryObjective":
+      # Check if mystery objective is completed
+      mystery_obj = self.objective[1]
+      done = mystery_obj.is_completed()
     elif hasattr(self.objective[1], 'name') and 'Mystery:' in str(self.objective[1].name):
-      # Mystery objectives require manual completion through narrative
+      # Legacy mystery objectives require manual completion through narrative
       # For now, they are never automatically completed
       done = False
 
@@ -561,6 +578,34 @@ class World:
 
     return world_description + '\n' + details
 
+  def _check_mystery_clue_discovery(self, item_name: str) -> str:
+    """Check if interacting with an item discovers mystery clues and return discovery message."""
+    discovery_message = ""
+    
+    # Check if we have a mystery objective
+    if (hasattr(self, 'objective') and self.objective and 
+        len(self.objective) >= 2 and 
+        hasattr(self.objective[1], '__class__') and 
+        self.objective[1].__class__.__name__ == 'MysteryObjective'):
+        
+        mystery_obj = self.objective[1]
+        discovered_clue = mystery_obj.discover_clue_for_item(item_name)
+        
+        if discovered_clue:
+            # Create discovery message based on language
+            # You can enhance this to use proper language detection
+            discovery_message = f"\n\n🔍 **Mystery Clue Discovered!**\n"
+            discovery_message += f"**{discovered_clue.name}:** {discovered_clue.description}\n"
+            discovery_message += f"*Relevance:* {discovered_clue.relevance_to_mystery}\n"
+            
+            # Show progress
+            discovered, total = mystery_obj.get_completion_progress()
+            discovery_message += f"*Progress:* {discovered}/{total} clues discovered"
+            
+            print(f"🔍 Mystery clue discovered: {discovered_clue.name}")
+    
+    return discovery_message
+
   def update_from_structured(self, world_update) -> None:
     """Update world state using structured WorldUpdate object."""
     from ..llm.structured_data_models import WorldUpdate
@@ -576,6 +621,11 @@ class World:
           item_location += [location for location in list(self.locations.values()) if world_item in location.items]
           if item_location:
             self.player.save_item(world_item, item_location[0])
+            # Check for mystery clue discovery when taking items
+            clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+            if clue_discovery:
+              # Add discovery message to narration
+              world_update.narration += clue_discovery
             
         elif moved_obj.new_location in self.characters:
           # Player gives item to character
@@ -660,6 +710,10 @@ class World:
             item_location = [character for character in list(self.characters.values()) if world_item in character.inventory]
             item_location += [location for location in list(self.locations.values()) if world_item in location.items]
             self.player.save_item(world_item, item_location[0])
+            # Check for mystery clue discovery when taking items
+            clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+            if clue_discovery:
+              print(clue_discovery)
 
           elif pair[0][1] in self.characters: #(give_item case)
             self.player.give_item(self.characters[pair[0][1]], world_item)
