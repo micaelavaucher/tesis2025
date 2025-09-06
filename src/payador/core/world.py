@@ -578,7 +578,7 @@ class World:
 
     return world_description + '\n' + details
 
-  def _check_mystery_clue_discovery(self, item_name: str) -> str:
+  def _check_mystery_clue_discovery(self, item_name: str, language: str = 'en') -> str:
     """Check if interacting with an item discovers mystery clues and return discovery message."""
     discovery_message = ""
     
@@ -593,20 +593,30 @@ class World:
         
         if discovered_clue:
             # Create discovery message based on language
-            # You can enhance this to use proper language detection
-            discovery_message = f"\n\n🔍 **Mystery Clue Discovered!**\n"
-            discovery_message += f"**{discovered_clue.name}:** {discovered_clue.description}\n"
-            discovery_message += f"*Relevance:* {discovered_clue.relevance_to_mystery}\n"
-            
-            # Show progress
-            discovered, total = mystery_obj.get_completion_progress()
-            discovery_message += f"*Progress:* {discovered}/{total} clues discovered"
-            
-            print(f"🔍 Mystery clue discovered: {discovered_clue.name}")
+            if language == 'es':
+                discovery_message = f"\n\n🔍 **¡Pista del Misterio Descubierta!**\n"
+                discovery_message += f"**{discovered_clue.name}:** {discovered_clue.description}\n"
+                discovery_message += f"*Relevancia:* {discovered_clue.relevance_to_mystery}\n"
+                
+                # Show progress
+                discovered, total = mystery_obj.get_completion_progress()
+                discovery_message += f"*Progreso:* {discovered}/{total} pistas descubiertas"
+                
+                print(f"🔍 Pista del misterio descubierta: {discovered_clue.name}")
+            else:
+                discovery_message = f"\n\n🔍 **Mystery Clue Discovered!**\n"
+                discovery_message += f"**{discovered_clue.name}:** {discovered_clue.description}\n"
+                discovery_message += f"*Relevance:* {discovered_clue.relevance_to_mystery}\n"
+                
+                # Show progress
+                discovered, total = mystery_obj.get_completion_progress()
+                discovery_message += f"*Progress:* {discovered}/{total} clues discovered"
+                
+                print(f"🔍 Mystery clue discovered: {discovered_clue.name}")
     
     return discovery_message
 
-  def update_from_structured(self, world_update) -> None:
+  def update_from_structured(self, world_update, language: str = 'en') -> None:
     """Update world state using structured WorldUpdate object."""
     from ..llm.structured_data_models import WorldUpdate
     
@@ -622,7 +632,7 @@ class World:
           if item_location:
             self.player.save_item(world_item, item_location[0])
             # Check for mystery clue discovery when taking items
-            clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+            clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
             if clue_discovery:
               # Add discovery message to narration
               world_update.narration += clue_discovery
@@ -677,6 +687,20 @@ class World:
       except Exception as e:
         print(f"Error processing puzzle solution {puzzle_solution.puzzle_name}: {e}")
 
+    # Check for mystery clue discovery when interacting with items
+    # This handles cases where items can't be picked up (gettable=False) but players interact with them
+    if hasattr(world_update, 'narration') and world_update.narration:
+      for item_name, item in self.items.items():
+        # Check if the item is mentioned in the narration and is in the current location
+        if (item_name.lower() in world_update.narration.lower() and 
+            item in self.player.location.items and
+            not any(moved_obj.object_name == item_name for moved_obj in world_update.moved_objects)):
+          # Player interacted with item but didn't move it - check for clue discovery
+          clue_discovery = self._check_mystery_clue_discovery(item_name, language)
+          if clue_discovery:
+            # Add discovery message to narration
+            world_update.narration += clue_discovery
+
   def update (self, updates: str) -> None:
     """Does the changes in the world according to the output of the language model.
 
@@ -689,6 +713,20 @@ class World:
     self.parse_blocked_passages(updates)
     self.parse_location_change(updates)
     self.parse_puzzle_solution(updates)
+    
+    # Check for mystery clue discovery when interacting with items (legacy method)
+    # This handles cases where items can't be picked up but players interact with them
+    for item_name, item in self.items.items():
+      # Check if the item is mentioned in the updates and is in the current location
+      if (item_name.lower() in updates.lower() and 
+          item in self.player.location.items):
+        # Check if the item was NOT moved (no "Moved object: <item_name>" in updates)
+        moved_pattern = f"Moved object:.*<{re.escape(item_name)}>"
+        if not re.search(moved_pattern, updates, re.IGNORECASE):
+          # Player interacted with item but didn't move it - check for clue discovery
+          clue_discovery = self._check_mystery_clue_discovery(item_name, 'en')  # Default to English for legacy
+          if clue_discovery:
+            print(clue_discovery)
 
   def parse_moved_objects (self, updates: str) -> None:
     """Parse the output of the language model to update the position of objects.
