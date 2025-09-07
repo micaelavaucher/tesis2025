@@ -312,10 +312,25 @@ def get_tutorial_world_english() -> World:
     turtle = Item("Turtle",
                   ["A small, friendly turtle", "It has a green shell with brown spots", "The turtle seems to want to come with you"])
     
+    # Create instructional poster for the starting room
+    instructions_poster = Item("Instructions Poster",
+                              ["A helpful poster mounted on the wall with game instructions",
+                               "📋 GAME INSTRUCTIONS:",
+                               "• This is a turn-based adventure game",
+                               "• You can TAKE objects to add them to your inventory",
+                               "• You can INSPECT objects to learn more about them",
+                               "• Some objects cannot be taken (like this poster!)",
+                               "• Use LOOK to see your current location",
+                               "• Use INVENTORY to see what you're carrying",
+                               "• Move between locations by typing direction commands",
+                               "• Your goal is shown at the start of each game",
+                               "• Have fun exploring!"],
+                              gettable=False)
+    
     # Create locations
     starting_room = Location("Starting Room",
-                            ["A simple room with wooden floors", "There's a door leading north", "This is where your adventure begins"],
-                            items=[])
+                            ["A simple room with wooden floors", "There's a door leading north", "This is where your adventure begins", "There's an instructions poster on the wall", "Edward Cullen stands quietly in the corner"],
+                            items=[instructions_poster])
     
     garden = Location("Garden",
                      ["A peaceful garden with flowers and plants", "You can hear birds chirping", "There's a small turtle here looking for a new home"],
@@ -324,6 +339,12 @@ def get_tutorial_world_english() -> World:
     # Connect the locations bidirectionally
     starting_room.connecting_locations.append(garden)
     garden.connecting_locations.append(starting_room)
+    
+    # Create Edward Cullen NPC
+    edward = Character("Edward Cullen",
+                      ["A pale, mysterious figure with bronze hair", "He stands quietly in the corner", "He seems to be watching you with golden eyes", "He appears to know about the instructions poster", "He wants you to look at the instructions poster"],
+                      inventory=[],
+                      location=starting_room)
     
     # Create the player
     player = Character("Player",
@@ -334,7 +355,8 @@ def get_tutorial_world_english() -> World:
     # Create the world
     the_world = World(player)
     the_world.add_locations([starting_room, garden])
-    the_world.add_items([turtle])
+    the_world.add_items([turtle, instructions_poster])
+    the_world.add_character(edward)
     the_world.set_objective(player, turtle)  # Objective: player should get the turtle
     
     return the_world
@@ -346,10 +368,25 @@ def get_tutorial_world_spanish() -> World:
     tortuga = Item("Tortuga",
                    ["Una pequeña tortuga amigable", "Tiene un caparazón verde con manchas marrones", "La tortuga parece querer venir contigo"])
     
+    # Crear cartel de instrucciones para la habitación inicial
+    cartel_instrucciones = Item("Cartel de Instrucciones",
+                               ["Un cartel útil montado en la pared con instrucciones del juego",
+                                "📋 INSTRUCCIONES DEL JUEGO:",
+                                "• Este es un juego de aventura por turnos",
+                                "• Puedes TOMAR objetos para añadirlos a tu inventario",
+                                "• Puedes INSPECCIONAR objetos para aprender más sobre ellos",
+                                "• Algunos objetos no se pueden tomar (¡como este cartel!)",
+                                "• Usa MIRAR para ver tu ubicación actual",
+                                "• Usa INVENTARIO para ver lo que llevas",
+                                "• Muévete entre ubicaciones escribiendo comandos de dirección",
+                                "• Tu objetivo se muestra al inicio de cada juego",
+                                "• ¡Diviértete explorando!"],
+                               gettable=False)
+    
     # Crear ubicaciones
     habitacion_inicial = Location("Habitación Inicial",
-                                 ["Una habitación simple con pisos de madera", "Hay una puerta que lleva al norte", "Aquí es donde comienza tu aventura"],
-                                 items=[])
+                                 ["Una habitación simple con pisos de madera", "Hay una puerta que lleva al norte", "Aquí es donde comienza tu aventura", "Hay un cartel de instrucciones en la pared", "Edward Cullen permanece en silencio en la esquina"],
+                                 items=[cartel_instrucciones])
     
     jardin = Location("Jardín",
                      ["Un jardín pacífico con flores y plantas", "Puedes escuchar pájaros cantando", "Hay una pequeña tortuga aquí buscando un nuevo hogar"],
@@ -358,6 +395,12 @@ def get_tutorial_world_spanish() -> World:
     # Conectar las ubicaciones bidireccionalmente  
     habitacion_inicial.connecting_locations.append(jardin)
     jardin.connecting_locations.append(habitacion_inicial)
+    
+    # Crear Edward Cullen NPC
+    eduardo = Character("Edward Cullen",
+                       ["Una figura pálida y misteriosa con cabello bronceado", "Permanece en silencio en la esquina", "Parece estar observándote con ojos dorados", "Parece saber sobre el cartel de instrucciones", "Quiere que mires el cartel de instrucciones"],
+                       inventory=[],
+                       location=habitacion_inicial)
     
     # Crear el jugador
     jugador = Character("Jugador",
@@ -368,7 +411,8 @@ def get_tutorial_world_spanish() -> World:
     # Crear el mundo
     el_mundo = World(jugador)
     el_mundo.add_locations([habitacion_inicial, jardin])
-    el_mundo.add_items([tortuga])
+    el_mundo.add_items([tortuga, cartel_instrucciones])
+    el_mundo.add_character(eduardo)
     el_mundo.set_objective(jugador, tortuga)  # Objetivo: el jugador debe conseguir la tortuga
     
     return el_mundo
