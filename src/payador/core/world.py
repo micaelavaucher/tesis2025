@@ -439,8 +439,8 @@ class World:
   def __render_world_spanish(self, *,  detail_components:bool = True) -> str:
     """Return the fictional world as a natural language description, using simple sentences in Spanish."""
     player_location = self.player.location
-    reachable_locations = [f"<{p.name}>" for p in player_location.connecting_locations]
-    blocked_passages = [f"<{p}> bloqueado por <{player_location.blocked_locations[p][1].name}>" for p in player_location.blocked_locations.keys()]
+    reachable_locations = [f"{p.name}" for p in player_location.connecting_locations]
+    blocked_passages = [f"{p} bloqueado por {player_location.blocked_locations[p][1].name}" for p in player_location.blocked_locations.keys()]
     characters_in_the_scene = [character for character in self.characters.values() if character.location is player_location]
     
     # Add puzzles proposed by characters in the scene
@@ -450,35 +450,35 @@ class World:
             if puzzle.proposed_by_character == character.name:
                 puzzles_available.append(puzzle)
 
-    world_description = f'El jugador está en <{player_location.name}>\n'
+    world_description = f'El jugador está en {player_location.name}\n'
     
     if reachable_locations:
-      world_description += f'Desde <{player_location.name}> el jugador puede ir a: {(", ").join(reachable_locations)}\n'
+      world_description += f'Desde {player_location.name} el jugador puede ir a: {(", ").join(reachable_locations)}\n'
     else:
-      world_description += f'Desde <{player_location.name}> el jugador puede ir a: None\n'
+      world_description += f'Desde {player_location.name} el jugador puede ir a: None\n'
 
     if blocked_passages:
-      world_description += f'Desde <{player_location.name}> hay pasajes bloqueados hacia: {(", ").join(blocked_passages)}\n'
+      world_description += f'Desde {player_location.name} hay pasajes bloqueados hacia: {(", ").join(blocked_passages)}\n'
     else:
-      world_description += f'Desde <{player_location.name}> hay pasajes bloqueados hacia: None\n'
+      world_description += f'Desde {player_location.name} hay pasajes bloqueados hacia: None\n'
 
     if self.player.inventory:
-      world_description += f'El jugador tiene los siguientes objetos en su inventario: {(", ").join([f"<{i.name}>" for i in self.player.inventory])}\n'
+      world_description += f'El jugador tiene los siguientes objetos en su inventario: {(", ").join([f"{i.name}" for i in self.player.inventory])}\n'
     else:
       world_description += f'El jugador tiene los siguientes objetos en su inventario: None\n'
 
     if player_location.items:
-      world_description += f'El jugador puede ver los siguientes objetos: {(", ").join([f"<{i.name}>" for i in player_location.items])}\n'
+      world_description += f'El jugador puede ver los siguientes objetos: {(", ").join([f"{i.name}" for i in player_location.items])}\n'
     else:
       world_description += f'El jugador puede ver los siguientes objetos: None\n'
       
     if characters_in_the_scene:
-      world_description += f'El jugador puede ver a los siguientes personajes: {(", ").join([f"<{c.name}>" for c in characters_in_the_scene])}\n'
+      world_description += f'El jugador puede ver a los siguientes personajes: {(", ").join([f"{c.name}" for c in characters_in_the_scene])}\n'
     else:
       world_description += f'El jugador puede ver a los siguientes personajes: None\n'
     
     if puzzles_available:
-      world_description += f'Hay puzzles disponibles propuestos por personajes: {(", ").join([f"<{p.name}>" for p in puzzles_available])}'
+      world_description += f'Hay puzzles disponibles propuestos por personajes: {(", ").join([f"{p.name}" for p in puzzles_available])}'
     else:
       world_description += f'Hay puzzles disponibles propuestos por personajes: None'
 
@@ -489,25 +489,25 @@ class World:
       puzzles_in_the_scene += puzzles_available  # Add character-proposed puzzles
 
       details += "\nAquí hay una descripción de cada componente.\n"
-      details += f"<{player_location.name}>: Este es el lugar en el que está el jugador. {('. ').join(player_location.descriptions)}.\n"
+      details += f"{player_location.name}: Este es el lugar en el que está el jugador. {('. ').join(player_location.descriptions)}.\n"
       details += "Personajes:\n"
-      details += f"- <Jugador>: El jugador está actuando como <{self.player.name}>. {('. ').join(self.player.descriptions)}.\n"
+      details += f"- Jugador: El jugador está actuando como {self.player.name}. {('. ').join(self.player.descriptions)}.\n"
       if len(characters_in_the_scene)>0:
         for character in characters_in_the_scene:
-          details += f"- <{character.name}>: {('. ').join(character.descriptions)}."
+          details += f"- {character.name}: {('. ').join(character.descriptions)}."
           if len(character.inventory)>0:
-            details += f"Este personaje tiene los siguientes objetos en su inventario: {(', ').join([f'<{i.name}>' for i in character.inventory])}\n"
+            details += f"Este personaje tiene los siguientes objetos en su inventario: {(', ').join([f'{i.name}' for i in character.inventory])}\n"
             items_in_the_scene+= character.inventory
           else:
             details += "\n"
       if len(items_in_the_scene)>0:
         details+="Objetos:\n"
         for item in items_in_the_scene:
-          details += f"- <{item.name}>: {('. ').join(item.descriptions)}\n"
+          details += f"- {item.name}: {('. ').join(item.descriptions)}\n"
       if len(puzzles_in_the_scene)>0:
         details+="Puzzles:\n"
         for puzzle in puzzles_in_the_scene:
-          details+= f'- <{puzzle.name}>: {(". ").join(puzzle.descriptions)}. El acertijo a resolver es: "{puzzle.problem}". La respuesta esperada, que NO PUEDES decirle al jugador (JAMÁS) es: "{puzzle.answer}".\n'
+          details+= f'- {puzzle.name}: {(". ").join(puzzle.descriptions)}. El acertijo a resolver es: "{puzzle.problem}". La respuesta esperada, que NO PUEDES decirle al jugador (JAMÁS) es: "{puzzle.answer}".\n'
 
     return world_description + '\n' + details
 
@@ -518,35 +518,35 @@ class World:
     If detail_components is False, then the descriptions for each component are not included.
     """
     player_location = self.player.location
-    reachable_locations = [f"<{p.name}>" for p in player_location.connecting_locations]
-    blocked_passages = [f"<{p}> blocked by <{player_location.blocked_locations[p][1].name}>" for p in player_location.blocked_locations.keys()]
+    reachable_locations = [f"{p.name}" for p in player_location.connecting_locations]
+    blocked_passages = [f"{p} blocked by {player_location.blocked_locations[p][1].name}" for p in player_location.blocked_locations.keys()]
     characters_in_the_scene = [character for character in self.characters.values() if character.location is player_location]
 
     
-    world_description = f'The player is in <{player_location.name}>\n'
+    world_description = f'The player is in {player_location.name}\n'
     
     if reachable_locations:
-      world_description += f'From <{player_location.name}> the player can access: {(", ").join(reachable_locations)}\n'
+      world_description += f'From {player_location.name} the player can access: {(", ").join(reachable_locations)}\n'
     else:
-      world_description += f'From <{player_location.name}> the player can access: None\n'
+      world_description += f'From {player_location.name} the player can access: None\n'
 
     if blocked_passages:
-      world_description += f'From <{player_location.name}> there are blocked passages to: {(", ").join(blocked_passages)}\n'
+      world_description += f'From {player_location.name} there are blocked passages to: {(", ").join(blocked_passages)}\n'
     else:
-      world_description += f'From <{player_location.name}> there are blocked passages to: None\n'
+      world_description += f'From {player_location.name} there are blocked passages to: None\n'
 
     if self.player.inventory:
-      world_description += f'The player has the following objects in the inventory: {(", ").join([f"<{i.name}>" for i in self.player.inventory])}\n'
+      world_description += f'The player has the following objects in the inventory: {(", ").join([f"{i.name}" for i in self.player.inventory])}\n'
     else:
       world_description += f'The player has the following objects in the inventory: None\n'
 
     if player_location.items:
-      world_description += f'The player can see the following objects: {(", ").join([f"<{i.name}>" for i in player_location.items])}\n'
+      world_description += f'The player can see the following objects: {(", ").join([f"{i.name}" for i in player_location.items])}\n'
     else:
       world_description += f'The player can see the following objects: None\n'
       
     if characters_in_the_scene:
-      world_description += f'The player can see the following characters: {(", ").join([f"<{c.name}>" for c in characters_in_the_scene])}'
+      world_description += f'The player can see the following characters: {(", ").join([f"{c.name}" for c in characters_in_the_scene])}'
     else:
       world_description += f'The player can see the following characters: None'
 
@@ -556,25 +556,25 @@ class World:
       puzzles_in_the_scene = [blocked_values[1] for blocked_values in player_location.blocked_locations.values() if isinstance(blocked_values[1], Puzzle)]
 
       details += "\nHere is a description of each component.\n"
-      details += f"<{player_location.name}>: This is the player's location. {('. ').join(player_location.descriptions)}.\n"
+      details += f"{player_location.name}: This is the player's location. {('. ').join(player_location.descriptions)}.\n"
       details += "Characters:\n"
-      details += f"- <Player>: The player is acting as <{self.player.name}>. {('. ').join(self.player.descriptions)}.\n"
+      details += f"- Player: The player is acting as {self.player.name}. {('. ').join(self.player.descriptions)}.\n"
       if len(characters_in_the_scene)>0:
         for character in characters_in_the_scene:
-          details += f"- <{character.name}>: {('. ').join(character.descriptions)}."
+          details += f"- {character.name}: {('. ').join(character.descriptions)}."
           if len(character.inventory)>0:
-            details += f" This character has the following items: {(', ').join([f'<{i.name}>' for i in character.inventory])}\n"
+            details += f" This character has the following items: {(', ').join([f'{i.name}' for i in character.inventory])}\n"
             items_in_the_scene+= character.inventory
           else:
             details += "\n"
       if len(items_in_the_scene)>0:
         details+="Objects:\n"
         for item in items_in_the_scene:
-          details += f"- <{item.name}>: {('. ').join(item.descriptions)}\n"
+          details += f"- {item.name}: {('. ').join(item.descriptions)}\n"
       if len(puzzles_in_the_scene)>0:
         details+="Puzzles:\n"
         for puzzle in puzzles_in_the_scene:
-          details+= f'- <{puzzle.name}>: {(". ").join(puzzle.descriptions)}. The riddle to solve is: "{puzzle.problem}". The expected answer, that you CANNOT tell the player (EVER) is: "{puzzle.answer}".\n'
+          details+= f'- {puzzle.name}: {(". ").join(puzzle.descriptions)}. The riddle to solve is: "{puzzle.problem}". The expected answer, that you CANNOT tell the player (EVER) is: "{puzzle.answer}".\n'
 
     return world_description + '\n' + details
 
