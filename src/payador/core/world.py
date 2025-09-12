@@ -570,11 +570,11 @@ class World:
       if len(items_in_the_scene)>0:
         details+="Objects:\n"
         for item in items_in_the_scene:
-          details += f"- {item.name}: {('. ').join(item.descriptions)}\n"
+          details += f"- <{item.name}>: {('. ').join(item.descriptions)}\n"
       if len(puzzles_in_the_scene)>0:
         details+="Puzzles:\n"
         for puzzle in puzzles_in_the_scene:
-          details+= f'- {puzzle.name}: {(". ").join(puzzle.descriptions)}. The riddle to solve is: "{puzzle.problem}". The expected answer, that you CANNOT tell the player (EVER) is: "{puzzle.answer}".\n'
+          details+= f'- <{puzzle.name}>: {(". ").join(puzzle.descriptions)}. The riddle to solve is: "{puzzle.problem}". The expected answer, that you CANNOT tell the player (EVER) is: "{puzzle.answer}".\n'
 
     return world_description + '\n' + details
 

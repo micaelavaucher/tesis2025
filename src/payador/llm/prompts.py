@@ -20,7 +20,7 @@ def prompt_describe_objective_english (objective):
 
     system_msg = """You have to provide an alternative way to narrate the objective given to you. You should always use simple language. 
     
-    Provide your narration in a clear, direct format, between # characters. For example: # You have to get the key # or # You have to reach the castle #"""
+    Provide your narration in a clear, direct format. For example: You have to get the key or You have to reach the castle"""
 
     # Handle new GeneratedObjective structure - check if it's a tuple with new structure
     if len(objective) == 2 and hasattr(objective[1], 'description') and hasattr(objective[1], 'type'):
@@ -48,7 +48,7 @@ def prompt_describe_objective_spanish (objective):
 
     system_msg = """Tienes que dar una forma alternativa de narrar el objetivo que se te dará. Siempre usa lenguaje simple. 
     
-    Proporciona tu narración en un formato claro y directo, entre caracteres #. Por ejemplo: # Tienes que conseguir la Llave # o # Tienes que llegar al Castillo #"""
+    Proporciona tu narración en un formato claro y directo. Por ejemplo: Tienes que conseguir la llave o Tienes que llegar al castillo"""
 
     # Handle new GeneratedObjective structure - check if it's a tuple with new structure
     if len(objective) == 2 and hasattr(objective[1], 'description') and hasattr(objective[1], 'type'):
