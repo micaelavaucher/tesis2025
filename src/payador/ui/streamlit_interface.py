@@ -25,6 +25,10 @@ def initialize_session_state():
         config = load_config()
         st.session_state.generation_mode = config.get('Options', 'GenerationMode', fallback='inspiration')
     
+    if 'debug_mode' not in st.session_state:
+        config = load_config()
+        st.session_state.debug_mode = config.getboolean('Options', 'Debug', fallback=False)
+    
     if 'world' not in st.session_state:
         st.session_state.world = None
     
@@ -106,6 +110,18 @@ def render_sidebar():
             st.session_state.chat_history = []
             st.session_state.world_generated = False
             st.rerun()
+        
+        # Debug mode toggle
+        new_debug = st.checkbox(
+            "🛠️ Debug Mode",
+            value=st.session_state.debug_mode,
+            disabled=game_active,
+            help="Enable debug quick actions for world inspection"
+        )
+        
+        if not game_active and new_debug != st.session_state.debug_mode:
+            st.session_state.debug_mode = new_debug
+            update_config('Options', 'Debug', str(new_debug).lower())
         
         if game_active:
             st.info("🔒 Settings locked during active game")
@@ -554,36 +570,75 @@ def render_chat_interface():
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    # Define quick actions based on language
-    if st.session_state.language == 'es':
-        quick_actions = [
-            ("🎯 Objetivo", "objetivo"),
-            ("📋 Inventario", "inventario"),
-            ("👀 Mirar", "mirar alrededor"),
-            ("🗺️ Estado", "estado del mundo"),
-            ("💡 Ayuda", "ayuda"),
-            ("📍 Ubicación", "¿dónde estoy?")
-        ]
+    # Define quick actions based on language and debug mode
+    if st.session_state.debug_mode:
+        # Debug mode: show all actions
+        if st.session_state.language == 'es':
+            quick_actions = [
+                ("🎯 Objetivo", "objetivo"),
+                ("💡 Ayuda", "ayuda"),
+                ("📋 Inventario", "inventario"),
+                ("🔍 Inspeccionar", "inspeccionar mundo"),
+                ("🗺️ Resumen", "resumen mundo"),
+                ("📍 Ubicación", "¿dónde estoy?")
+            ]
+        else:
+            quick_actions = [
+                ("🎯 Objective", "objective"),
+                ("💡 Help", "help"),
+                ("📋 Inventory", "inventory"),
+                ("🔍 Inspect World", "inspect world"),
+                ("🗺️ Overview", "world overview"),
+                ("📍 Location", "where am I?")
+            ]
     else:
-        quick_actions = [
-            ("🎯 Objective", "objective"),
-            ("📋 Inventory", "inventory"),
-            ("👀 Look", "look around"),
-            ("🗺️ Status", "world status"),
-            ("💡 Help", "help"),
-            ("📍 Location", "where am I?")
-        ]
+        # Normal mode: only basic actions
+        if st.session_state.language == 'es':
+            quick_actions = [
+                ("🎯 Objetivo", "objetivo"),
+                ("💡 Ayuda", "ayuda")
+            ]
+        else:
+            quick_actions = [
+                ("🎯 Objective", "objective"),
+                ("💡 Help", "help")
+            ]
     
     # Quick action buttons - positioned right before chat input
-    st.markdown("**🎯 Quick Actions:**")
-    cols = st.columns(6)
+    if st.session_state.debug_mode:
+        st.markdown("<div style='text-align: left; margin-left: 4%; padding: 15px;'>🛠️ Debug Quick Actions:</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div style='text-align: left; margin-left: 4%; padding: 15px;'>🎯 Quick Actions:</div>", unsafe_allow_html=True)
     
-    # Create buttons for quick actions
-    for i, (button_text, command_text) in enumerate(quick_actions):
-        with cols[i]:
-            if st.button(button_text, key=f"quick_action_{i}", help=f"Send: {command_text}"):
-                # Simulate sending the command
-                st.session_state.pending_command = command_text
+    # Create buttons for quick actions with better spacing
+    if st.session_state.debug_mode:
+        # Debug mode: use 2 centered rows of 3 columns each with left margin
+        # First row
+        col_margin1, col1, col2, col3 = st.columns([0.20, 0.32, 0.32, 0.32])
+        # Second row  
+        col_margin2, col4, col5, col6 = st.columns([0.20, 0.32, 0.32, 0.32])
+        
+        cols = [col1, col2, col3, col4, col5, col6]
+        
+        for i, (button_text, command_text) in enumerate(quick_actions):
+            with cols[i]:
+                if st.button(button_text, key=f"quick_action_{i}", help=f"Send: {command_text}"):
+                    # Simulate sending the command
+                    st.session_state.pending_command = command_text
+                    st.rerun()
+    else:
+        # Normal mode: center the 2 buttons with left margin
+        col1, col2, col3 = st.columns([0.32, 0.32, 0.32])
+        
+        # Place buttons in the middle columns
+        with col2:
+            if st.button(quick_actions[0][0], key="quick_action_0", help=f"Send: {quick_actions[0][1]}"):
+                st.session_state.pending_command = quick_actions[0][1]
+                st.rerun()
+        
+        with col3:
+            if st.button(quick_actions[1][0], key="quick_action_1", help=f"Send: {quick_actions[1][1]}"):
+                st.session_state.pending_command = quick_actions[1][1]
                 st.rerun()
     
     # Chat input
@@ -626,10 +681,12 @@ def main():
             font-size: 0.8rem;
             padding: 0.25rem 0.5rem;
             margin: 0.1rem;
-            height: auto;
+            height: 2.5rem;
+            width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            min-width: 0;
         }
         
         /* Selectbox styling for light mode */
