@@ -43,6 +43,10 @@ def get_enable_rag(config):
     """Get the RAG enable setting from config."""
     return config["Options"].getboolean("EnableRAG", fallback=True)
 
+def get_debug(config):
+    """Get the debug setting from config."""
+    return config["Options"].getboolean("Debug", fallback=False)
+
 def update_config(section, key, value):
     """Update a configuration value and save to file."""
     config = configparser.ConfigParser()

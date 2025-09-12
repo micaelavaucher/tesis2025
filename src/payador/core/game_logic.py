@@ -249,20 +249,35 @@ def generate_world_overview(world, language):
                 overview += f" - Items: None\n"
         
         # NPCs in this location
-        npcs = []
+        npcs_with_inventory = []
         if hasattr(world, 'characters') and world.characters:
             for char in world.characters.values():
                 if (hasattr(char, 'location') and char.location is location and 
                     char is not world.player):  # Don't include the player
-                    npcs.append(char.name)
+                    # Get character inventory
+                    char_inventory = []
+                    if hasattr(char, 'inventory') and char.inventory:
+                        char_inventory = [item.name for item in char.inventory]
+                    npcs_with_inventory.append((char.name, char_inventory))
         
-        if npcs:
+        if npcs_with_inventory:
             if language == 'es':
                 overview += f" - PNJs:\n"
             else:
                 overview += f" - NPCs:\n"
-            for npc in npcs:
-                overview += f"   - {npc}\n"
+            for npc_name, npc_inventory in npcs_with_inventory:
+                overview += f"   - {npc_name}"
+                if npc_inventory:
+                    if language == 'es':
+                        overview += f" (Inventario: {', '.join(npc_inventory)})"
+                    else:
+                        overview += f" (Inventory: {', '.join(npc_inventory)})"
+                else:
+                    if language == 'es':
+                        overview += f" (Inventario: Vacío)"
+                    else:
+                        overview += f" (Inventory: Empty)"
+                overview += "\n"
         else:
             if language == 'es':
                 overview += f" - PNJs: Ninguno\n"
