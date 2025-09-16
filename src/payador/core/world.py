@@ -69,7 +69,8 @@ class Puzzle (Component):
 
   def __init__(self, name: str, descriptions: 'list[str]', problem: str, answer: str, 
                puzzle_type: str = "riddle", proposed_by_character: str = None, 
-               rewards: list = None, relevance_to_objective: str = None):
+               proposed_by_item: str = None, rewards: list = None, 
+               relevance_to_objective: str = None):
     
     super().__init__(name, descriptions)
     """inherited from Component"""
@@ -85,6 +86,9 @@ class Puzzle (Component):
     
     self.proposed_by_character = proposed_by_character
     """character who proposes this puzzle, or None if environmental"""
+    
+    self.proposed_by_item = proposed_by_item
+    """item that when investigated proposes this puzzle, or None if proposed by character/environmental"""
     
     self.rewards = rewards or []
     """list of rewards obtained when solving this puzzle"""
@@ -687,6 +691,34 @@ class World:
       except Exception as e:
         print(f"Error processing puzzle solution {puzzle_solution.puzzle_name}: {e}")
 
+    # Check for puzzle proposition when investigating items
+    # This handles cases where investigating items should propose puzzles
+    if hasattr(world_update, 'narration') and world_update.narration:
+      # Look for item investigation keywords in the narration
+      investigation_keywords = ['investigate', 'examine', 'look at', 'inspect', 'observe', 'check', 'study']
+      narration_lower = world_update.narration.lower()
+      
+      # Check if any item in the current location has been investigated
+      for item_name, item in self.items.items():
+        if item in self.player.location.items:
+          # Check if the item is mentioned with investigation keywords
+          item_mentioned = any(keyword in narration_lower and item_name.lower() in narration_lower 
+                             for keyword in investigation_keywords)
+          
+          # Also check if item was mentioned without being moved (indicating investigation)
+          item_investigated_not_moved = (item_name.lower() in narration_lower and 
+                                       not any(moved_obj.object_name == item_name for moved_obj in world_update.moved_objects))
+          
+          if item_mentioned or item_investigated_not_moved:
+            # Check if this item should propose a puzzle
+            puzzle = self.find_puzzle_proposed_by_item(item_name)
+            if puzzle:
+              print(f"🧩 Item {item_name} investigation triggered puzzle: {puzzle.name}")
+              # Add puzzle proposition to narration if not already present
+              if puzzle.name.lower() not in world_update.narration.lower():
+                puzzle_description = puzzle.descriptions[0] if puzzle.descriptions else puzzle.problem
+                world_update.narration += f"\n\n🧩 {puzzle_description}\n\n{puzzle.problem}"
+
     # Check for mystery clue discovery when interacting with items
     # This handles cases where items can't be picked up (gettable=False) but players interact with them
     if hasattr(world_update, 'narration') and world_update.narration:
@@ -869,6 +901,14 @@ class World:
       for name, item in self.items.items():
           if name.lower() == item_name.lower():
               return item
+      return None
+
+  def find_puzzle_proposed_by_item(self, item_name: str):
+      """Find a puzzle that is proposed by a specific item when investigated."""
+      for puzzle_name, puzzle in self.puzzles.items():
+          if hasattr(puzzle, 'proposed_by_item') and puzzle.proposed_by_item:
+              if puzzle.proposed_by_item.lower() == item_name.lower():
+                  return puzzle
       return None
 
   def _find_location_case_insensitive(self, location_name: str) -> 'Location':
