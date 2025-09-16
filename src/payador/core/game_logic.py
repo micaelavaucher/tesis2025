@@ -30,19 +30,25 @@ def generate_starting_narration(world, language, narrative_model):
     if hasattr(world, 'objective') and world.objective:
         system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
         narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
-        import re
         try:
-            objective_texts = re.findall(r'#(.*?)#', narrated_objective, re.DOTALL)
-            if objective_texts:
-                objective_text = " ".join([t.strip() for t in objective_texts])
-                # Fallback if objective is too short or incomplete
-                if len(objective_text.split()) < 8 or not objective_text.strip().endswith(('.', '!', '?')):
-                    print("⚠️ Objective seems incomplete, using full LLM response instead.")
+            if narrated_objective:
+                # Extract text between # markers if they exist, otherwise use full response
+                objective_texts = re.findall(r'#([^#]*?)#', str(narrated_objective))
+                if objective_texts:
+                    narrated_objective = " ".join([t.strip() for t in objective_texts])
+                    # Fallback if objective is too short or incomplete
+                    if len(narrated_objective.split()) < 8 or not narrated_objective.strip().endswith(('.', '!', '?')):
+                        print("⚠️ Objective seems incomplete, using full LLM response instead.")
+                        if not narrated_objective.strip().endswith(('.', '!', '?')):
+                            narrated_objective += '.'
+                        starting_narration += f"\n\n🎯 {narrated_objective}"
+                    else:
+                        starting_narration += f"\n\n🎯 {narrated_objective}"
+                else:
+                    # No # markers found, use full response
                     if not narrated_objective.strip().endswith(('.', '!', '?')):
                         narrated_objective += '.'
                     starting_narration += f"\n\n🎯 {narrated_objective}"
-                else:
-                    starting_narration += f"\n\n🎯 {objective_text}"
             else:
                 raise IndexError
         except (IndexError, TypeError):
@@ -301,7 +307,7 @@ def get_objective_info(world, language):
     
     # Handle different objective formats
     if hasattr(world.objective, 'description'):
-        # New structured objective format
+        # New structured objective format - this should be used for newer worlds
         raw_objective = world.objective.description
     elif isinstance(world.objective, tuple) and len(world.objective) >= 2:
         # Legacy tuple format
@@ -346,20 +352,79 @@ def get_objective_info(world, language):
                 if remaining > 0:
                     raw_objective += f"\n\n🔍 {remaining} clues remain to be discovered. Interact with objects to find them."
         else:
-            # Fallback to basic description
-            if language == 'es':
-                raw_objective = f"Completar la tarea relacionada con {world.objective[0].__class__.__name__.lower()}."
+            # Enhanced handling for different objective types based on tuple structure
+            player_or_item = world.objective[0]
+            target = world.objective[1]
+            
+            # Check if this is a delivery objective (Item -> Location/Character)
+            if player_or_item.__class__.__name__ == "Item":
+                # DELIVER_AN_ITEM objective: (item, target_location_or_character)
+                item = player_or_item
+                target_class = target.__class__.__name__
+                
+                if target_class == "Location":
+                    if language == 'es':
+                        raw_objective = f"📦 Entregar el objeto **{item.name}** a la ubicación: **{target.name}**"
+                    else:
+                        raw_objective = f"📦 Deliver the item **{item.name}** to location: **{target.name}**"
+                        
+                            
+                elif target_class == "Character":
+                    if language == 'es':
+                        raw_objective = f"📦 Entregar el objeto **{item.name}** al personaje: **{target.name}**"
+                       
+                    else:
+                        raw_objective = f"📦 Deliver the item **{item.name}** to character: **{target.name}**"
+                       
+                else:
+                    # Fallback for unknown delivery target type
+                    if language == 'es':
+                        raw_objective = f"📦 Entregar el objeto **{item.name}** a: **{target.name}**"
+                    else:
+                        raw_objective = f"📦 Deliver the item **{item.name}** to: **{target.name}**"
             else:
-                raw_objective = f"Complete the task related to {world.objective[0].__class__.__name__.lower()}."
+                # Standard player-based objectives (GET_ITEM, REACH_LOCATION, FIND_CHARACTER)
+                player = player_or_item
+                target_class = target.__class__.__name__
+                
+                if target_class == "Item":
+                    # GET_ITEM objective
+                    if language == 'es':
+                        raw_objective = f"🎒 Encontrar y obtener el objeto: **{target.name}**"
+
+                    else:
+                        raw_objective = f"🎒 Find and obtain the item: **{target.name}**"
+                        
+                elif target_class == "Location":
+                    # REACH_LOCATION objective
+                    if language == 'es':
+                        raw_objective = f"📍 Llegar a la ubicación: **{target.name}**"
+                    else:
+                        raw_objective = f"📍 Reach the location: **{target.name}**"
+                       
+                elif target_class == "Character":
+                    # FIND_CHARACTER objective
+                    if language == 'es':
+                        raw_objective = f"👤 Encontrar al personaje: **{target.name}**"
+                    else:
+                        raw_objective = f"👤 Find the character: **{target.name}**"
+                        
+                else:
+                    # Fallback for unknown target types
+                    if language == 'es':
+                        raw_objective = f"🎯 Completar la tarea relacionada con: **{target.name}**"
+                    else:
+                        raw_objective = f"🎯 Complete the task related to: **{target.name}**"
+                    
     elif isinstance(world.objective, str):
         # Simple string objective
         raw_objective = world.objective
     else:
         # Fallback for unknown formats
         if language == 'es':
-            raw_objective = "Objetivo no especificado claramente."
+            raw_objective = "🎯 Objetivo no especificado claramente."
         else:
-            raw_objective = "Objective not clearly specified."
+            raw_objective = "🎯 Objective not clearly specified."
     
     return raw_objective
 

@@ -145,6 +145,7 @@ def prompt_world_update_structured(world_state: str, input: str, language: str =
 
 REGLAS CRÍTICAS PARA PUZZLES:
 1. **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
+1b. **PROPOSICIÓN DE PUZZLES POR OBJETOS**: Si un puzzle tiene la propiedad "proposed_by_item", el puzzle DEBE ser propuesto cuando el jugador interactúe con ese objeto específico o intente desbloquear el pasaje (investigate, examine, look at, etc.).
 2. **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada.
 3. **REQUISITOS**: Verifica que se cumplan todos los requisitos antes de permitir acciones (objetos necesarios, puzzles resueltos, etc.).
 
@@ -201,6 +202,7 @@ IMPORTANTE: Siempre incluye el campo narration con una descripción detallada y 
 
 CRITICAL RULES FOR PUZZLES:
 1. **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
+1b. **PUZZLE PROPOSITION BY ITEMS**: If a puzzle has the "proposed_by_item" property, the puzzle MUST be proposed when the player interacts with that specific item or if they try to unblock the passage it blocks (investigate, examine, look at, etc.).
 2. **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
 3. **REQUIREMENTS**: Verify that all requirements are met before allowing actions (necessary objects, solved puzzles, etc.).
 
@@ -257,6 +259,7 @@ def prompt_world_update_spanish (world_state: str, input: str):
     
     **REGLAS CRÍTICAS PARA PUZZLES:**
     (P1) **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
+    (P1b) **PROPOSICIÓN DE PUZZLES POR OBJETOS**: Si un puzzle tiene la propiedad "proposed_by_item", el puzzle DEBE ser propuesto cuando el jugador interactúe con ese objeto específico o el pasaje que bloquea (investigate, examine, look at, etc.).
     (P2) **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada del puzzle.
     (P3) **REQUISITOS DE PUZZLES**: Verifica que se cumplan todos los requisitos antes de permitir que un puzzle sea resuelto.
     (P4) **RECOMPENSAS CONDICIONADAS**: Las recompensas (objetos, pasajes, información) solo se otorgan DESPUÉS de resolver exitosamente el puzzle.
@@ -273,6 +276,7 @@ def prompt_world_update_spanish (world_state: str, input: str):
     (C) **PERSONAJES CON REQUISITOS**: Si un personaje tiene requisitos específicos (como resolver un puzzle o tener ciertos objetos), NO debe dar objetos o ayudar hasta que esos requisitos se cumplan. Revisa cuidadosamente la sección de "interaction" de cada personaje y sus "requires".
     (D) No asumas que lo que dice el jugador siempre tiene sentido; quizás esas acciones intentan hacer algo que el mundo no lo permite.
     (E) **PUZZLES PROPUESTOS POR PERSONAJES**: Si un personaje propone un puzzle ("proposes_puzzle"), debe mencionarlo ANTES de dar cualquier recompensa. El jugador debe resolver el puzzle primero.
+    (E2) **PUZZLES PROPUESTOS POR OBJETOS**: Si un puzzle tiene "proposed_by_item", debe ser propuesto cuando el jugador interactúe con ese objeto específico o el pasaje que bloquea (investigate, examine, etc.).
     (F) Sigue siempre el siguiente formato con las tres categorías, usando "None" en cada caso si no hay cambios y repite la categoría por cada caso:
     - Moved object: <object> now is in <new_location>
     - Blocked passages now available: <now_reachable_location>
@@ -367,6 +371,7 @@ def prompt_world_update_english (world_state: str, input: str):
 
     **CRITICAL RULES FOR PUZZLES:**
     (P1) **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
+    (P1b) **PUZZLE PROPOSITION BY ITEMS**: If a puzzle has the "proposed_by_item" property, the puzzle MUST be proposed when the player interacts with that specific item or the passage it blocks(investigate, examine, look at, etc.).
     (P2) **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
     (P3) **PUZZLE REQUIREMENTS**: Verify that all requirements are met before allowing a puzzle to be solved.
     (P4) **CONDITIONAL REWARDS**: Rewards (objects, passages, information) are only granted AFTER successfully solving the puzzle.
@@ -1129,7 +1134,7 @@ El concepto debe ser cohesivo, interesante y proporcionar una base sólida para 
 
 The concept must be cohesive, interesting, and provide a solid foundation to build a complete adventure world.
 
-**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
 """
 
 
@@ -1229,7 +1234,7 @@ The concept must be cohesive, interesting, and provide a solid foundation to bui
 
 Theme: {theme}
 
-**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
 """
 
 

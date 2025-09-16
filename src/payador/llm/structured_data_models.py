@@ -18,7 +18,7 @@ class PuzzleType(str, Enum):
 class ObjectiveType(str, Enum):
     REACH_LOCATION = "reach_location"   # Llegar a un lugar
     GET_ITEM = "get_item"               # Conseguir un objeto
-    DELIVER_ITEM = "deliver_item"       # Entregar objeto a alguien/algún lugar
+    DELIVER_AN_ITEM = "deliver_an_item" # Entregar un objeto a alguien/algún lugar
     FIND_CHARACTER = "find_character"   # Encontrar a un personaje
     SOLVE_MYSTERY = "solve_mystery"     # Resolver un misterio general
 
@@ -100,6 +100,7 @@ class GeneratedPuzzle(BaseModel):
     answer: str = Field(description="The solution to the puzzle")
     location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character. Note: if specified, this location must exist in the world")
     proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental. Note: if specified, this character must exist in the world")
+    proposed_by_item: Optional[str] = Field(default=None, description="Item that when investigated/examined should propose this puzzle, or None if it's given by a character. Note: if specified, this item must exist in the world")
     rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
         description="What you get when you solve this puzzle. Note: all reward items and locations must exist in the world"
     )
