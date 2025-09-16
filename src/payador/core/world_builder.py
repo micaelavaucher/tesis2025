@@ -44,6 +44,7 @@ def create_world_from_llm_response(world_data) -> World:
                 answer=puzzle_data.answer,
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                proposed_by_item=getattr(puzzle_data, 'proposed_by_item', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
                 relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
             )
@@ -214,7 +215,7 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
                     if character:
                         return (player, character)
         
-        elif obj_type in ["DELIVER_ITEM", "deliver_item"]:
+        elif obj_type in ["DELIVER_AN_ITEM", "deliver_an_item"]:
             # Need both item and location/character components
             item_component = None
             target_component = None
@@ -471,6 +472,7 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 answer=puzzle_data.answer,
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                proposed_by_item=getattr(puzzle_data, 'proposed_by_item', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
                 relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
             )
