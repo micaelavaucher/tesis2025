@@ -152,7 +152,7 @@ REGLAS CRÍTICAS PARA PUZZLES:
 REGLAS GENERALES:
 - Objetos solo cambian de lugar si el jugador realiza acciones específicas (tomar, dar, dejar)
 - Pasajes bloqueados solo se desbloquean si se cumplen los requisitos específicos
-- El jugador solo se mueve si intenta explícitamente ir a otra ubicación y el movimiento es posible
+- **REGLA DE MOVIMIENTO**: El jugador se mueve si intenta explícitamente ir a otra ubicación Y esa ubicación está listada en "From [ubicación actual] the player can access:" en el estado del mundo. Si una ubicación está listada como accesible, el movimiento ES posible.
 - Presta atención a las descripciones, capacidades y requisitos de cada componente
 
 REGLAS PARA NARRACIÓN RICA:
@@ -209,7 +209,7 @@ CRITICAL RULES FOR PUZZLES:
 GENERAL RULES:
 - Objects only change location if the player performs specific actions (take, give, drop)
 - Blocked passages only unlock if specific requirements are met
-- The player only moves if they explicitly attempt to go to another location and the movement is possible
+- **MOVEMENT RULE**: The player moves if they explicitly attempt to go to another location AND that location is listed in "From [current location] the player can access:" in the world state. If a location is listed as accessible, movement IS possible.
 - Pay attention to the descriptions, capabilities, and requirements of each component
 
 RULES FOR RICH NARRATION:
@@ -275,6 +275,7 @@ def prompt_world_update_spanish (world_state: str, input: str):
     (B) Si un pasaje está bloqueado, significa que el jugador debe desbloquearlo antes de poder acceder al lugar. Aunque el jugador te diga que va a acceder al lugar bloqueado, tienes que estar seguro de que está cumpliendo con lo pedido para permitirle desbloquear el acceso, por ejemplo usando una llave o resolviendo un puzzle.
     (C) **PERSONAJES CON REQUISITOS**: Si un personaje tiene requisitos específicos (como resolver un puzzle o tener ciertos objetos), NO debe dar objetos o ayudar hasta que esos requisitos se cumplan. Revisa cuidadosamente la sección de "interaction" de cada personaje y sus "requires".
     (D) No asumas que lo que dice el jugador siempre tiene sentido; quizás esas acciones intentan hacer algo que el mundo no lo permite.
+    (D2) **REGLA DE MOVIMIENTO**: El jugador se mueve si intenta explícitamente ir a otra ubicación Y esa ubicación está listada en "From [ubicación actual] the player can access:" en el estado del mundo. Si una ubicación está listada como accesible, el movimiento ES posible.
     (E) **PUZZLES PROPUESTOS POR PERSONAJES**: Si un personaje propone un puzzle ("proposes_puzzle"), debe mencionarlo ANTES de dar cualquier recompensa. El jugador debe resolver el puzzle primero.
     (E2) **PUZZLES PROPUESTOS POR OBJETOS**: Si un puzzle tiene "proposed_by_item", debe ser propuesto cuando el jugador interactúe con ese objeto específico o el pasaje que bloquea (investigate, examine, etc.).
     (F) Sigue siempre el siguiente formato con las tres categorías, usando "None" en cada caso si no hay cambios y repite la categoría por cada caso:
@@ -381,6 +382,7 @@ def prompt_world_update_english (world_state: str, input: str):
     (B) If a passage is blocked, then the player must unblock it before being able to reach the place. Even if the player tells you that he is going to access the locked location, you have to be sure that he is complying with what you asked to allow him to unlock the access, for example by using a key or solving a puzzle.
     (C) **CHARACTERS WITH REQUIREMENTS**: If a character has specific requirements (like solving a puzzle or having certain objects), they should NOT give objects or help until those requirements are met. Carefully review the "interaction" section of each character and their "requires".
     (D) Do not assume that the player input always makes sense; maybe those actions try to do something that the world does not allow.
+    (D2) **MOVEMENT RULE**: The player moves if they explicitly attempt to go to another location AND that location is listed in "From [current location] the player can access:" in the world state. If a location is listed as accessible, movement IS possible.
     (E) Follow always the following format with the four categories, using "None" in each case if there are no changes and repeat the category for each case:
     - Moved object: <object> now is in <new_location>
     - Blocked passages now available: <now_reachable_location>
@@ -723,7 +725,7 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 - {objects} objetos (nombres únicos y 2-3 descripciones cada uno)
 - {npcs} personajes no jugadores + 1 personaje jugador
 - {puzzles} puzzles lógicos y solucionables
-- 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
+- 1 objetivo principal claro y completable con UN COMPONENTE PRINCIPAL (OBLIGATORIO - tu mundo DEBE definir un objetivo específico y simple)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
 1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
@@ -778,13 +780,14 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 **VALIDACIÓN DE COMPLETABILIDAD Y COHERENCIA CON LA INSPIRACIÓN:**
 Antes de finalizar, verifica mentalmente:
 1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO Y DIRECTAMENTE DERIVADO DE LA INSPIRACIÓN?** (OBLIGATORIO)
-2. ¿Puede el jugador completar el objetivo con los elementos disponibles?
-3. ¿Existe al menos una ruta de solución desde el estado inicial?
-4. ¿Todos los elementos referenciados existen realmente en el mundo?
-5. ¿Las interacciones de personajes están completas?
-6. ¿Los puzzles tienen sentido, son solucionables A TRAVÉS DE LA EXPLORACIÓN, y REFLEJAN ASPECTOS de la inspiración?
-7. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
-8. **¿PUEDES EXPLICAR CÓMO CADA UBICACIÓN, OBJETO, PERSONAJE Y PUZZLE ES UNA REPRESENTACIÓN O MANIFESTACIÓN DIRECTA de la inspiración proporcionada?**
+2. **¿EL OBJETIVO TIENE SOLO UN COMPONENTE PRINCIPAL, NO MÚLTIPLES HERRAMIENTAS AUXILIARES?** (OBLIGATORIO)
+3. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+4. ¿Existe al menos una ruta de solución desde el estado inicial?
+5. ¿Todos los elementos referenciados existen realmente en el mundo?
+6. ¿Las interacciones de personajes están completas?
+7. ¿Los puzzles tienen sentido, son solucionables A TRAVÉS DE LA EXPLORACIÓN, y REFLEJAN ASPECTOS de la inspiración?
+8. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
+9. **¿PUEDES EXPLICAR CÓMO CADA UBICACIÓN, OBJETO, PERSONAJE Y PUZZLE ES UNA REPRESENTACIÓN O MANIFESTACIÓN DIRECTA de la inspiración proporcionada?**
 
 **EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
 1. Jugador quiere [objetivo principal DERIVADO DIRECTAMENTE de la inspiración]
@@ -1077,6 +1080,7 @@ def PROMPT_STEP_1_CONCEPT(language: str = 'es') -> str:
 - Debe ser MOTIVADOR para el jugador
 - Debe ser COMPLETABLE con elementos físicos del mundo
 - Debe tener una razón narrativa sólida
+- Debe enfocarse en UNA meta principal, no múltiples objetivos
 
 **EJEMPLOS DE BUENOS OBJETIVOS:**
 - "Encontrar la Espada Legendaria para derrotar al dragón"
@@ -1120,6 +1124,7 @@ El concepto debe ser cohesivo, interesante y proporcionar una base sólida para 
 - Must be MOTIVATING for the player
 - Must be COMPLETABLE using physical elements from the world
 - Must have a solid narrative reason
+- Must focus on ONE primary goal, not multiple objectives
 
 **EXAMPLES OF GOOD OBJECTIVES:**
 - "Find the Legendary Sword to defeat the dragon"
@@ -1169,6 +1174,7 @@ def PROMPT_STEP_1_CONCEPT_BY_THEME(theme: str, language: str = 'es') -> str:
 - Debe ser COMPLETABLE con elementos físicos del mundo
 - Debe estar DIRECTAMENTE RELACIONADO con el tema proporcionado
 - Debe tener una razón narrativa sólida dentro del contexto temático
+- Debe enfocarse en UNA meta principal, no múltiples objetivos
 
 **EJEMPLOS DE BUENOS OBJETIVOS:**
 - Si el tema es "piratas": "Encontrar el mapa del tesoro del Capitán Barbanegra en la Isla Calavera"
@@ -1217,6 +1223,7 @@ Tema: {theme}
 - Must be COMPLETABLE using physical elements from the world
 - Must be DIRECTLY RELATED to the provided theme
 - Must have a solid narrative reason within the thematic context
+- Must focus on ONE primary goal, not multiple objectives
 
 **EXAMPLES OF GOOD OBJECTIVES:**
 - If the theme is "pirates": "Find Captain Blackbeard's treasure map on Skull Island"
@@ -1338,6 +1345,24 @@ Si el objetivo principal es resolver un misterio (type: "solve_mystery"), DEBES 
 2. **mystery_solution**: Solución completa del misterio
 3. **CRÍTICO**: Cada pista debe estar asociada ÚNICAMENTE con un OBJETO/ITEM físico que existe en el mundo - NUNCA con personajes o ubicaciones
 4. **CRÍTICO**: El "associated_item" debe ser exactamente el nombre de un objeto que aparece en la lista de items del mundo
+
+**INSTRUCCIONES CRÍTICAS PARA COMPONENTES DEL OBJETIVO:**
+- El objetivo DEBE tener SOLO UN COMPONENTE PRINCIPAL que representa la meta final
+- Para objetivos tipo "reach_location": UN solo componente de tipo "location" (la ubicación de destino)
+- Para objetivos tipo "get_item": UN solo componente de tipo "item" (el objeto que obtener)
+- Para objetivos tipo "find_character": UN solo componente de tipo "character" (el personaje que encontrar)
+- Para objetivos tipo "deliver_an_item": UN item y UN destino (character o location)
+- NO incluyas elementos auxiliares o herramientas como componentes principales
+- Los componentes principales son SOLO el objetivo final, no los medios para alcanzarlo
+
+**INSTRUCCIONES ESPECIALES PARA OBJETIVOS NO-MISTERIO:**
+Para todos los demás tipos de objetivos (que NO sean "solve_mystery"), DEBES incluir:
+1. **completion_narration**: Una descripción narrativa de lo que sucede después de que el jugador complete exitosamente el objetivo. Esto debe proporcionar una conclusión satisfactoria a la aventura y explicar las consecuencias de lograr el objetivo.
+
+Ejemplos de completion_narration:
+- "Con la espada legendaria en tus manos, finalmente derrotas al dragón. El reino está a salvo y eres aclamado como un héroe."
+- "Al entregar todos los documentos requeridos, el oficial te otorga el permiso. Ahora puedes continuar tu viaje hacia tierras lejanas."
+- "Al encontrar todos los ingredientes y preparar la poción, la aldea queda liberada de la maldición que la aquejaba durante décadas."
 5. **CRÍTICO**: El "item_location" debe ser exactamente el nombre de una ubicación que existe en el mundo
 6. Las pistas deben proporcionar información que conduzca lógicamente a la solución
 7. Debe haber al menos 3-5 pistas para hacer el misterio interesante
@@ -1393,7 +1418,7 @@ Debes crear:
 - Ubicaciones completas con descripciones atmosféricas y conexiones lógicas bidireccionales
 - Objetos detallados con descripciones y propiedades apropiadas
 - Personajes con personalidades, ubicaciones e interacciones básicas completas
-- Un objetivo claro y específico con componentes definidos y alcanzables
+- Un objetivo claro y específico con UN COMPONENTE PRINCIPAL definido y alcanzable
 - El personaje jugador en una ubicación inicial apropiada
 - Cadenas de dependencias que muestren cómo completar el objetivo
 
@@ -1437,6 +1462,24 @@ If the main objective is to solve a mystery (type: "solve_mystery"), you MUST in
 2. **mystery_solution**: Complete solution to the mystery
 3. **CRITICAL**: Each clue must be associated ONLY with a physical OBJECT/ITEM that exists in the world - NEVER with characters or locations
 4. **CRITICAL**: The "associated_item" must be exactly the name of an object that appears in the world's items list
+
+**CRITICAL INSTRUCTIONS FOR OBJECTIVE COMPONENTS:**
+- The objective MUST have ONLY ONE PRIMARY COMPONENT that represents the final goal
+- For "reach_location" objectives: ONE single component of type "location" (the destination)
+- For "get_item" objectives: ONE single component of type "item" (the target item)
+- For "find_character" objectives: ONE single component of type "character" (the target character)
+- For "deliver_an_item" objectives: ONE item and ONE destination (character or location)
+- DO NOT include auxiliary elements or tools as primary components
+- Primary components are ONLY the final objective, not the means to achieve it
+
+**SPECIAL INSTRUCTIONS FOR NON-MYSTERY OBJECTIVES:**
+For all other objective types (that are NOT "solve_mystery"), you MUST include:
+1. **completion_narration**: A narrative description of what happens after the player successfully completes the objective. This should provide a satisfying conclusion to the adventure and explain the consequences of achieving the goal.
+
+Examples of completion_narration:
+- "With the legendary sword in your hands, you finally defeat the dragon. The kingdom is safe and you are hailed as a hero."
+- "By delivering all the required documents, the official grants you the permit. You can now continue your journey to distant lands."
+- "By finding all the ingredients and preparing the potion, the village is freed from the curse that plagued it for decades."
 5. **CRITICAL**: The "item_location" must be exactly the name of a location that exists in the world
 6. Clues must provide information that logically leads to the solution
 7. There should be at least 3-5 clues to make the mystery interesting
@@ -1492,7 +1535,7 @@ You must create:
 - Fully described locations with atmospheric detail and logical bidirectional connections
 - Detailed objects with appropriate descriptions and properties
 - Characters with personalities, locations, and complete basic interactions
-- A clear and specific objective with defined and achievable components
+- A clear and specific objective with ONE PRIMARY COMPONENT defined and achievable
 - The player character in a suitable starting location
 - Dependency chains showing how to complete the objective
 
