@@ -175,6 +175,7 @@ class GeneratedObjective(BaseModel):
     success_conditions: List[str] = Field(description="Specific conditions that must be met to complete the objective. Note: ensure these conditions are actually achievable given the world setup")
     mystery_clues: Optional[List[MysteryClue]] = Field(default=None, description="List of clues for mystery objectives. Only used when type is SOLVE_MYSTERY")
     mystery_solution: Optional[str] = Field(default=None, description="The solution to the mystery. Only used when type is SOLVE_MYSTERY")
+    completion_narration: Optional[str] = Field(default=None, description="Narrative description of what happens after the player successfully completes the objective. This should provide a satisfying conclusion to the adventure. Not used for SOLVE_MYSTERY objectives (which use mystery_solution instead)")
 
 class DependencyChain(BaseModel):
     """Represents a chain of dependencies leading to the objective."""
