@@ -635,6 +635,13 @@ def check_objective_completion(world, answer, language):
                     answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
                 else:
                     answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
+            # For non-mystery objectives, show completion_narration if available
+            elif hasattr(obj_component, 'completion_narration') and obj_component.completion_narration:
+                if language == 'es':
+                    answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}"
+                else:
+                    answer += f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
+        
     
     return answer
 
