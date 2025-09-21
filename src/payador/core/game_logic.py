@@ -178,6 +178,9 @@ def initialize_game_state(world, language, log_filename, narrative_model_name, r
     last_player_position = world.player.location
     number_of_turns = 0
     
+    # Initialize hints system for the world
+    world.update_hints()
+    
     game_log_dictionary = create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name)
     game_log_dictionary[0] = {
         "date": time.ctime(time.time()),
@@ -428,9 +431,100 @@ def get_objective_info(world, language):
     
     return raw_objective
 
-def handle_debug_command(message, world, language):
-    """Handle debug inspection commands."""
+def check_character_puzzle_mention(world, message, language):
+    """
+    Check if player input mentions a character that proposes a puzzle.
+    If so, return the character's interaction text and puzzle problem.
+    
+    Args:
+        world: The game world object
+        message: Player's input message
+        language: Language for responses
+        
+    Returns:
+        str or None: Puzzle proposition text if character is mentioned, None otherwise
+    """
+    if not message:
+        return None
+    
     message_lower = message.lower()
+    
+    # Check each character in the current location
+    for character in world.characters.values():
+        if character.location == world.player.location:
+            # Check if character name is mentioned in the input
+            character_name_lower = character.name.lower()
+            if character_name_lower in message_lower:
+                # Check if this character has puzzle interaction data
+                if (hasattr(character, 'interaction') and character.interaction and
+                    hasattr(character.interaction, 'proposes_puzzle') and character.interaction.proposes_puzzle):
+                    
+                    puzzle_name = character.interaction.proposes_puzzle
+                    
+                    # Find the puzzle
+                    if puzzle_name in world.puzzles:
+                        puzzle = world.puzzles[puzzle_name]
+                        
+                        # Check puzzle state - only propose if not already proposed
+                        puzzle_state = world.puzzle_states.get(puzzle_name, 'not_proposed')
+                        
+                        if puzzle_state == 'solved':
+                            # Puzzle already solved, don't propose again
+                            return None
+                        elif puzzle_state == 'proposed':
+                            # Puzzle already proposed, don't propose again
+                            return None
+                        
+                        # Mark puzzle as proposed
+                        world.puzzle_states[puzzle_name] = 'proposed'
+                        
+                        # Build the puzzle proposition response
+                        if language == 'es':
+                            response = f"🎭 **{character.name}** se acerca a ti"
+                            
+                            # Add interaction text if available
+                            if hasattr(character.interaction, 'interaction_text') and character.interaction.interaction_text:
+                                response += f" y dice: \"{character.interaction.interaction_text}\""
+                            
+                            response += f"\n\n🧩 **Puzzle: {puzzle.name}**\n"
+                            response += f"📝 **Problema:** {puzzle.problem}\n"
+                            
+                            if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                                response += f"💡 **Pistas disponibles:** {len(puzzle.puzzle_hints)} pistas"
+                            
+                            response += f"\n\n⚠️ *Debes resolver este puzzle antes de que {character.name} pueda ayudarte.*"
+                            
+                        else:
+                            response = f"🎭 **{character.name}** approaches you"
+                            
+                            # Add interaction text if available
+                            if hasattr(character.interaction, 'interaction_text') and character.interaction.interaction_text:
+                                response += f" and says: \"{character.interaction.interaction_text}\""
+                            
+                            response += f"\n\n🧩 **Puzzle: {puzzle.name}**\n"
+                            response += f"📝 **Problem:** {puzzle.problem}\n"
+                            
+                            if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                                response += f"💡 **Hints available:** {len(puzzle.puzzle_hints)} hints"
+                            
+                            response += f"\n\n⚠️ *You must solve this puzzle before {character.name} can help you.*"
+                        
+                        print(f"🧩 Character puzzle proposition triggered: {character.name} -> {puzzle.name}")
+                        return response
+    
+    return None
+
+def handle_debug_command(message, world, language):
+    """Handle debug inspection commands and hint requests."""
+    message_lower = message.lower()
+    
+    # Handle hint requests
+    if any(word in message_lower for word in ["hint", "pista", "help", "ayuda", "clue", "piste"]):
+        hint = world.get_next_hint()
+        if language == 'es':
+            return f"💡 **Pista:** {hint}"
+        else:
+            return f"💡 **Hint:** {hint}"
     
     if message_lower in ["inspect", "inspeccionar", "inspect world", "inspeccionar mundo"]:
         debug_info = inspect_generated_world(world, language)
@@ -657,6 +751,9 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
     last_player_position = world.player.location
     number_of_turns = 0
     
+    # Ensure hints are initialized for this world
+    world.update_hints()
+    
     # Generate a single persistent world_id for the entire session
     session_world_id = f"generated_{int(time.time())}"
     
@@ -691,6 +788,11 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         debug_response = handle_debug_command(message, world, language)
         if debug_response:
             return debug_response
+
+        # Check for character puzzle mention
+        puzzle_response = check_character_puzzle_mention(world, message, language)
+        if puzzle_response:
+            return puzzle_response
 
         number_of_turns += 1
         game_log_dictionary[number_of_turns] = {}
