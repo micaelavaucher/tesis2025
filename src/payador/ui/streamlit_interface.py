@@ -7,7 +7,7 @@ replacing the Gradio interface with enhanced UI and functionality.
 import streamlit as st
 import os
 import time
-from ..config import load_config, update_config
+from ..config import load_config
 from ..llm.models import get_llm
 from ..core.game_logic import create_game_loop, generate_starting_narration
 from ..llm.generation_pipeline import create_world_incrementally_generate
@@ -18,16 +18,13 @@ import examples.example_worlds as example_worlds
 def initialize_session_state():
     """Initialize Streamlit session state variables."""
     if 'language' not in st.session_state:
-        config = load_config()
-        st.session_state.language = config.get('Options', 'Language', fallback='en')
+        st.session_state.language = 'en'  # Default to English
     
     if 'generation_mode' not in st.session_state:
-        config = load_config()
-        st.session_state.generation_mode = config.get('Options', 'GenerationMode', fallback='inspiration')
+        st.session_state.generation_mode = 'inspiration'  # Default to inspiration mode
     
     if 'debug_mode' not in st.session_state:
-        config = load_config()
-        st.session_state.debug_mode = config.getboolean('Options', 'Debug', fallback=False)
+        st.session_state.debug_mode = False  # Default debug mode off
     
     if 'world' not in st.session_state:
         st.session_state.world = None
@@ -81,7 +78,6 @@ def render_sidebar():
         
         if not game_active and language_options[new_lang] != st.session_state.language:
             st.session_state.language = language_options[new_lang]
-            update_config('Options', 'Language', st.session_state.language)
             st.rerun()
         
         # Mode selector
@@ -103,7 +99,6 @@ def render_sidebar():
         
         if not game_active and mode_options[new_mode] != st.session_state.generation_mode:
             st.session_state.generation_mode = mode_options[new_mode]
-            update_config('Options', 'GenerationMode', st.session_state.generation_mode)
             # Reset world state when mode changes
             st.session_state.world = None
             st.session_state.game_loop = None
@@ -121,7 +116,6 @@ def render_sidebar():
         
         if not game_active and new_debug != st.session_state.debug_mode:
             st.session_state.debug_mode = new_debug
-            update_config('Options', 'Debug', str(new_debug).lower())
         
         if game_active:
             st.info("🔒 Settings locked during active game")

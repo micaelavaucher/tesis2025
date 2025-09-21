@@ -2,6 +2,8 @@
 
 This module handles all configuration-related functionality including
 reading config files, setting up paths, and managing global settings.
+Only application-level configurations are managed here.
+User-level configurations are handled via Streamlit session state.
 """
 
 import configparser
@@ -15,14 +17,6 @@ def load_config():
     config.read('config.ini')
     return config
 
-def get_language(config):
-    """Get the language setting from config."""
-    return config['Options']['Language']
-
-def get_generation_mode(config):
-    """Get the generation mode from config."""
-    return config['Options'].get('GenerationMode', 'preset')
-
 def get_model_names(config):
     """Get model names from config."""
     reasoning_model_name = config['Models']['ReasoningModel']
@@ -35,10 +29,6 @@ def create_log_filename():
     today = time.gmtime(timestamp)
     return f"{today[0]}_{today[1]}_{today[2]}_{str(int(time.time()))[-5:]}.json"
 
-def get_world_id(config):
-    """Get the world ID from config."""
-    return config["Options"]["WorldID"]
-
 def get_enable_rag(config):
     """Get the RAG enable setting from config."""
     return config["Options"].getboolean("EnableRAG", fallback=True)
@@ -46,16 +36,3 @@ def get_enable_rag(config):
 def get_debug(config):
     """Get the debug setting from config."""
     return config["Options"].getboolean("Debug", fallback=False)
-
-def update_config(section, key, value):
-    """Update a configuration value and save to file."""
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    
-    if section not in config:
-        config.add_section(section)
-    
-    config[section][key] = str(value)
-    
-    with open('config.ini', 'w') as configfile:
-        config.write(configfile)
