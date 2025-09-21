@@ -25,12 +25,18 @@ RUN pip install --no-cache-dir --upgrade pip
 # Copy the current directory contents into the container at $HOME/app setting the owner to the user
 COPY --chown=user requirements.txt ./
 COPY --chown=user config.ini ./
+COPY --chown=user streamlit_app.py ./
+COPY --chown=user main.py ./
 COPY --chown=user src/ ./src/
+COPY --chown=user examples/ ./examples/
 
 RUN pip install -r requirements.txt
+
+# Create necessary directories
+RUN mkdir -p logs
 
 EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
-CMD ["streamlit", "run", "src/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
