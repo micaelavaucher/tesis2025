@@ -1,47 +1,44 @@
-# ⚠️UNDER CONSTRUCTION ⚠️ (Santiago Góngora - Master's Thesis)
+---
+title: PAYADOR - Dynamic Text Adventure Generator
+emoji: 🌱
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 8501
+tags:
+- streamlit
+- text-adventure
+- interactive-storytelling
+- llm
+- game-generation
+pinned: false
+short_description: AI-powered dynamic text adventure world generator using structured data and LLMs
+app_file: ./streamlit_app.py
+---
 
-This repository contains the code for the latest version of the PAYADOR approach, the same that was used to perform the experiments presented in this thesis. 
+# 🌱 PAYADOR - Dynamic Text Adventure Generator
 
-The PAYADOR approach is an approach to the world-update problem in Interactive Storytellig, and it was described in the ICCC24 paper “[PAYADOR: A Minimalist Approach to Grounding Language Models on Structured Data for Interactive Storytelling and Role-playing Games](https://computationalcreativity.net/iccc24/papers/ICCC24_paper_152.pdf)”.
+PAYADOR is an innovative AI-powered system that generates dynamic text adventure worlds using Large Language Models (LLMs). It addresses the world-update problem in Interactive Storytelling through a minimalist approach to grounding language models on structured data.
 
-## 🗂️ Project structure
+## 🎮 Features
 
-This folder contains all the files needed to run the latest version of PAYADOR, used to perform the experiments presented in this thesis.
+- **🌍 Dynamic World Generation**: Create unique adventure worlds from simple text prompts
+- **🎯 Multiple Generation Modes**: 
+  - **Inspiration Mode**: Generate worlds from your creative ideas
+  - **Random Generation**: Create completely random adventures  
+  - **Preset Worlds**: Play curated adventure scenarios
+  - **Tutorial Mode**: Learn how to play with guided examples
+- **🌐 Multilingual Support**: Available in English and Spanish
+- **💬 Chat-based Gameplay**: Natural conversation interface with AI narrator
+- **🧩 Puzzles**: Interconnected challenges and dependencies
 
-- `logs_processing.py` implements an algorithm to convert the gamelogs stored in .json files to human-readable .txt files.
+## 🚀 How to Use
 
-## ⚙️ Usage
-
-Please, follow these steps to get this code running.
-
-### Dependencies
-
-To install the dependencies using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html), just run
-
-```shell
-conda env create -f environment.yml
-```
-
-and then activate the environment
-
-
-```shell
-conda activate payador
-```
-
-### Credentials
-
-The `.env` file stores private keys to access APIs. You must edit the placeholder values and write there your private credentials.
-
-### Scenario configuration
-
-The `config.ini` file is used to load the configuration options for the game. 
-
-In the current version, the system can be used both in English ('en') and Spanish ('es').
-
-### Web application
-To start the web app, just run 
-```
-python main.py
-```
-and the Gradio web app will be accessible at http://127.0.0.1:7860/.
+1. **Select your language** (English/Español) in the sidebar
+2. **Choose a generation mode** from the sidebar options
+3. **Create or load a world**:
+   - In Inspiration mode: Write a creative prompt and click "Generate World"
+   - In Generate mode: Click "Generate Random World" 
+   - In Preset mode: Choose from pre-built worlds
+   - In Tutorial mode: Start with the guided tutorial
+4. **Play the adventure** by typing actions in the chat interface
