@@ -5,6 +5,12 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from enum import Enum
 
+#---- Hint Models -------------------------------------------------------------
+class Hint(BaseModel):
+    """A hint that can be given to the player."""
+    text: str = Field(description="The hint text to show to the player")
+    given: bool = Field(default=False, description="Whether this hint has been given to the player")
+
 #---- Enums and Types ---------------------------------------------------------
 class PuzzleType(str, Enum):
     RIDDLE = "riddle"           # Adivinanza
@@ -55,12 +61,7 @@ class ItemReward(PuzzleReward):
     """Provides an item."""
     reward_type: RewardType = Field(default=RewardType.ITEM)
     item_name: str = Field(description="Name of the item obtained. Note: this item must exist in the world and be in someone's inventory or a location")
-    
-class InformationReward(PuzzleReward):
-    """Reveals important information."""
-    reward_type: RewardType = Field(default=RewardType.INFORMATION)
-    information: str = Field(description="The crucial information revealed")
-    
+
 class ObjectiveReward(PuzzleReward):
     """Directly completes the objective."""
     reward_type: RewardType = Field(default=RewardType.OBJECTIVE_COMPLETION)
@@ -99,13 +100,15 @@ class GeneratedPuzzle(BaseModel):
     problem: str = Field(description="Clear statement of the puzzle problem")
     answer: str = Field(description="The solution to the puzzle")
     location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character. Note: if specified, this location must exist in the world")
-    proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental. Note: if specified, this character must exist in the world")
+    proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental, NONE IF REWARD IS A PASSAGE. Note: if specified, this character must exist in the world")
     proposed_by_item: Optional[str] = Field(default=None, description="Item that when investigated/examined should propose this puzzle, or None if it's given by a character. Note: if specified, this item must exist in the world")
-    rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
+    rewards: List[Union[PassageReward, ItemReward, ObjectiveReward]] = Field(
         description="What you get when you solve this puzzle. Note: all reward items and locations must exist in the world"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
     hint: str = Field(description="How the character or the narration hints to the puzzle")
+    puzzle_hints: List[Hint] = Field(default=[], description="Progressive hints for solving this puzzle (from general to specific)")
+    interaction_hint: Optional[Hint] = Field(default=None, description="Hint about how to interact with this puzzle if player hasn't started yet")
 
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
@@ -176,6 +179,8 @@ class GeneratedObjective(BaseModel):
     mystery_clues: Optional[List[MysteryClue]] = Field(default=None, description="List of clues for mystery objectives. Only used when type is SOLVE_MYSTERY")
     mystery_solution: Optional[str] = Field(default=None, description="The solution to the mystery. Only used when type is SOLVE_MYSTERY")
     completion_narration: Optional[str] = Field(default=None, description="Narrative description of what happens after the player successfully completes the objective. This should provide a satisfying conclusion to the adventure. Not used for SOLVE_MYSTERY objectives (which use mystery_solution instead)")
+    objective_hints: List[Hint] = Field(default=[], description="Progressive hints for advancing toward the objective (from general to specific). Only used for non-mystery objectives")
+    hints: List[Hint] = Field(default=[], description="List of hints that can be given to the player")
 
 class DependencyChain(BaseModel):
     """Represents a chain of dependencies leading to the objective."""

@@ -54,11 +54,11 @@ def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
     # Puzzles
     print(f"\n🧩 PUZZLES:")
     for puzzle in world.puzzles:
-        hints_count = len(puzzle.hints) if hasattr(puzzle, 'hints') and puzzle.hints else 0
+        hints_count = len(puzzle.puzzle_hints) if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints else 0
         proposed_by = puzzle.proposed_by_character if hasattr(puzzle, 'proposed_by_character') else "None"
         print(f"  • {puzzle.name} | Hints: {hints_count} | Proposed by: {proposed_by}")
-        if hasattr(puzzle, 'hints') and puzzle.hints:
-            for i, hint in enumerate(puzzle.hints, 1):
+        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+            for i, hint in enumerate(puzzle.puzzle_hints, 1):
                 print(f"    Hint {i}: {hint[:50]}...")
     
     # Objective
@@ -288,9 +288,9 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> Gene
     # Show puzzle hints if available
     for puzzle in enhanced_world.puzzles:
         print(f"  • {puzzle}:")
-        if hasattr(puzzle, 'hints') and puzzle.hints:
-            print(f"    {puzzle.name} hints: {len(puzzle.hints)} hints:")
-            print(f"      " + "\n      ".join([f"- {hint}" for hint in puzzle.hints]))
+        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+            print(f"    {puzzle.name} hints: {len(puzzle.puzzle_hints)} hints:")
+            print(f"      " + "\n      ".join([f"- {hint}" for hint in puzzle.puzzle_hints]))
     return enhanced_world
 
 def run_step_5_expansion(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
@@ -450,15 +450,23 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     for attempt in range(1, max_attempts + 1):
         world_with_puzzles = run_step_4_puzzles(world_basic, language, model)
         json_ok = verify_pydantic_model(world_with_puzzles, GeneratedWorld)
+        
+        # Validate and fix puzzle rewards
+        rewards_ok, world_with_puzzles = verify_puzzle_rewards_and_fix(world_with_puzzles)
+        
         connectivity_ok = verify_location_connectivity(world_with_puzzles)
         objective_ok = verify_objective_completability(world_with_puzzles)
-        if json_ok and connectivity_ok and objective_ok:
+        if json_ok and rewards_ok and connectivity_ok and objective_ok:
             break
         else:
             if not json_ok:
                 print(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
                 if progress_callback:
                     progress_callback(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
+            if not rewards_ok:
+                print(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
             if not connectivity_ok:
                 print(f"[WARNING] Puzzles step broke location connectivity on attempt {attempt}. Retrying...")
                 if progress_callback:
@@ -484,15 +492,23 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     for attempt in range(1, max_attempts + 1):
         final_world = run_step_5_expansion(world_with_puzzles, language, model)
         json_ok = verify_pydantic_model(final_world, GeneratedWorld)
+        
+        # Validate and fix puzzle rewards
+        rewards_ok, final_world = verify_puzzle_rewards_and_fix(final_world)
+        
         connectivity_ok = verify_location_connectivity(final_world)
         objective_ok = verify_objective_completability(final_world)
-        if json_ok and connectivity_ok and objective_ok:
+        if json_ok and rewards_ok and connectivity_ok and objective_ok:
             break
         else:
             if not json_ok:
                 print(f"[WARNING] Expansion JSON verification failed on attempt {attempt}. Retrying...")
                 if progress_callback:
                     progress_callback(f"[WARNING] Expansion JSON verification failed on attempt {attempt}. Retrying...")
+            if not rewards_ok:
+                print(f"[WARNING] Expansion puzzle rewards validation failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Expansion puzzle rewards validation failed on attempt {attempt}. Retrying...")
             if not connectivity_ok:
                 print(f"[WARNING] Expansion broke location connectivity on attempt {attempt}. Retrying...")
                 if progress_callback:
@@ -635,15 +651,23 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     for attempt in range(1, max_attempts + 1):
         final_world = run_step_4_puzzles(world_basic, language, model)
         json_ok = verify_pydantic_model(final_world, GeneratedWorld)
+        
+        # Validate and fix puzzle rewards
+        rewards_ok, final_world = verify_puzzle_rewards_and_fix(final_world)
+        
         connectivity_ok = verify_location_connectivity(final_world)
         objective_ok = verify_objective_completability(final_world)
-        if json_ok and connectivity_ok and objective_ok:
+        if json_ok and rewards_ok and connectivity_ok and objective_ok:
             break
         else:
             if not json_ok:
                 print(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
                 if progress_callback:
                     progress_callback(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
+            if not rewards_ok:
+                print(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
             if not connectivity_ok:
                 print(f"[WARNING] Puzzles step broke location connectivity on attempt {attempt}. Retrying...")
                 if progress_callback:
@@ -974,3 +998,104 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
     else:
         print(f"[ERROR] Unknown objective type: {obj_type}")
         return False
+
+def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, GeneratedWorld]:
+    """
+    Verify that all puzzle reward items exist in the world, and create them if they don't.
+    
+    For puzzles with ItemRewards:
+    - Check if the reward item exists in world.items
+    - If not, create the item
+    - If the puzzle is proposed by a character, add the item to that character's inventory
+    - Otherwise, add it to the location where the puzzle is found
+    
+    Args:
+        world: GeneratedWorld object to verify and potentially modify
+        
+    Returns:
+        tuple: (bool, GeneratedWorld) - True if validation passed or fixes were applied, modified world
+    """
+    from .structured_data_models import GeneratedItem, ItemReward
+    
+    # Track changes made
+    items_created = []
+    modified = False
+    
+    # Get existing item names for quick lookup
+    existing_item_names = {item.name for item in world.items}
+    
+    print(f"[DEBUG] Verifying puzzle rewards...")
+    print(f"[DEBUG] Existing items: {existing_item_names}")
+    
+    for puzzle in world.puzzles:
+        print(f"[DEBUG] Checking puzzle '{puzzle.name}' rewards...")
+        
+        for reward in puzzle.rewards:
+            if isinstance(reward, ItemReward):
+                item_name = reward.item_name
+                print(f"[DEBUG] Found ItemReward for '{item_name}'")
+                
+                if item_name not in existing_item_names:
+                    print(f"[WARNING] ItemReward item '{item_name}' does not exist. Creating it...")
+                    
+                    # Create the missing item
+                    new_item = GeneratedItem(
+                        name=item_name,
+                        descriptions=[f"A {item_name.lower()} obtained as a reward for solving puzzles."],
+                        gettable=True,
+                        is_objective_target=False,
+                        relevance_to_objective=f"Reward item from puzzle '{puzzle.name}'",
+                        required_for=[]
+                    )
+                    
+                    world.items.append(new_item)
+                    existing_item_names.add(item_name)
+                    items_created.append(item_name)
+                    modified = True
+                    
+                    # Determine where to place the item
+                    if puzzle.proposed_by_character:
+                        # Add to character's inventory
+                        char_found = False
+                        for character in world.characters:
+                            if character.name == puzzle.proposed_by_character:
+                                character.inventory.append(item_name)
+                                print(f"[INFO] Added item '{item_name}' to character '{character.name}' inventory")
+                                char_found = True
+                                break
+                        
+                        if not char_found:
+                            print(f"[WARNING] Character '{puzzle.proposed_by_character}' not found, adding item to first location")
+                            if world.locations:
+                                world.locations[0].items.append(item_name)
+                    
+                    elif puzzle.location:
+                        # Add to puzzle location
+                        location_found = False
+                        for location in world.locations:
+                            if location.name == puzzle.location:
+                                location.items.append(item_name)
+                                print(f"[INFO] Added item '{item_name}' to location '{location.name}'")
+                                location_found = True
+                                break
+                        
+                        if not location_found:
+                            print(f"[WARNING] Puzzle location '{puzzle.location}' not found, adding item to first location")
+                            if world.locations:
+                                world.locations[0].items.append(item_name)
+                    
+                    else:
+                        # Add to first location as fallback
+                        if world.locations:
+                            world.locations[0].items.append(item_name)
+                            print(f"[INFO] Added item '{item_name}' to location '{world.locations[0].name}' (fallback)")
+                
+                else:
+                    print(f"[DEBUG] ✅ ItemReward item '{item_name}' exists")
+    
+    if items_created:
+        print(f"[INFO] Created {len(items_created)} missing reward items: {items_created}")
+    else:
+        print(f"[DEBUG] ✅ All puzzle reward items exist")
+    
+    return True, world

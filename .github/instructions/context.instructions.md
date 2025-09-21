@@ -1,142 +1,142 @@
 ---
 applyTo: '**'
 ---
-Concepto General del Proyecto
+General Concept of the Project
 
-Este proyecto, que se llama **PAYADOR**, es un sistema para generar dinámicamente mundos de aventura de texto (ficción interactiva) utilizando Modelos de Lenguaje Grandes (LLMs) como Gemini o Llama 3.
+This project, called **PAYADOR**, is a system to dynamically generate text adventure worlds (interactive fiction) using Large Language Models (LLMs) such as Gemini or Llama 3.
 
-El objetivo principal no es solo usar el LLM para narrar una historia, sino para crear toda la estructura del mundo del juego desde cero: las ubicaciones, los objetos, los personajes, los puzzles y el objetivo final del jugador. Además, el sistema es capaz de expandir el mundo durante el juego, añadiendo nuevo contenido de forma dinámica.
+The main goal is not only to use the LLM to narrate a story, but to create the entire structure of the game world from scratch: the locations, the objects, the characters, the puzzles, and the player’s final objective. In addition, the system is capable of expanding the world during gameplay, adding new content dynamically.
 
 ---
 
-¿Cómo Funciona? (El Flujo de Trabajo)
+How Does It Work? (Workflow)
 
-El proceso se basa en un **pipeline de generación incremental** dividido en 5 etapas clave:
+The process is based on an **incremental generation pipeline** divided into 5 key stages:
 
-## **1. Pipeline de Generación Incremental (generation_pipeline.py)**
+## **1. Incremental Generation Pipeline (generation_pipeline.py)**
 
-En lugar de generar todo el mundo en una sola pasada, el sistema utiliza un enfoque incremental de 5 pasos orquestado por `create_world_incrementally()`:
+Instead of generating the whole world in a single pass, the system uses an incremental 5-step approach orchestrated by `create_world_incrementally()`:
 
-**PASO 1 - Concepto del Mundo:**
-- Función: `run_step_1_concept()`
+**STEP 1 - World Concept:**
+- Function: `run_step_1_concept()`
 - Prompt: `PROMPT_STEP_1_CONCEPT`
-- Genera: Título, historia de fondo, concepto del jugador, objetivo principal
-- Salida: `WorldConcept` (título, backstory, player_concept, main_objective)
+- Generates: Title, backstory, player concept, main objective
+- Output: `WorldConcept` (title, backstory, player_concept, main_objective)
 
-**PASO 2 - Esqueleto de Entidades:**
-- Función: `run_step_2_skeleton()`
+**STEP 2 - Entity Skeleton:**
+- Function: `run_step_2_skeleton()`
 - Prompt: `PROMPT_STEP_2_SKELETON`
-- Genera: Entidades clave (3-4 ubicaciones, 4-6 objetos, 2-3 personajes)
-- Salida: `WorldSkeleton` (key_locations, key_items, key_characters)
+- Generates: Key entities (3-4 locations, 4-6 items, 2-3 characters)
+- Output: `WorldSkeleton` (key_locations, key_items, key_characters)
 
-**PASO 3 - Desarrollo Detallado:**
-- Función: `run_step_3_details()`
+**STEP 3 - Detailed Development:**
+- Function: `run_step_3_details()`
 - Prompt: `PROMPT_STEP_3_DETAILS`
-- Genera: Mundo jugable con la ruta principal hacia el objetivo
-- Salida: `GeneratedWorld` completo pero simple
+- Generates: Playable world with main path toward the objective
+- Output: Complete but simple `GeneratedWorld`
 
-**PASO 4 - Cadenas de Dependencias Complejas:**
-- Función: `run_step_4_puzzles()`
+**STEP 4 - Complex Dependency Chains:**
+- Function: `run_step_4_puzzles()`
 - Prompt: `PROMPT_STEP_4_PUZZLES`
-- Añade: Cadenas de dependencias interconectadas, puzzles integrados, progresión compleja hacia el objetivo
-- Salida: `GeneratedWorld` con múltiples pasos interdependientes que hacen la aventura más desafiante
+- Adds: Interconnected dependency chains, integrated puzzles, complex progression toward the objective
+- Output: `GeneratedWorld` with multiple interdependent steps making the adventure more challenging
 
-**PASO 5 - Expansión Opcional:**
-- Función: `run_step_5_expansion()`
+**STEP 5 - Optional Expansion:**
+- Function: `run_step_5_expansion()`
 - Prompt: `PROMPT_STEP_5_EXPANSION`
-- Añade: Contenido secundario, ubicaciones atmosféricas, objetos decorativos
-- Salida: `GeneratedWorld` enriquecido
+- Adds: Side content, atmospheric locations, decorative items
+- Output: Enriched `GeneratedWorld`
 
-## **2. Estructuras de Datos Incrementales (structured_data_models.py)**
+## **2. Incremental Data Structures (structured_data_models.py)**
 
-El sistema utiliza modelos Pydantic especializados para cada etapa:
+The system uses specialized Pydantic models for each stage:
 
-- `WorldConcept`: Concepto inicial del mundo
-- `KeyEntity`: Entidad clave en el esqueleto
-- `WorldSkeleton`: Estructura de entidades principales
-- `ObjectiveComponent`: Componente del objetivo
-- `GeneratedObjective`: Objetivo completo con componentes y descripción
-- `GeneratedWorld`: Mundo completo final
+- `WorldConcept`: Initial world concept  
+- `KeyEntity`: Key entity in the skeleton  
+- `WorldSkeleton`: Structure of main entities  
+- `ObjectiveComponent`: Objective component  
+- `GeneratedObjective`: Complete objective with components and description  
+- `GeneratedWorld`: Final complete world  
 
-## **3. Reglas de Calidad Integradas (prompts.py)**
+## **3. Built-in Quality Rules (prompts.py)**
 
-Todos los prompts del pipeline incluyen reglas estrictas derivadas de los prompts legacy exitosos:
+All pipeline prompts include strict rules derived from successful legacy prompts:
 
-**Reglas de Conectividad:**
-- Conexiones bidireccionales obligatorias
-- Conectividad global (todas las ubicaciones accesibles)
-- No grupos aislados de ubicaciones
+**Connectivity Rules:**
+- Mandatory bidirectional connections  
+- Global connectivity (all locations accessible)  
+- No isolated groups of locations  
 
-**Reglas de Puzzles:**
-- Soluciones descubribles por exploración
-- Pistas físicas en el entorno
-- Prohibidos códigos arbitrarios
-- Validación de completabilidad
+**Puzzle Rules:**
+- Solutions discoverable through exploration  
+- Physical clues in the environment  
+- Arbitrary codes prohibited  
+- Completion validated  
 
-**Reglas de Coherencia:**
-- Referencias cruzadas válidas
-- Inventarios de personajes válidos
-- Objetivos alcanzables
-- Cadenas de dependencias lógicas
+**Coherence Rules:**
+- Valid cross-references  
+- Valid character inventories  
+- Achievable objectives  
+- Logical dependency chains  
 
-## **4. Construcción del Mundo (world_builder.py)**
+## **4. World Building (world_builder.py)**
 
-- `create_world_from_llm_response()` convierte `GeneratedWorld` a objetos Python
-- Maneja tanto objetos `GeneratedWorld` como JSON/diccionarios legacy
-- Valida la estructura y crea: Location, Item, Character, Puzzle
-- Establece conexiones bidireccionales y verifica consistencia
+- `create_world_from_llm_response()` converts `GeneratedWorld` into Python objects  
+- Handles both `GeneratedWorld` objects and legacy JSON/dictionaries  
+- Validates structure and creates: Location, Item, Character, Puzzle  
+- Establishes bidirectional connections and checks consistency  
 
-## **5. Juego y Narración (app.py)**
+## **5. Gameplay and Narration (app.py)**
 
-- Integra el pipeline incremental con `create_world_incrementally()`
-- Maneja múltiples modos: 'inspiration', 'generate', 'preset'
-- Incluye sistema de reintentos para objetivos válidos
-- Genera narrativa inicial y descripción del objetivo
+- Integrates the incremental pipeline with `create_world_incrementally()`  
+- Handles multiple modes: 'inspiration', 'generate', 'preset'  
+- Includes retry system for valid objectives  
+- Generates initial narrative and objective description  
 
-## **6. Sistema RAG (Retrieval-Augmented Generation) (memory_system.py)**
+## **6. RAG System (Retrieval-Augmented Generation) (memory_system.py)**
 
-El sistema incluye memoria episódica inteligente que transforma PAYADOR de un generador de mundos a un narrador con memoria persistente:
+The system includes intelligent episodic memory that transforms PAYADOR from a world generator into a storyteller with persistent memory:
 
-**Componentes Principales:**
-- `AtomicMemory`: Unidad básica de memoria por turno de juego
-  - Almacena: número de turno, acción del jugador, resultado narrativo, contexto del mundo, timestamp
-  - Métodos: `to_text()`, `to_dict()`, `from_dict()` para serialización
-- `EmbeddingService`: Genera embeddings vectoriales usando Gemini API
-  - Modelo: `gemini-embedding-001` con dimensionalidad 768
-  - Configuración: `task_type="RETRIEVAL_DOCUMENT"` con normalización
-- `MemoryStore`: Base de datos vectorial con ChromaDB persistente
-  - Almacenamiento: embeddings, documentos texto, metadatos estructurados
-  - Búsqueda: similitud coseno para recuperación contextual
-- `IntelligentMemorySystem`: Coordinador principal del sistema RAG
-  - Funciones: ingestión automática, recuperación inteligente, formateo para prompts
+**Main Components:**
+- `AtomicMemory`: Basic memory unit per game turn  
+  - Stores: turn number, player action, narrative result, world context, timestamp  
+  - Methods: `to_text()`, `to_dict()`, `from_dict()` for serialization  
+- `EmbeddingService`: Generates vector embeddings using Gemini API  
+  - Model: `gemini-embedding-001` with 768 dimensions  
+  - Config: `task_type="RETRIEVAL_DOCUMENT"` with normalization  
+- `MemoryStore`: Vector database with persistent ChromaDB  
+  - Storage: embeddings, text documents, structured metadata  
+  - Search: cosine similarity for contextual retrieval  
+- `IntelligentMemorySystem`: Main RAG system coordinator  
+  - Functions: automatic ingestion, intelligent retrieval, prompt formatting  
 
-**Flujo de Funcionamiento:**
-1. **Ingestión**: Cada turno se convierte en `AtomicMemory` con embedding semántico
-2. **Almacenamiento**: ChromaDB persiste memorias en colección por `world_id`
-3. **Recuperación**: Búsqueda vectorial encuentra memorias relevantes a acción actual
-4. **Augmentación**: Memorias se formatean como contexto para prompts del LLM
+**Workflow:**
+1. **Ingestion**: Each turn becomes an `AtomicMemory` with semantic embedding  
+2. **Storage**: ChromaDB persists memories in collection by `world_id`  
+3. **Retrieval**: Vector search finds memories relevant to the current action  
+4. **Augmentation**: Memories formatted as context for LLM prompts  
 
-**Integración con Game Loop:**
-- `game_logic.py`: Ingestión automática post-turno y recuperación pre-prompt
-- `prompts.py`: Sección "Recuerdos Relevantes del Pasado" en `prompt_world_update_structured`
-- `app_interface.py`: Paso de API key desde variables de entorno
+**Integration with Game Loop:**
+- `game_logic.py`: Automatic ingestion post-turn and retrieval pre-prompt  
+- `prompts.py`: "Relevant Past Memories" section in `prompt_world_update_structured`  
+- `app_interface.py`: API key passed from environment variables  
 
-## **7. Expansión Dinámica**
+## **7. Dynamic Expansion**
 
-- Sistema heredado preservado para crecimiento durante el juego
-- `expand_world_from_llm_response()` en `world_builder.py`
-- Permite añadir contenido nuevo manteniendo coherencia
+- Legacy system preserved for in-game growth  
+- `expand_world_from_llm_response()` in `world_builder.py`  
+- Allows adding new content while maintaining coherence  
 
 ---
 
-**Archivos Clave:**
-- `generation_pipeline.py`: Orquestador del pipeline incremental
-- `structured_data_models.py`: Modelos Pydantic para cada etapa
-- `prompts.py`: Prompts especializados con reglas de calidad
-- `world_builder.py`: Conversión a objetos Python
-- `app.py`: Integración y modos de generación
-- `memory_system.py`: Sistema RAG con memoria episódica inteligente
-- `game_logic.py`: Integración del loop de juego con memoria contextual
+**Key Files:**
+- `generation_pipeline.py`: Incremental pipeline orchestrator  
+- `structured_data_models.py`: Pydantic models for each stage  
+- `prompts.py`: Specialized prompts with quality rules  
+- `world_builder.py`: Conversion to Python objects  
+- `app.py`: Integration and generation modes  
+- `memory_system.py`: RAG system with intelligent episodic memory  
+- `game_logic.py`: Game loop integration with contextual memory  
 
 **Extra:**
-- NO EJECUTE NINGUN CÓDIGO AUTOMÁTICAMENTE.
+- DO NOT EXECUTE ANY CODE AUTOMATICALLY.  
