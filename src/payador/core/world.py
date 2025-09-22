@@ -1194,6 +1194,14 @@ class World:
       for reward in puzzle.rewards:
           try:
               if hasattr(reward, 'reward_type'):
+                  # Special handling for observation puzzles where the reward is finding the item
+                  if puzzle.puzzle_type == "observation" and reward.reward_type == "ITEM":
+                      item = self._find_item_case_insensitive(reward.item_name)
+                      if item and item in self.player.location.items:
+                          self.player.save_item(item, self.player.location)
+                          print(f"[INFO] Player found observation reward item '{item.name}' in location.")
+                          continue # Move to next reward
+
                   if reward.reward_type == "ITEM" and hasattr(reward, 'item_name'):
                       # Give item to player - case insensitive search
                       item = self._find_item_case_insensitive(reward.item_name)
