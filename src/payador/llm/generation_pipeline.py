@@ -1055,8 +1055,22 @@ def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, Generate
                     modified = True
                     
                     # Determine where to place the item
-                    if puzzle.proposed_by_character:
-                        # Add to character's inventory
+                    # For observation puzzles, the item should be in the location, not on the character
+                    if puzzle.puzzle_type == "observation" and puzzle.location:
+                        location_found = False
+                        for location in world.locations:
+                            if location.name == puzzle.location:
+                                location.items.append(item_name)
+                                print(f"[INFO] Added observation puzzle reward item '{item_name}' to location '{location.name}'")
+                                location_found = True
+                                break
+                        if not location_found:
+                             print(f"[WARNING] Puzzle location '{puzzle.location}' not found, adding item to first location")
+                             if world.locations:
+                                 world.locations[0].items.append(item_name)
+
+                    elif puzzle.proposed_by_character:
+                        # For other puzzle types, add to character's inventory
                         char_found = False
                         for character in world.characters:
                             if character.name == puzzle.proposed_by_character:
