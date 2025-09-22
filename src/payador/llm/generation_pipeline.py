@@ -21,7 +21,7 @@ import configparser
 def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
     """Print detailed world structure for debugging."""
     print(f"\n[DEBUG] 🌍 {step_name} World Structure:")
-    print(f"{'='*60}")
+    print(f"{ '='*60}")
     
     # Basic counts
     print(f"📊 SUMMARY:")
@@ -70,7 +70,7 @@ def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
             for comp in world.objective.components:
                 print(f"    • {comp.description}")
     
-    print(f"{'='*60}\n")
+    print(f"{ '='*60}\n")
 
 #---- Pipeline Functions -----------------------------------------------------
 
@@ -428,7 +428,7 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
             if not connectivity_ok:
                 print(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Not all locations are reachable. Retrying...")
                 if progress_callback:
-                    progress_callback(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Not all locations are reachable. Retrying...")
+                    progress_callback(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Retrying...")
             if not objective_ok:
                 print(f"[WARNING] Objective completability verification failed on attempt {attempt}. Retrying...")
                 if progress_callback:
@@ -629,7 +629,7 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
             if not connectivity_ok:
                 print(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Not all locations are reachable. Retrying...")
                 if progress_callback:
-                    progress_callback(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Not all locations are reachable. Retrying...")
+                    progress_callback(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Retrying...")
             if not objective_ok:
                 print(f"[WARNING] Objective completability verification failed on attempt {attempt}. Retrying...")
                 if progress_callback:
