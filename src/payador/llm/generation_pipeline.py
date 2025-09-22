@@ -1023,6 +1023,7 @@ def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, Generate
     
     # Get existing item names for quick lookup
     existing_item_names = {item.name for item in world.items}
+    existing_item_names_lower = {name.lower() for name in existing_item_names}
     
     print(f"[DEBUG] Verifying puzzle rewards...")
     print(f"[DEBUG] Existing items: {existing_item_names}")
@@ -1035,7 +1036,7 @@ def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, Generate
                 item_name = reward.item_name
                 print(f"[DEBUG] Found ItemReward for '{item_name}'")
                 
-                if item_name not in existing_item_names:
+                if item_name.lower() not in existing_item_names_lower:
                     print(f"[WARNING] ItemReward item '{item_name}' does not exist. Creating it...")
                     
                     # Create the missing item
