@@ -850,7 +850,6 @@ class World:
 
   def update_from_structured(self, world_update, language: str = 'en') -> None:
     """Update world state using structured WorldUpdate object."""
-    from ..llm.structured_data_models import WorldUpdate
     
     # Handle moved objects
     for moved_obj in world_update.moved_objects:
@@ -859,41 +858,43 @@ class World:
         
         if moved_obj.new_location in ['Inventory', 'Inventario', 'Player', 'Jugador', self.player.name]:
           # Player takes item
-          item_location = [character for character in list(self.characters.values()) if world_item in character.inventory]
-          item_location += [location for location in list(self.locations.values()) if world_item in location.items]
-          if item_location:
-            # Check if the item is coming from a character with a puzzle proposition requirement
-            source_character = None
-            for char in self.characters.values():
-              if world_item in char.inventory:
-                source_character = char
-                break
-            
-            # If the item comes from a character, check if they have a puzzle proposition requirement
-            if source_character:
-              # Check if character has interaction with proposes_puzzle
-              if (hasattr(source_character, 'interaction') and source_character.interaction and
-                  hasattr(source_character.interaction, 'proposes_puzzle') and source_character.interaction.proposes_puzzle):
-                puzzle_name = source_character.interaction.proposes_puzzle
-                # Check if the puzzle has been solved
-                if puzzle_name in self.puzzles:
-                  puzzle = self.puzzles[puzzle_name]
-                  # TODO: Add proper puzzle state tracking (proposed, answered, solved)
-                  # For now, this is a placeholder that warns about the issue
-                  print(f"⚠️ VALIDATION ERROR: Character '{source_character.name}' with puzzle '{puzzle_name}' should propose the puzzle BEFORE giving items!")
-                  print(f"🚫 Item transfer '{world_item.name}' should be blocked until puzzle is properly handled.")
-                  # In a full implementation, you would:
-                  # 1. Track puzzle state (not_proposed, proposed, answered_incorrectly, solved)
-                  # 2. Only allow item transfers after puzzle is solved
-                  # 3. Modify game logic to handle puzzle proposition workflow
-                  # For now, we allow the transfer but log the validation error
-                  
-            self.player.save_item(world_item, item_location[0])
-            # Check for mystery clue discovery when taking items
-            clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
-            if clue_discovery:
-              # Add discovery message to narration
-              world_update.narration += clue_discovery
+          item_source = next((char for char in self.characters.values() if world_item in char.inventory), None)
+          if not item_source:
+              item_source = next((loc for loc in self.locations.values() if world_item in loc.items), None)
+
+          if item_source:
+              # This is a standard item in a location or inventory
+              self.player.save_item(world_item, item_source)
+              # Check for mystery clue discovery when taking items
+              clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
+              if clue_discovery:
+                  world_update.narration += clue_discovery
+          else:
+              # If not found, check if it's a blocking item
+              obstacle_found = False
+              for location in self.locations.values():
+                  for _, (blocked_loc, obstacle, _) in list(location.blocked_locations.items()):
+                      if obstacle is world_item:
+                          if world_item.gettable:
+                              # Add to player inventory if not already there
+                              if world_item not in self.player.inventory:
+                                  self.player.inventory.append(world_item)
+
+                              # Unblock the passage since the obstacle is taken
+                              location.unblock_passage(blocked_loc)
+                              print(f"INFO: Player took blocking item '{world_item.name}', unblocking passage from '{location.name}' to '{blocked_loc.name}'.")
+
+                              # Check for clue discovery
+                              clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
+                              if clue_discovery:
+                                  world_update.narration += clue_discovery
+
+                          obstacle_found = True
+                          break
+                  if obstacle_found:
+                      break
+              if obstacle_found:
+                  break
             
         elif moved_obj.new_location in self.characters:
           # Player gives item to character
@@ -1070,14 +1071,39 @@ class World:
         try:
           world_item = self.items[pair[0][0]]
           
-          if pair[0][1] in ['Inventory', 'Inventario', 'Player',  'Jugador', self.player.name]: #(save_item case)
-            item_location = [character for character in list(self.characters.values()) if world_item in character.inventory]
-            item_location += [location for location in list(self.locations.values()) if world_item in location.items]
-            self.player.save_item(world_item, item_location[0])
-            # Check for mystery clue discovery when taking items
-            clue_discovery = self._check_mystery_clue_discovery(world_item.name)
-            if clue_discovery:
-              print(clue_discovery)
+          if pair[0][1] in ['Inventory', 'Inventario', 'Player',  'Jugador', self.player.name]: # (save_item case)
+            item_location = next((char for char in self.characters.values() if world_item in char.inventory), None)
+            if not item_location:
+                item_location = next((loc for loc in self.locations.values() if world_item in loc.items), None)
+
+            if item_location:
+                self.player.save_item(world_item, item_location)
+                # Check for mystery clue discovery when taking items
+                clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+                if clue_discovery:
+                    print(clue_discovery)
+            else:
+                # Check if it's a blocking item
+                obstacle_found = False
+                for location in self.locations.values():
+                    for _, (blocked_loc, obstacle, _) in list(location.blocked_locations.items()):
+                        if obstacle is world_item:
+                            if world_item.gettable:
+                                if world_item not in self.player.inventory:
+                                    self.player.inventory.append(world_item)
+                                location.unblock_passage(blocked_loc)
+                                print(f"INFO: Player took blocking item '{world_item.name}', unblocking passage from '{location.name}' to '{blocked_loc.name}'.")
+
+                                clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+                                if clue_discovery:
+                                    print(clue_discovery)
+
+                            obstacle_found = True
+                            break
+                    if obstacle_found:
+                        break
+                if obstacle_found:
+                    break
 
           elif pair[0][1] in self.characters: #(give_item case)
             self.player.give_item(self.characters[pair[0][1]], world_item)
