@@ -1173,15 +1173,21 @@ class World:
                       item = self._find_item_case_insensitive(reward.item_name)
                       if item:
                           # Find who has the item and transfer it
+                          owner_found = False
+                          # First, check all character inventories
                           for char in self.characters.values():
                               if item in char.inventory:
                                   char.give_item(self.player, item)
-                                  break
-                          # Also check if item is in a location
-                          for location in self.locations.values():
-                              if item in location.items:
-                                  self.player.save_item(item, location)
-                                  break
+                                  owner_found = True
+                                  break  # Exit character loop once found and transferred
+
+                          # If not found in any character's inventory, check locations
+                          if not owner_found:
+                              for location in self.locations.values():
+                                  if item in location.items:
+                                      self.player.save_item(item, location)
+                                      # No need to set owner_found=True, as we break immediately
+                                      break # Exit location loop once found and transferred
                   
                   elif reward.reward_type == "PASSAGE" and hasattr(reward, 'from_location') and hasattr(reward, 'to_location'):
                       # Unblock passage - case insensitive search
