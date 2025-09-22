@@ -147,7 +147,8 @@ REGLAS CRÍTICAS PARA PUZZLES:
 1. **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
 1b. **PROPOSICIÓN DE PUZZLES POR OBJETOS**: Si un puzzle tiene la propiedad "proposed_by_item", el puzzle DEBE ser propuesto cuando el jugador interactúe con ese objeto específico o intente desbloquear el pasaje (investigate, examine, look at, etc.).
 2. **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada.
-3. **REQUISITOS**: Verifica que se cumplan todos los requisitos antes de permitir acciones (objetos necesarios, puzzles resueltos, etc.).
+3. **FLEXIBILIDAD EN OBSERVACIÓN**: Para puzzles de observación (`puzzle_type`: "observation"), si la acción del jugador es un intento razonable de encontrar el objeto (p. ej., 'buscar en el escritorio', 'mirar en los libros'), considera el puzzle resuelto aunque no nombre el escondite exacto ('el cajón con fondo falso'). El objetivo es recompensar la exploración lógica.
+4. **REQUISITOS**: Verifica que se cumplan todos los requisitos antes de permitir acciones (objetos necesarios, puzzles resueltos, etc.).
 
 REGLAS GENERALES:
 - Objetos solo cambian de lugar si el jugador realiza acciones específicas (tomar, dar, dejar)
@@ -204,7 +205,8 @@ CRITICAL RULES FOR PUZZLES:
 1. **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
 1b. **PUZZLE PROPOSITION BY ITEMS**: If a puzzle has the "proposed_by_item" property, the puzzle MUST be proposed when the player interacts with that specific item or if they try to unblock the passage it blocks (investigate, examine, look at, etc.).
 2. **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
-3. **REQUIREMENTS**: Verify that all requirements are met before allowing actions (necessary objects, solved puzzles, etc.).
+3. **FLEXIBILITY IN OBSERVATION**: For observation puzzles (`puzzle_type`: "observation"), if the player's action is a reasonable attempt to find the item (e.g., 'search the desk', 'look through the books'), consider the puzzle solved even if they don't name the exact hiding spot ('the false-bottomed drawer'). The goal is to reward logical exploration.
+4. **REQUIREMENTS**: Verify that all requirements are met before allowing actions (necessary objects, solved puzzles, etc.).
 
 GENERAL RULES:
 - Objects only change location if the player performs specific actions (take, give, drop)
@@ -1711,6 +1713,8 @@ Objetivo: Conseguir el Amuleto Mágico
 4. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
 5. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
 6. **Si el puzzle es dado por un personaje, el reward debe ser un item, y el item DEBE EXISTIR Y ESTAR EN EL INVENTARIO DEL PERSONAJE QUE LO PROPONE**
+7. **NO CRAFTING**: El motor del juego no soporta la creación o transformación de objetos. No crees puzzles que requieran que el jugador combine o altere objetos (p. ej., usar una receta para hacer una poción). Las recompensas deben ser objetos que se puedan usar directamente.
+8. **OBSTÁCULO vs. LLAVE**: Sé preciso. Un 'obstáculo' es lo que bloquea el camino (p. ej., 'una puerta cerrada'). El 'requisito' es la llave que lo quita (p. ej., 'una llave de hierro'). La llave nunca es el obstáculo.
 
 **REGLAS OBLIGATORIAS PARA SISTEMA DE PISTAS:**
 Para CADA puzzle que añadas, DEBES incluir:
@@ -1803,7 +1807,9 @@ Objective: Obtain the Magic Amulet
 - **Discoverable solutions**: Each puzzle MUST have hints the player can find by exploring
 - **Complete interactions**: Every interactive character MUST have `interaction_text`
 - **Logical separation of obstacles and solutions**: Obstacles must be separate from their solutions
-- **If a puzzle is proposed by a character, the reward must be an item, AND THAT ITEM SHOULD EXIST AND BE IN THE INVENTORY OF THE CHARACTER THAT PROPOSES THE PUZZLE**
+6. **If a puzzle is proposed by a character, the reward must be an item, AND THAT ITEM SHOULD EXIST AND BE IN THE INVENTORY OF THE CHARACTER THAT PROPOSES THE PUZZLE**
+7. **NO CRAFTING**: The game engine does not support crafting or transforming items. Do not create puzzles that require the player to combine or alter items (e.g., using a recipe to make a potion). Rewards must be items that can be used directly.
+8. **OBSTACLE vs. KEY**: Be precise. An 'obstacle' is the thing blocking the way (e.g., 'a locked door'). The 'requirement' is the key that removes it (e.g., 'an iron key'). The key is never the obstacle.
 
 **MANDATORY RULES FOR HINT SYSTEM:**
 For EACH puzzle you add, YOU MUST include:
