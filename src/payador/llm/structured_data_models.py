@@ -45,6 +45,13 @@ class ComponentType(str, Enum):
     CHARACTER = "character"             # Componente es un personaje
     LOCATION = "location"               # Componente es una ubicación
 
+class ItemActionType(str, Enum):
+    """Defines the specific, engine-supported actions an item can perform."""
+    UNLOCK_PASSAGE = "unlock_passage"   # The item is a key for a blocked passage
+    SOLVE_PUZZLE = "solve_puzzle"       # The item is a key or clue for a puzzle
+    GIVE_TO_CHARACTER = "give_to_character" # The item is meant to be given to an NPC
+    LORE = "lore"                       # The item provides story/information but has no mechanical use
+
 #---- Reward Models (lo que se obtiene al resolver puzzles) ------------------
 class PuzzleReward(BaseModel):
     """Base model for what you get when solving a puzzle."""
@@ -112,6 +119,7 @@ class GeneratedPuzzle(BaseModel):
 
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
+    action_type: ItemActionType = Field(description="The single, specific mechanical action this item can be used for. This defines its purpose in the game engine.")
     descriptions: List[str] = Field(description="List of descriptive texts for the item")
     gettable: bool = Field(default=True, description="Whether the item can be picked up. Note: items required for objectives must always be gettable=True")
     is_objective_target: bool = Field(
@@ -135,7 +143,7 @@ class CharacterInteraction(BaseModel):
 class GeneratedCharacter(BaseModel):
     name: str = Field(description="Unique name of the character")
     descriptions: List[str] = Field(description="List of character descriptions")
-    location: str = Field(description="Location where this character is placed. Note: this location must exist in the world")
+    location: str = Field(description="Location where this character is placed. CRITICAL LOGIC RULE: If this character holds an item or puzzle solution required to unlock a passage, they CANNOT be placed in the location behind that very passage or any location only accessible through it.")
     inventory: List[str] = Field(default=[], description="Items this character starts with. Note: all items must exist in the world")
     interaction: Optional[CharacterInteraction] = Field(default=None, description="How this character can help the player, or None if just decorative")
 
@@ -151,7 +159,7 @@ class BlockedPassage(BaseModel):
 class GeneratedLocation(BaseModel):
     name: str = Field(description="Unique name of the location")
     descriptions: List[str] = Field(description="List of atmospheric descriptions")
-    items: List[str] = Field(default=[], description="Names of items initially present. Note: all items must exist in the world")
+    items: List[str] = Field(default=[], description="Names of items initially present. CRITICAL LOGIC RULE: An item required to unlock a passage CANNOT be placed in the location behind that very passage or any location only accessible through it.")
     connecting_locations: List[str] = Field(default=[], description="Directly accessible locations. Note: connections must be bidirectional - if A connects to B, then B must connect to A")
     blocked_passages: List[BlockedPassage] = Field(default=[], description="Blocked passages with their requirements")
     relevance_to_objective: Optional[str] = Field(default=None, description="How this location relates to the main objective")
