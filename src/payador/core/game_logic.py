@@ -717,24 +717,44 @@ def check_objective_completion(world, answer, language):
         else:
             answer += "\n\n🎯You have completed your quest!"
         
-        # Check if this is a mystery objective and reveal the solution
-        if (hasattr(world, 'objective') and world.objective and 
-            isinstance(world.objective, tuple) and len(world.objective) >= 2):
-            obj_component = world.objective[1]
-            if (hasattr(obj_component, '__class__') and 
-                obj_component.__class__.__name__ == 'MysteryObjective' and
-                hasattr(obj_component, 'mystery_solution')):
+        # Check if world has objective and handle different objective formats
+        if hasattr(world, 'objective') and world.objective:
+            
+            # First check for new GeneratedObjective format (direct object)
+            if hasattr(world.objective, 'type') and hasattr(world.objective, 'description'):
+                # New structured objective format
+                obj_type = world.objective.type.value if hasattr(world.objective.type, 'value') else str(world.objective.type)
                 
-                if language == 'es':
-                    answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
-                else:
-                    answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
-            # For non-mystery objectives, show completion_narration if available
-            elif hasattr(obj_component, 'completion_narration') and obj_component.completion_narration:
-                if language == 'es':
-                    answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}"
-                else:
-                    answer += f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
+                if obj_type in ["SOLVE_MYSTERY", "solve_mystery"] and hasattr(world.objective, 'mystery_solution') and world.objective.mystery_solution:
+                    # Mystery objective - show the solution
+                    if language == 'es':
+                        answer += f"\n\n🎭 **Solución del Misterio:**\n{world.objective.mystery_solution}"
+                    else:
+                        answer += f"\n\n🎭 **Mystery Solution:**\n{world.objective.mystery_solution}"
+                elif hasattr(world.objective, 'completion_narration') and world.objective.completion_narration:
+                    # Non-mystery objective - show completion narration
+                    if language == 'es':
+                        answer += f"\n\n📖 **Final:**\n{world.objective.completion_narration}"
+                    else:
+                        answer += f"\n\n📖 **Conclusion:**\n{world.objective.completion_narration}"
+                        
+            # Legacy tuple format fallback
+            elif isinstance(world.objective, tuple) and len(world.objective) >= 2:
+                obj_component = world.objective[1]
+                if (hasattr(obj_component, '__class__') and 
+                    obj_component.__class__.__name__ == 'MysteryObjective' and
+                    hasattr(obj_component, 'mystery_solution')):
+                    
+                    if language == 'es':
+                        answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
+                    else:
+                        answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
+                # For non-mystery objectives, show completion_narration if available
+                elif hasattr(obj_component, 'completion_narration') and obj_component.completion_narration:
+                    if language == 'es':
+                        answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}"
+                    else:
+                        answer += f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
         
     
     return answer
