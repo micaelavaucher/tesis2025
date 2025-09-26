@@ -465,19 +465,6 @@ def check_character_puzzle_mention(world, message, language):
                     if puzzle_name in world.puzzles:
                         puzzle = world.puzzles[puzzle_name]
                         
-                        # Check puzzle state - only propose if not already proposed
-                        puzzle_state = world.puzzle_states.get(puzzle_name, 'not_proposed')
-                        
-                        if puzzle_state == 'solved':
-                            # Puzzle already solved, don't propose again
-                            return None
-                        elif puzzle_state == 'proposed':
-                            # Puzzle already proposed, don't propose again
-                            return None
-                        
-                        # Mark puzzle as proposed
-                        world.puzzle_states[puzzle_name] = 'proposed'
-                        
                         # Build the puzzle proposition response
                         if language == 'es':
                             response = f"🎭 **{character.name}** se acerca a ti"
@@ -717,44 +704,42 @@ def check_objective_completion(world, answer, language):
         else:
             answer += "\n\n🎯You have completed your quest!"
         
-        # Check if world has objective and handle different objective formats
-        if hasattr(world, 'objective') and world.objective:
+        # Check the objective type using the structured objective_data
+        if hasattr(world, 'objective_data') and world.objective_data:
+            obj_type = world.objective_data.type.value if hasattr(world.objective_data.type, 'value') else str(world.objective_data.type)
             
-            # First check for new GeneratedObjective format (direct object)
-            if hasattr(world.objective, 'type') and hasattr(world.objective, 'description'):
-                # New structured objective format
-                obj_type = world.objective.type.value if hasattr(world.objective.type, 'value') else str(world.objective.type)
+            # For mystery objectives, reveal the solution
+            if obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
+                if hasattr(world.objective_data, 'mystery_solution') and world.objective_data.mystery_solution:
+                    if language == 'es':
+                        answer += f"\n\n🎭 **Solución del Misterio:**\n{world.objective_data.mystery_solution}"
+                    else:
+                        answer += f"\n\n🎭 **Mystery Solution:**\n{world.objective_data.mystery_solution}"
+            # For non-mystery objectives, show completion_narration if available
+            else:
+                if hasattr(world.objective_data, 'completion_narration') and world.objective_data.completion_narration:
+                    if language == 'es':
+                        answer += f"\n\n📖 **Final:**\n{world.objective_data.completion_narration}"
+                    else:
+                        answer += f"\n\n📖 **Conclusion:**\n{world.objective_data.completion_narration}"
+        # Fallback for legacy objectives (old tuple format without objective_data)
+        elif (hasattr(world, 'objective') and world.objective and 
+              isinstance(world.objective, tuple) and len(world.objective) >= 2):
+            obj_component = world.objective[1]
+            if (hasattr(obj_component, '__class__') and 
+                obj_component.__class__.__name__ == 'MysteryObjective' and
+                hasattr(obj_component, 'mystery_solution')):
                 
-                if obj_type in ["SOLVE_MYSTERY", "solve_mystery"] and hasattr(world.objective, 'mystery_solution') and world.objective.mystery_solution:
-                    # Mystery objective - show the solution
-                    if language == 'es':
-                        answer += f"\n\n🎭 **Solución del Misterio:**\n{world.objective.mystery_solution}"
-                    else:
-                        answer += f"\n\n🎭 **Mystery Solution:**\n{world.objective.mystery_solution}"
-                elif hasattr(world.objective, 'completion_narration') and world.objective.completion_narration:
-                    # Non-mystery objective - show completion narration
-                    if language == 'es':
-                        answer += f"\n\n📖 **Final:**\n{world.objective.completion_narration}"
-                    else:
-                        answer += f"\n\n📖 **Conclusion:**\n{world.objective.completion_narration}"
-                        
-            # Legacy tuple format fallback
-            elif isinstance(world.objective, tuple) and len(world.objective) >= 2:
-                obj_component = world.objective[1]
-                if (hasattr(obj_component, '__class__') and 
-                    obj_component.__class__.__name__ == 'MysteryObjective' and
-                    hasattr(obj_component, 'mystery_solution')):
-                    
-                    if language == 'es':
-                        answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
-                    else:
-                        answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
-                # For non-mystery objectives, show completion_narration if available
-                elif hasattr(obj_component, 'completion_narration') and obj_component.completion_narration:
-                    if language == 'es':
-                        answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}"
-                    else:
-                        answer += f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
+                if language == 'es':
+                    answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
+                else:
+                    answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
+            # For non-mystery objectives, show completion_narration if available
+            elif hasattr(obj_component, 'completion_narration') and obj_component.completion_narration:
+                if language == 'es':
+                    answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}"
+                else:
+                    answer += f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
         
     
     return answer
