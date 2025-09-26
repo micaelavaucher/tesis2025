@@ -14,7 +14,8 @@ USER user
 
 # Set home to the user's home directory
 ENV HOME=/home/user \
-	PATH=/home/user/.local/bin:$PATH
+	PATH=/home/user/.local/bin:$PATH \
+	PYTHONPATH=$HOME/app:$PYTHONPATH
 
 # Set the working directory to the user's home directory
 WORKDIR $HOME/app
