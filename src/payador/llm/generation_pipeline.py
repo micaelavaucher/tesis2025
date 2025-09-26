@@ -21,7 +21,7 @@ import configparser
 def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
     """Print detailed world structure for debugging."""
     print(f"\n[DEBUG] 🌍 {step_name} World Structure:")
-    print(f"{'='*60}")
+    print(f"{ '='*60}")
     
     # Basic counts
     print(f"📊 SUMMARY:")
@@ -54,11 +54,11 @@ def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
     # Puzzles
     print(f"\n🧩 PUZZLES:")
     for puzzle in world.puzzles:
-        hints_count = len(puzzle.hints) if hasattr(puzzle, 'hints') and puzzle.hints else 0
+        hints_count = len(puzzle.puzzle_hints) if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints else 0
         proposed_by = puzzle.proposed_by_character if hasattr(puzzle, 'proposed_by_character') else "None"
         print(f"  • {puzzle.name} | Hints: {hints_count} | Proposed by: {proposed_by}")
-        if hasattr(puzzle, 'hints') and puzzle.hints:
-            for i, hint in enumerate(puzzle.hints, 1):
+        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+            for i, hint in enumerate(puzzle.puzzle_hints, 1):
                 print(f"    Hint {i}: {hint[:50]}...")
     
     # Objective
@@ -70,7 +70,7 @@ def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
             for comp in world.objective.components:
                 print(f"    • {comp.description}")
     
-    print(f"{'='*60}\n")
+    print(f"{ '='*60}\n")
 
 #---- Pipeline Functions -----------------------------------------------------
 
@@ -288,9 +288,9 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> Gene
     # Show puzzle hints if available
     for puzzle in enhanced_world.puzzles:
         print(f"  • {puzzle}:")
-        if hasattr(puzzle, 'hints') and puzzle.hints:
-            print(f"    {puzzle.name} hints: {len(puzzle.hints)} hints:")
-            print(f"      " + "\n      ".join([f"- {hint}" for hint in puzzle.hints]))
+        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+            print(f"    {puzzle.name} hints: {len(puzzle.puzzle_hints)} hints:")
+            print(f"      " + "\n      ".join([f"- {hint}" for hint in puzzle.puzzle_hints]))
     return enhanced_world
 
 def run_step_5_expansion(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
@@ -416,16 +416,27 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     for attempt in range(1, max_attempts + 1):
         world_basic = run_step_3_details(concept, skeleton, language, model)
         json_ok = verify_pydantic_model(world_basic, GeneratedWorld)
-        if json_ok:
+        connectivity_ok = verify_location_connectivity(world_basic)
+        objective_ok = verify_objective_completability(world_basic)
+        if json_ok and connectivity_ok and objective_ok:
             break
         else:
-            print(f"[WARNING] Details verification failed on attempt {attempt}. Retrying...")
-            if progress_callback:
-                progress_callback(f"[WARNING] Details verification failed on attempt {attempt}. Retrying...")
+            if not json_ok:
+                print(f"[WARNING] Details JSON verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Details JSON verification failed on attempt {attempt}. Retrying...")
+            if not connectivity_ok:
+                print(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Not all locations are reachable. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Retrying...")
+            if not objective_ok:
+                print(f"[WARNING] Objective completability verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Objective completability verification failed on attempt {attempt}. Retrying...")
             world_basic = None
     if world_basic is None:
-        raise ValueError("Failed to generate valid world details after multiple attempts.")
-    completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos"
+        raise ValueError("Failed to generate valid world details with proper location connectivity and objective completability after multiple attempts.")
+    completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos (todas las ubicaciones son accesibles)"
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
@@ -439,16 +450,35 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     for attempt in range(1, max_attempts + 1):
         world_with_puzzles = run_step_4_puzzles(world_basic, language, model)
         json_ok = verify_pydantic_model(world_with_puzzles, GeneratedWorld)
-        if json_ok:
+        
+        # Validate and fix puzzle rewards
+        rewards_ok, world_with_puzzles = verify_puzzle_rewards_and_fix(world_with_puzzles)
+        
+        connectivity_ok = verify_location_connectivity(world_with_puzzles)
+        objective_ok = verify_objective_completability(world_with_puzzles)
+        if json_ok and rewards_ok and connectivity_ok and objective_ok:
             break
         else:
-            print(f"[WARNING] Puzzles verification failed on attempt {attempt}. Retrying...")
-            if progress_callback:
-                progress_callback(f"[WARNING] Puzzles verification failed on attempt {attempt}. Retrying...")
+            if not json_ok:
+                print(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
+            if not rewards_ok:
+                print(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
+            if not connectivity_ok:
+                print(f"[WARNING] Puzzles step broke location connectivity on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzles step broke location connectivity on attempt {attempt}. Retrying...")
+            if not objective_ok:
+                print(f"[WARNING] Puzzles step broke objective completability on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzles step broke objective completability on attempt {attempt}. Retrying...")
             world_with_puzzles = None
     if world_with_puzzles is None:
-        raise ValueError("Failed to generate valid puzzles after multiple attempts.")
-    completion_msg = f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total"
+        raise ValueError("Failed to generate valid puzzles while maintaining location connectivity and objective completability after multiple attempts.")
+    completion_msg = f"✅ Puzzles añadidos: {len(world_with_puzzles.puzzles)} puzzles en total (conectividad preservada)"
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
@@ -462,16 +492,35 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     for attempt in range(1, max_attempts + 1):
         final_world = run_step_5_expansion(world_with_puzzles, language, model)
         json_ok = verify_pydantic_model(final_world, GeneratedWorld)
-        if json_ok:
+        
+        # Validate and fix puzzle rewards
+        rewards_ok, final_world = verify_puzzle_rewards_and_fix(final_world)
+        
+        connectivity_ok = verify_location_connectivity(final_world)
+        objective_ok = verify_objective_completability(final_world)
+        if json_ok and rewards_ok and connectivity_ok and objective_ok:
             break
         else:
-            print(f"[WARNING] Expansion verification failed on attempt {attempt}. Retrying...")
-            if progress_callback:
-                progress_callback(f"[WARNING] Expansion verification failed on attempt {attempt}. Retrying...")
+            if not json_ok:
+                print(f"[WARNING] Expansion JSON verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Expansion JSON verification failed on attempt {attempt}. Retrying...")
+            if not rewards_ok:
+                print(f"[WARNING] Expansion puzzle rewards validation failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Expansion puzzle rewards validation failed on attempt {attempt}. Retrying...")
+            if not connectivity_ok:
+                print(f"[WARNING] Expansion broke location connectivity on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Expansion broke location connectivity on attempt {attempt}. Retrying...")
+            if not objective_ok:
+                print(f"[WARNING] Expansion broke objective completability on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Expansion broke objective completability on attempt {attempt}. Retrying...")
             final_world = None
     if final_world is None:
-        raise ValueError("Failed to generate valid expansion after multiple attempts.")
-    completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones"
+        raise ValueError("Failed to generate valid expansion while maintaining location connectivity and objective completability after multiple attempts.")
+    completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones (todas accesibles)"
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
@@ -480,6 +529,10 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     print(final_msg)
     if not validate_world_size(final_world):
         print("The generated world does not meet the size requirements.")
+    if not verify_location_connectivity(final_world):
+        print("The generated world does not have all locations connected.")
+    if not verify_objective_completability(final_world):
+        print("The generated world has an objective that cannot be completed with available elements.")
     if progress_callback:
         progress_callback(final_msg)
     return final_world
@@ -555,24 +608,78 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     if progress_callback:
         progress_callback(completion_msg)
 
-    # Paso 3: Desarrollar detalles y conexiones
+    # Paso 3: Desarrollar detalles y conexiones (with verification)
     step_msg = "🌍 Paso 3: Desarrollando detalles y conexiones..."
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    world_basic = run_step_3_details(concept, skeleton, language, model)
-    completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos"
+    world_basic = None
+    for attempt in range(1, max_attempts + 1):
+        world_basic = run_step_3_details(concept, skeleton, language, model)
+        json_ok = verify_pydantic_model(world_basic, GeneratedWorld)
+        connectivity_ok = verify_location_connectivity(world_basic)
+        objective_ok = verify_objective_completability(world_basic)
+        if json_ok and connectivity_ok and objective_ok:
+            break
+        else:
+            if not json_ok:
+                print(f"[WARNING] Details JSON verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Details JSON verification failed on attempt {attempt}. Retrying...")
+            if not connectivity_ok:
+                print(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Not all locations are reachable. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Location connectivity verification failed on attempt {attempt}. Retrying...")
+            if not objective_ok:
+                print(f"[WARNING] Objective completability verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Objective completability verification failed on attempt {attempt}. Retrying...")
+            world_basic = None
+    if world_basic is None:
+        raise ValueError("Failed to generate valid world details with proper location connectivity and objective completability after multiple attempts.")
+    completion_msg = f"✅ Mundo base creado con {len(world_basic.locations)} ubicaciones y {len(world_basic.items)} objetos (todas las ubicaciones son accesibles)"
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
 
-    # Paso 4: Añadir puzzles y obstáculos
+    # Paso 4: Añadir puzzles y obstáculos (with verification)
     step_msg = "🧩 Paso 4: Añadiendo puzzles y obstáculos..."
     print(step_msg)
     if progress_callback:
         progress_callback(step_msg)
-    final_world = run_step_4_puzzles(world_basic, language, model)
-    completion_msg = f"✅ Puzzles añadidos: {len(final_world.puzzles)} puzzles en total"
+    final_world = None
+    for attempt in range(1, max_attempts + 1):
+        final_world = run_step_4_puzzles(world_basic, language, model)
+        json_ok = verify_pydantic_model(final_world, GeneratedWorld)
+        
+        # Validate and fix puzzle rewards
+        rewards_ok, final_world = verify_puzzle_rewards_and_fix(final_world)
+        
+        connectivity_ok = verify_location_connectivity(final_world)
+        objective_ok = verify_objective_completability(final_world)
+        if json_ok and rewards_ok and connectivity_ok and objective_ok:
+            break
+        else:
+            if not json_ok:
+                print(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzles JSON verification failed on attempt {attempt}. Retrying...")
+            if not rewards_ok:
+                print(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzle rewards validation failed on attempt {attempt}. Retrying...")
+            if not connectivity_ok:
+                print(f"[WARNING] Puzzles step broke location connectivity on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzles step broke location connectivity on attempt {attempt}. Retrying...")
+            if not objective_ok:
+                print(f"[WARNING] Puzzles step broke objective completability on attempt {attempt}. Retrying...")
+                if progress_callback:
+                    progress_callback(f"[WARNING] Puzzles step broke objective completability on attempt {attempt}. Retrying...")
+            final_world = None
+    if final_world is None:
+        raise ValueError("Failed to generate valid puzzles while maintaining location connectivity and objective completability after multiple attempts.")
+    completion_msg = f"✅ Puzzles añadidos: {len(final_world.puzzles)} puzzles en total (conectividad preservada)"
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
@@ -592,6 +699,10 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     print(final_msg)
     if not validate_world_size(final_world):
         print("The generated world does not meet the size requirements.")
+    if not verify_location_connectivity(final_world):
+        print("The generated world does not have all locations connected.")
+    if not verify_objective_completability(final_world):
+        print("The generated world has an objective that cannot be completed with available elements.")
     if progress_callback:
         progress_callback(final_msg)
     return final_world
@@ -645,3 +756,361 @@ def verify_pydantic_model(obj, model_class):
         print(f"[ERROR] Model verification failed: {e}")
         return False
     return False
+
+def verify_location_connectivity(world: GeneratedWorld) -> bool:
+    """
+    Verify that all locations in the world are reachable from each other.
+    
+    Uses depth-first search to check if all locations form a connected graph.
+    Takes into account both normal connections and blocked passages (which are 
+    still connections, just temporarily blocked).
+    
+    Args:
+        world: GeneratedWorld object to verify
+        
+    Returns:
+        bool: True if all locations are reachable, False otherwise
+    """
+    if not world.locations or len(world.locations) <= 1:
+        return True  # Single or no locations are trivially connected
+    
+    # Build adjacency list including both normal and blocked connections
+    adjacency = {}
+    location_names = set()
+    
+    for location in world.locations:
+        location_names.add(location.name)
+        adjacency[location.name] = set()
+        
+        # Add normal connections
+        for connected_name in location.connecting_locations:
+            adjacency[location.name].add(connected_name)
+        
+        # Add blocked passages (they're still connections, just blocked)
+        for blocked in location.blocked_passages:
+            adjacency[location.name].add(blocked.location)
+    
+    # Perform DFS from the first location to see if we can reach all others
+    start_location = next(iter(location_names))
+    visited = set()
+    stack = [start_location]
+    
+    while stack:
+        current = stack.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        
+        # Add all connected locations to the stack
+        for neighbor in adjacency.get(current, set()):
+            if neighbor in location_names and neighbor not in visited:
+                stack.append(neighbor)
+    
+    # Check if we visited all locations
+    all_connected = len(visited) == len(location_names)
+    
+    if not all_connected:
+        print(f"[DEBUG] Location connectivity check failed:")
+        print(f"  Total locations: {len(location_names)}")
+        print(f"  Reachable locations: {len(visited)}")
+        print(f"  Unreachable locations: {location_names - visited}")
+        print(f"  Adjacency map: {dict(adjacency)}")
+    
+    return all_connected
+
+def verify_objective_completability(world: GeneratedWorld) -> bool:
+    """
+    Verify that the world's objective can be completed with the existing elements.
+    
+    This validates that:
+    - REACH_LOCATION: Target location exists and is reachable
+    - GET_ITEM: Target item exists and is accessible (either in a location or character inventory)
+    - DELIVER_AN_ITEM: Both item and target (location/character) exist and are accessible
+    - FIND_CHARACTER: Target character exists and is placed in a location
+    - SOLVE_MYSTERY: Mystery clues and associated items exist (already validated in models)
+    
+    Args:
+        world: GeneratedWorld object to verify
+        
+    Returns:
+        bool: True if objective is completable, False otherwise
+    """
+    if not world.objective:
+        print("[ERROR] World has no objective defined")
+        return False
+    
+    objective = world.objective
+    obj_type = objective.type.value if hasattr(objective.type, 'value') else str(objective.type)
+    
+    # Create lookup dictionaries for easier validation
+    location_names = {loc.name for loc in world.locations}
+    item_names = {item.name for item in world.items}
+    character_names = {char.name for char in world.characters}
+    
+    # Get all items that are accessible (in locations or character inventories)
+    accessible_items = set()
+    
+    # Items in locations
+    for location in world.locations:
+        accessible_items.update(location.items)
+    
+    # Items in character inventories
+    for character in world.characters:
+        accessible_items.update(character.inventory)
+    
+    # Player inventory
+    accessible_items.update(world.player.inventory)
+    
+    print(f"[DEBUG] Validating objective: {obj_type}")
+    print(f"[DEBUG] Objective components: {[comp.name for comp in objective.components]}")
+    print(f"[DEBUG] Available locations: {location_names}")
+    print(f"[DEBUG] Available items: {item_names}")
+    print(f"[DEBUG] Accessible items: {accessible_items}")
+    print(f"[DEBUG] Available characters: {character_names}")
+    
+    if obj_type in ["REACH_LOCATION", "reach_location"]:
+        # Find the location component
+        for component in objective.components:
+            component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+            if component_type in ["LOCATION", "location"]:
+                if component.name not in location_names:
+                    print(f"[ERROR] REACH_LOCATION objective refers to non-existent location: '{component.name}'")
+                    return False
+                # Note: Location reachability is already validated by verify_location_connectivity
+                print(f"[DEBUG] ✅ REACH_LOCATION objective is valid - location '{component.name}' exists")
+                return True
+        
+        print(f"[ERROR] REACH_LOCATION objective has no location component")
+        return False
+    
+    elif obj_type in ["GET_ITEM", "get_item"]:
+        # Find all item components and validate each one
+        item_components = []
+        for component in objective.components:
+            component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+            if component_type in ["ITEM", "item"]:
+                item_components.append(component)
+        
+        if not item_components:
+            print(f"[ERROR] GET_ITEM objective has no item component")
+            return False
+        
+        # Validate each item component
+        for component in item_components:
+            if component.name not in item_names:
+                print(f"[ERROR] GET_ITEM objective refers to non-existent item: '{component.name}'")
+                return False
+            
+            # Check if item is accessible (in a location or character inventory)
+            if component.name not in accessible_items:
+                print(f"[ERROR] GET_ITEM objective item '{component.name}' exists but is not placed anywhere accessible")
+                print(f"[ERROR] Item must be in a location or character inventory to be obtainable")
+                return False
+            
+            # Check if item is gettable
+            target_item = next((item for item in world.items if item.name == component.name), None)
+            if target_item and not target_item.gettable:
+                print(f"[ERROR] GET_ITEM objective item '{component.name}' exists but is not gettable")
+                return False
+            
+            print(f"[DEBUG] ✅ GET_ITEM objective item '{component.name}' is valid - exists and is accessible")
+        
+        print(f"[DEBUG] ✅ GET_ITEM objective is fully valid - all {len(item_components)} required items exist and are accessible")
+        return True
+    
+    elif obj_type in ["DELIVER_AN_ITEM", "deliver_an_item"]:
+        # Need both item and target (location/character) components
+        item_component = None
+        target_component = None
+        
+        for component in objective.components:
+            component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+            if component_type in ["ITEM", "item"]:
+                item_component = component
+            elif component_type in ["LOCATION", "location", "CHARACTER", "character"]:
+                target_component = component
+        
+        if not item_component:
+            print(f"[ERROR] DELIVER_AN_ITEM objective has no item component")
+            return False
+        
+        if not target_component:
+            print(f"[ERROR] DELIVER_AN_ITEM objective has no target component")
+            return False
+        
+        # Validate item exists and is accessible
+        if item_component.name not in item_names:
+            print(f"[ERROR] DELIVER_AN_ITEM objective refers to non-existent item: '{item_component.name}'")
+            return False
+        
+        if item_component.name not in accessible_items:
+            print(f"[ERROR] DELIVER_AN_ITEM objective item '{item_component.name}' exists but is not placed anywhere accessible")
+            return False
+        
+        # Check if item is gettable
+        target_item = next((item for item in world.items if item.name == item_component.name), None)
+        if target_item and not target_item.gettable:
+            print(f"[ERROR] DELIVER_AN_ITEM objective item '{item_component.name}' exists but is not gettable")
+            return False
+        
+        # Validate target exists
+        target_type = target_component.component_type.value if hasattr(target_component.component_type, 'value') else str(target_component.component_type)
+        if target_type in ["LOCATION", "location"]:
+            if target_component.name not in location_names:
+                print(f"[ERROR] DELIVER_AN_ITEM objective refers to non-existent location: '{target_component.name}'")
+                return False
+        elif target_type in ["CHARACTER", "character"]:
+            if target_component.name not in character_names:
+                print(f"[ERROR] DELIVER_AN_ITEM objective refers to non-existent character: '{target_component.name}'")
+                return False
+        
+        print(f"[DEBUG] ✅ DELIVER_AN_ITEM objective is valid - item '{item_component.name}' and target '{target_component.name}' exist and are accessible")
+        return True
+    
+    elif obj_type in ["FIND_CHARACTER", "find_character"]:
+        # Find the character component
+        for component in objective.components:
+            component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+            if component_type in ["CHARACTER", "character"]:
+                if component.name not in character_names:
+                    print(f"[ERROR] FIND_CHARACTER objective refers to non-existent character: '{component.name}'")
+                    return False
+                
+                # Check if character is placed in a valid location
+                target_character = next((char for char in world.characters if char.name == component.name), None)
+                if target_character:
+                    if target_character.location not in location_names:
+                        print(f"[ERROR] FIND_CHARACTER objective character '{component.name}' is in non-existent location: '{target_character.location}'")
+                        return False
+                
+                print(f"[DEBUG] ✅ FIND_CHARACTER objective is valid - character '{component.name}' exists and is placed in a valid location")
+                return True
+        
+        print(f"[ERROR] FIND_CHARACTER objective has no character component")
+        return False
+    
+    elif obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
+        # Mystery validation is already handled by the Pydantic models and MysteryClue validation
+        # in the structured_data_models.py, so if we get here, it should be valid
+        print(f"[DEBUG] ✅ SOLVE_MYSTERY objective is valid (validated by Pydantic models)")
+        return True
+    
+    else:
+        print(f"[ERROR] Unknown objective type: {obj_type}")
+        return False
+
+def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, GeneratedWorld]:
+    """
+    Verify that all puzzle reward items exist in the world, and create them if they don't.
+    
+    For puzzles with ItemRewards:
+    - Check if the reward item exists in world.items
+    - If not, create the item
+    - If the puzzle is proposed by a character, add the item to that character's inventory
+    - Otherwise, add it to the location where the puzzle is found
+    
+    Args:
+        world: GeneratedWorld object to verify and potentially modify
+        
+    Returns:
+        tuple: (bool, GeneratedWorld) - True if validation passed or fixes were applied, modified world
+    """
+    from .structured_data_models import GeneratedItem, ItemReward
+    
+    # Track changes made
+    items_created = []
+    modified = False
+    
+    # Get existing item names for quick lookup
+    existing_item_names = {item.name for item in world.items}
+    existing_item_names_lower = {name.lower() for name in existing_item_names}
+    
+    print(f"[DEBUG] Verifying puzzle rewards...")
+    print(f"[DEBUG] Existing items: {existing_item_names}")
+    
+    for puzzle in world.puzzles:
+        print(f"[DEBUG] Checking puzzle '{puzzle.name}' rewards...")
+        
+        for reward in puzzle.rewards:
+            if isinstance(reward, ItemReward):
+                item_name = reward.item_name
+                print(f"[DEBUG] Found ItemReward for '{item_name}'")
+                
+                if item_name.lower() not in existing_item_names_lower:
+                    print(f"[WARNING] ItemReward item '{item_name}' does not exist. Creating it...")
+                    
+                    # Create the missing item
+                    new_item = GeneratedItem(
+                        name=item_name,
+                        descriptions=[f"A {item_name.lower()} obtained as a reward for solving puzzles."],
+                        gettable=True,
+                        is_objective_target=False,
+                        relevance_to_objective=f"Reward item from puzzle '{puzzle.name}'",
+                        required_for=[]
+                    )
+                    
+                    world.items.append(new_item)
+                    existing_item_names.add(item_name)
+                    items_created.append(item_name)
+                    modified = True
+                    
+                    # Determine where to place the item
+                    # For observation puzzles, the item should be in the location, not on the character
+                    if puzzle.puzzle_type == "observation" and puzzle.location:
+                        location_found = False
+                        for location in world.locations:
+                            if location.name == puzzle.location:
+                                location.items.append(item_name)
+                                print(f"[INFO] Added observation puzzle reward item '{item_name}' to location '{location.name}'")
+                                location_found = True
+                                break
+                        if not location_found:
+                             print(f"[WARNING] Puzzle location '{puzzle.location}' not found, adding item to first location")
+                             if world.locations:
+                                 world.locations[0].items.append(item_name)
+
+                    elif puzzle.proposed_by_character:
+                        # For other puzzle types, add to character's inventory
+                        char_found = False
+                        for character in world.characters:
+                            if character.name == puzzle.proposed_by_character:
+                                character.inventory.append(item_name)
+                                print(f"[INFO] Added item '{item_name}' to character '{character.name}' inventory")
+                                char_found = True
+                                break
+                        
+                        if not char_found:
+                            print(f"[WARNING] Character '{puzzle.proposed_by_character}' not found, adding item to first location")
+                            if world.locations:
+                                world.locations[0].items.append(item_name)
+                    
+                    elif puzzle.location:
+                        # Add to puzzle location
+                        location_found = False
+                        for location in world.locations:
+                            if location.name == puzzle.location:
+                                location.items.append(item_name)
+                                print(f"[INFO] Added item '{item_name}' to location '{location.name}'")
+                                location_found = True
+                                break
+                        
+                        if not location_found:
+                            print(f"[WARNING] Puzzle location '{puzzle.location}' not found, adding item to first location")
+                            if world.locations:
+                                world.locations[0].items.append(item_name)
+                    
+                    else:
+                        # Add to first location as fallback
+                        if world.locations:
+                            world.locations[0].items.append(item_name)
+                            print(f"[INFO] Added item '{item_name}' to location '{world.locations[0].name}' (fallback)")
+                
+                else:
+                    print(f"[DEBUG] ✅ ItemReward item '{item_name}' exists")
+    
+    if items_created:
+        print(f"[INFO] Created {len(items_created)} missing reward items: {items_created}")
+    else:
+        print(f"[DEBUG] ✅ All puzzle reward items exist")
+    
+    return True, world
