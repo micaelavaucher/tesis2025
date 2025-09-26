@@ -69,7 +69,7 @@ class Puzzle (Component):
 
   def __init__(self, name: str, descriptions: 'list[str]', problem: str, answer: str, 
                puzzle_type: str = "riddle", proposed_by_character: str = None, 
-               proposed_by_item: str = None, rewards: list = None, 
+               proposed_by_location: str = None, rewards: list = None, 
                relevance_to_objective: str = None, puzzle_hints: 'list[dict]' = None, interaction_hint: str = None):
     
     super().__init__(name, descriptions)
@@ -87,8 +87,8 @@ class Puzzle (Component):
     self.proposed_by_character = proposed_by_character
     """character who proposes this puzzle, or None if environmental"""
     
-    self.proposed_by_item = proposed_by_item
-    """item that when investigated proposes this puzzle, or None if proposed by character/environmental"""
+    self.proposed_by_location = proposed_by_location
+    """location that when investigated proposes this puzzle, or None if proposed by character"""
     
     self.rewards = rewards or []
     """list of rewards obtained when solving this puzzle"""
@@ -251,6 +251,7 @@ class World:
     self.puzzle_states = {}
     """track the state of puzzles: 'not_proposed', 'proposed', 'solved'"""
 
+  ## Deprecated ##
   def set_objective (self, first_component: Type[Component], second_component: Type[Component]):
     
     first_component_class = first_component.__class__.__name__
@@ -293,29 +294,112 @@ class World:
   def set_objective_from_generated(self, objective_data, items_dict, locations_dict, characters_list, player):
       """Set the world objective from generated data."""
       try:
-          if objective_data.type == "item_to_location":
+          # Store the structured objective data for access to completion_narration and other metadata
+          self.objective_data = objective_data
+          
+          # Handle enum values properly
+          obj_type = objective_data.type.value if hasattr(objective_data.type, 'value') else str(objective_data.type)
+          components = objective_data.components
+          
+          # Handle different objective types with new component system
+          if obj_type in ["GET_ITEM", "get_item"]:
+              # Find the item component
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["ITEM", "item"]:
+                      if component.name in items_dict:
+                          self.objective = (player, items_dict[component.name])
+                          return
+          
+          elif obj_type in ["REACH_LOCATION", "reach_location"]:
+              # Find the location component
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["LOCATION", "location"]:
+                      if component.name in locations_dict:
+                          self.objective = (player, locations_dict[component.name])
+                          return
+          
+          elif obj_type in ["FIND_CHARACTER", "find_character"]:
+              # Find the character component
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["CHARACTER", "character"]:
+                      character = next((c for c in characters_list if c.name == component.name), None)
+                      if character:
+                          self.objective = (player, character)
+                          return
+          
+          elif obj_type in ["DELIVER_AN_ITEM", "deliver_an_item"]:
+              # Need both item and location/character components
+              item_component = None
+              target_component = None
+              
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["ITEM", "item"]:
+                      item_component = component
+                  elif component_type in ["LOCATION", "location", "CHARACTER", "character"]:
+                      target_component = component
+              
+              if item_component and target_component:
+                  if item_component.name in items_dict:
+                      target_type = target_component.component_type.value if hasattr(target_component.component_type, 'value') else str(target_component.component_type)
+                      if target_type in ["LOCATION", "location"] and target_component.name in locations_dict:
+                          self.objective = (items_dict[item_component.name], locations_dict[target_component.name])
+                          return
+                      elif target_type in ["CHARACTER", "character"]:
+                          character = next((c for c in characters_list if c.name == target_component.name), None)
+                          if character:
+                              self.objective = (items_dict[item_component.name], character)
+                              return
+          
+          elif obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
+              # Create a proper MysteryObjective with clue validation
+              from .world import MysteryObjective, MysteryClue
+              
+              # Validate and create clues
+              valid_clues = []
+              if hasattr(objective_data, 'mystery_clues') and objective_data.mystery_clues:
+                  for clue_data in objective_data.mystery_clues:
+                      # Validate that the associated item exists
+                      if clue_data.associated_item in items_dict:
+                          clue = MysteryClue(
+                              name=clue_data.name,
+                              description=clue_data.description,
+                              associated_item=clue_data.associated_item,
+                              relevance_to_mystery=clue_data.relevance_to_mystery,
+                              discovered=clue_data.discovered,
+                              item_location=getattr(clue_data, 'item_location', None)
+                          )
+                          valid_clues.append(clue)
+              
+              # Only create mystery objective if there are valid clues
+              if valid_clues:
+                  mystery_solution = getattr(objective_data, 'mystery_solution', 'Mystery solution not specified')
+                  mystery_objective = MysteryObjective(
+                      name=f"Mystery: {objective_data.description}",
+                      description=objective_data.description,
+                      clues=valid_clues,
+                      mystery_solution=mystery_solution
+                  )
+                  self.objective = (player, mystery_objective)
+                  return
+          
+          # Fallback for legacy objective types or unknown formats
+          elif obj_type == "item_to_location":
               item_name, location_name = objective_data.components
               if item_name in items_dict and location_name in locations_dict:
                   self.objective = (items_dict[item_name], locations_dict[location_name])
+                  return
           
-          elif objective_data.type == "find_character":
-              char_name = objective_data.components[0]
-              character = next((c for c in characters_list if c.name == char_name), None)
-              if character:
-                  self.objective = (player, character)
-          
-          elif objective_data.type == "get_item":
-              item_name = objective_data.components[0]
-              if item_name in items_dict:
-                  self.objective = (player, items_dict[item_name])
-          
-          elif objective_data.type == "reach_location":
-              location_name = objective_data.components[0]
-              if location_name in locations_dict:
-                  self.objective = (player, locations_dict[location_name])
+          print(f"❌ Could not set objective from type: {obj_type}")
+          self.objective = None
                   
       except Exception as e:
           print(f"Error setting objective: {e}")
+          import traceback
+          traceback.print_exc()
           self.objective = None
 
   def add_puzzle(self, puzzle: Puzzle) -> None:
@@ -663,7 +747,7 @@ class World:
     # Check for puzzles proposed by items in this location
     for item in location.items:
         for puzzle in self.puzzles.values():
-            if hasattr(puzzle, 'proposed_by_item') and puzzle.proposed_by_item == item.name:
+            if hasattr(puzzle, 'proposed_by_location') and puzzle.proposed_by_location == item.name:
                 return True
     
     # Check for puzzles that block passages from this location
@@ -744,8 +828,8 @@ class World:
     # Get hints from puzzles proposed by items in this location
     for item in location.items:
         for puzzle in self.puzzles.values():
-            if (hasattr(puzzle, 'proposed_by_item') and 
-                puzzle.proposed_by_item == item.name):
+            if (hasattr(puzzle, 'proposed_by_location') and 
+                puzzle.proposed_by_location == item.name):
                 if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
                     for hint in puzzle.puzzle_hints:
                         if hasattr(hint, 'text') and hasattr(hint, 'given'):
@@ -990,7 +1074,7 @@ class World:
           
           if item_mentioned or item_investigated_not_moved:
             # Check if this item should propose a puzzle
-            puzzle = self.find_puzzle_proposed_by_item(item_name)
+            puzzle = self.find_puzzle_proposed_by_location(item_name)
             if puzzle:
               print(f"🧩 Item {item_name} investigation triggered puzzle: {puzzle.name}")
               # Update hints to focus on this specific puzzle
@@ -1239,11 +1323,11 @@ class World:
               return item
       return None
 
-  def find_puzzle_proposed_by_item(self, item_name: str):
+  def find_puzzle_proposed_by_location(self, item_name: str):
       """Find a puzzle that is proposed by a specific item when investigated."""
       for puzzle_name, puzzle in self.puzzles.items():
-          if hasattr(puzzle, 'proposed_by_item') and puzzle.proposed_by_item:
-              if puzzle.proposed_by_item.lower() == item_name.lower():
+          if hasattr(puzzle, 'proposed_by_location') and puzzle.proposed_by_location:
+              if puzzle.proposed_by_location.lower() == item_name.lower():
                   return puzzle
       return None
 
