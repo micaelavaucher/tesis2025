@@ -69,7 +69,8 @@ class Puzzle (Component):
 
   def __init__(self, name: str, descriptions: 'list[str]', problem: str, answer: str, 
                puzzle_type: str = "riddle", proposed_by_character: str = None, 
-               rewards: list = None, relevance_to_objective: str = None):
+               proposed_by_location: str = None, rewards: list = None, 
+               relevance_to_objective: str = None, puzzle_hints: 'list[dict]' = None, interaction_hint: str = None):
     
     super().__init__(name, descriptions)
     """inherited from Component"""
@@ -86,11 +87,19 @@ class Puzzle (Component):
     self.proposed_by_character = proposed_by_character
     """character who proposes this puzzle, or None if environmental"""
     
+    self.proposed_by_location = proposed_by_location
+    """location that when investigated proposes this puzzle, or None if proposed by character"""
+    
     self.rewards = rewards or []
     """list of rewards obtained when solving this puzzle"""
     
     self.relevance_to_objective = relevance_to_objective
     """how solving this puzzle helps achieve the main objective"""
+
+    self.puzzle_hints = puzzle_hints or []
+
+    self.interaction_hint = interaction_hint
+
 
 class Item (Component):
   """A class to represent an Item."""
@@ -149,7 +158,7 @@ class Location (Component):
 
 class Character (Component):
   """A class to represent a character."""
-  def __init__ (self, name:str, descriptions: 'list[str]', location:Location, inventory: 'list[Item]' = None):
+  def __init__ (self, name:str, descriptions: 'list[str]', location:Location, inventory: 'list[Item]' = None, interaction=None):
 
     super().__init__(name, descriptions)
     """inherited from Component"""
@@ -162,6 +171,9 @@ class Character (Component):
 
     self.visited_locations = {self.location.name: []}
     """a dictionary that contains the successive descriptions of the visited places"""
+    
+    self.interaction = interaction
+    """interaction data from GeneratedCharacter, contains proposes_puzzle and other interaction info"""
 
   def move(self, new_location: Location):
     """Move the character to a new location."""
@@ -220,7 +232,26 @@ class World:
 
     self.objective = None
     """the current objective for the player in this world"""
+    
+    self.objective_data = None
+    """the structured GeneratedObjective that contains hints and metadata"""
+    
+    # Hints system
+    self.current_hints = []
+    """currently active hints that can be given to the player"""
+    
+    # Default exploration hints
+    self.default_explore_hints = [
+        {"text": "explore the world", "given": False},
+        {"text": "try interacting with characters and objects", "given": False},
+        {"text": "try investigating objects and asking things to characters", "given": False}
+    ]
+    
+    # Puzzle state tracking
+    self.puzzle_states = {}
+    """track the state of puzzles: 'not_proposed', 'proposed', 'solved'"""
 
+  ## Deprecated ##
   def set_objective (self, first_component: Type[Component], second_component: Type[Component]):
     
     first_component_class = first_component.__class__.__name__
@@ -263,29 +294,112 @@ class World:
   def set_objective_from_generated(self, objective_data, items_dict, locations_dict, characters_list, player):
       """Set the world objective from generated data."""
       try:
-          if objective_data.type == "item_to_location":
+          # Store the structured objective data for access to completion_narration and other metadata
+          self.objective_data = objective_data
+          
+          # Handle enum values properly
+          obj_type = objective_data.type.value if hasattr(objective_data.type, 'value') else str(objective_data.type)
+          components = objective_data.components
+          
+          # Handle different objective types with new component system
+          if obj_type in ["GET_ITEM", "get_item"]:
+              # Find the item component
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["ITEM", "item"]:
+                      if component.name in items_dict:
+                          self.objective = (player, items_dict[component.name])
+                          return
+          
+          elif obj_type in ["REACH_LOCATION", "reach_location"]:
+              # Find the location component
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["LOCATION", "location"]:
+                      if component.name in locations_dict:
+                          self.objective = (player, locations_dict[component.name])
+                          return
+          
+          elif obj_type in ["FIND_CHARACTER", "find_character"]:
+              # Find the character component
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["CHARACTER", "character"]:
+                      character = next((c for c in characters_list if c.name == component.name), None)
+                      if character:
+                          self.objective = (player, character)
+                          return
+          
+          elif obj_type in ["DELIVER_AN_ITEM", "deliver_an_item"]:
+              # Need both item and location/character components
+              item_component = None
+              target_component = None
+              
+              for component in components:
+                  component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                  if component_type in ["ITEM", "item"]:
+                      item_component = component
+                  elif component_type in ["LOCATION", "location", "CHARACTER", "character"]:
+                      target_component = component
+              
+              if item_component and target_component:
+                  if item_component.name in items_dict:
+                      target_type = target_component.component_type.value if hasattr(target_component.component_type, 'value') else str(target_component.component_type)
+                      if target_type in ["LOCATION", "location"] and target_component.name in locations_dict:
+                          self.objective = (items_dict[item_component.name], locations_dict[target_component.name])
+                          return
+                      elif target_type in ["CHARACTER", "character"]:
+                          character = next((c for c in characters_list if c.name == target_component.name), None)
+                          if character:
+                              self.objective = (items_dict[item_component.name], character)
+                              return
+          
+          elif obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
+              # Create a proper MysteryObjective with clue validation
+              from .world import MysteryObjective, MysteryClue
+              
+              # Validate and create clues
+              valid_clues = []
+              if hasattr(objective_data, 'mystery_clues') and objective_data.mystery_clues:
+                  for clue_data in objective_data.mystery_clues:
+                      # Validate that the associated item exists
+                      if clue_data.associated_item in items_dict:
+                          clue = MysteryClue(
+                              name=clue_data.name,
+                              description=clue_data.description,
+                              associated_item=clue_data.associated_item,
+                              relevance_to_mystery=clue_data.relevance_to_mystery,
+                              discovered=clue_data.discovered,
+                              item_location=getattr(clue_data, 'item_location', None)
+                          )
+                          valid_clues.append(clue)
+              
+              # Only create mystery objective if there are valid clues
+              if valid_clues:
+                  mystery_solution = getattr(objective_data, 'mystery_solution', 'Mystery solution not specified')
+                  mystery_objective = MysteryObjective(
+                      name=f"Mystery: {objective_data.description}",
+                      description=objective_data.description,
+                      clues=valid_clues,
+                      mystery_solution=mystery_solution
+                  )
+                  self.objective = (player, mystery_objective)
+                  return
+          
+          # Fallback for legacy objective types or unknown formats
+          elif obj_type == "item_to_location":
               item_name, location_name = objective_data.components
               if item_name in items_dict and location_name in locations_dict:
                   self.objective = (items_dict[item_name], locations_dict[location_name])
+                  return
           
-          elif objective_data.type == "find_character":
-              char_name = objective_data.components[0]
-              character = next((c for c in characters_list if c.name == char_name), None)
-              if character:
-                  self.objective = (player, character)
-          
-          elif objective_data.type == "get_item":
-              item_name = objective_data.components[0]
-              if item_name in items_dict:
-                  self.objective = (player, items_dict[item_name])
-          
-          elif objective_data.type == "reach_location":
-              location_name = objective_data.components[0]
-              if location_name in locations_dict:
-                  self.objective = (player, locations_dict[location_name])
+          print(f"❌ Could not set objective from type: {obj_type}")
+          self.objective = None
                   
       except Exception as e:
           print(f"Error setting objective: {e}")
+          import traceback
+          traceback.print_exc()
           self.objective = None
 
   def add_puzzle(self, puzzle: Puzzle) -> None:
@@ -294,6 +408,8 @@ class World:
           raise Exception(f"Error: Already exists a puzzle called '{puzzle.name}'")
       else:
           self.puzzles[puzzle.name] = puzzle
+          # Initialize puzzle state as not proposed
+          self.puzzle_states[puzzle.name] = 'not_proposed'
   
   def add_puzzles(self, puzzles: 'list[Puzzle]') -> None:
       """Add a set of puzzles to the world."""
@@ -616,9 +732,208 @@ class World:
     
     return discovery_message
 
+  def _has_puzzles_in_location(self, location: 'Location' = None) -> bool:
+    """Check if the current location (or specified location) has any puzzles."""
+    if location is None:
+        location = self.player.location
+    
+    # Check for puzzles proposed by characters in this location
+    for character in self.characters.values():
+        if character.location is location:
+            for puzzle in self.puzzles.values():
+                if hasattr(puzzle, 'proposed_by_character') and puzzle.proposed_by_character == character.name:
+                    return True
+    
+    # Check for puzzles proposed by items in this location
+    for item in location.items:
+        for puzzle in self.puzzles.values():
+            if hasattr(puzzle, 'proposed_by_location') and puzzle.proposed_by_location == item.name:
+                return True
+    
+    # Check for puzzles that block passages from this location
+    for blocked_location_name, (_, obstacle, _) in location.blocked_locations.items():
+        if obstacle.__class__.__name__ == 'Puzzle':
+            return True
+    
+    return False    
+  def _get_objective_hints(self) -> list:
+        """Get hints for the main objective if available."""
+        # First, check if we have the structured objective data with hints
+        if (hasattr(self, 'objective_data') and self.objective_data and 
+            hasattr(self.objective_data, 'objective_hints') and self.objective_data.objective_hints):
+            hints = []
+            for hint in self.objective_data.objective_hints:
+                # Handle both Pydantic Hint objects and dict/simple objects
+                if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                    hints.append({"text": hint.text, "given": hint.given})
+                elif isinstance(hint, dict):
+                    hints.append(hint)
+                else:
+                    # Fallback for unexpected hint format
+                    hints.append({"text": str(hint), "given": False})
+            return hints
+        
+        # Fallback: check the objective tuple structure (legacy support)
+        if (hasattr(self, 'objective') and self.objective and 
+            isinstance(self.objective, tuple) and len(self.objective) >= 2):
+            obj_component = self.objective[1]
+            
+            # Check if it's a structured objective with hints
+            if hasattr(obj_component, 'objective_hints') and obj_component.objective_hints:
+                hints = []
+                for hint in obj_component.objective_hints:
+                    # Handle both Pydantic Hint objects and dict/simple objects
+                    if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                        hints.append({"text": hint.text, "given": hint.given})
+                    elif isinstance(hint, dict):
+                        hints.append(hint)
+                    else:
+                        # Fallback for unexpected hint format
+                        hints.append({"text": str(hint), "given": False})
+                return hints
+            
+            # Check if it's a mystery objective (no hints for mysteries)
+            elif (hasattr(obj_component, '__class__') and 
+                  obj_component.__class__.__name__ == 'MysteryObjective'):
+                return []  # No hints for mystery objectives
+        
+        return []
+
+  def _get_puzzle_hints_for_location(self, location: 'Location' = None) -> list:
+    """Get hints for puzzles available in the current location."""
+    if location is None:
+        location = self.player.location
+    
+    puzzle_hints = []
+    
+    # Get hints from puzzles proposed by characters in this location
+    for character in self.characters.values():
+        if character.location is location:
+            for puzzle in self.puzzles.values():
+                if (hasattr(puzzle, 'proposed_by_character') and 
+                    puzzle.proposed_by_character == character.name):
+                    if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                        for hint in puzzle.puzzle_hints:
+                            if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                                puzzle_hints.append({"text": hint.text, "given": hint.given})
+                            elif isinstance(hint, dict):
+                                puzzle_hints.append(hint)
+                    if hasattr(puzzle, 'interaction_hint') and puzzle.interaction_hint:
+                        hint = puzzle.interaction_hint
+                        if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                            puzzle_hints.append({"text": hint.text, "given": hint.given})
+                        elif isinstance(hint, dict):
+                            puzzle_hints.append(hint)
+    
+    # Get hints from puzzles proposed by items in this location
+    for item in location.items:
+        for puzzle in self.puzzles.values():
+            if (hasattr(puzzle, 'proposed_by_location') and 
+                puzzle.proposed_by_location == item.name):
+                if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                    for hint in puzzle.puzzle_hints:
+                        if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                            puzzle_hints.append({"text": hint.text, "given": hint.given})
+                        elif isinstance(hint, dict):
+                            puzzle_hints.append(hint)
+                if hasattr(puzzle, 'interaction_hint') and puzzle.interaction_hint:
+                    hint = puzzle.interaction_hint
+                    if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                        puzzle_hints.append({"text": hint.text, "given": hint.given})
+                    elif isinstance(hint, dict):
+                        puzzle_hints.append(hint)
+    
+    # Get hints from puzzles that block passages from this location
+    for blocked_location_name, (_, obstacle, _) in location.blocked_locations.items():
+        if obstacle.__class__.__name__ == 'Puzzle':
+            puzzle = obstacle
+            if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                for hint in puzzle.puzzle_hints:
+                    if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                        puzzle_hints.append({"text": hint.text, "given": hint.given})
+                    elif isinstance(hint, dict):
+                        puzzle_hints.append(hint)
+            if hasattr(puzzle, 'interaction_hint') and puzzle.interaction_hint:
+                hint = puzzle.interaction_hint
+                if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                    puzzle_hints.append({"text": hint.text, "given": hint.given})
+                elif isinstance(hint, dict):
+                    puzzle_hints.append(hint)
+    
+    return puzzle_hints
+
+  def update_hints(self):
+    """Update the current hints based on the player's location and game state."""
+    current_location = self.player.location
+    
+    if self._has_puzzles_in_location(current_location):
+        # Location has puzzles: use puzzle-specific hints
+        puzzle_hints = self._get_puzzle_hints_for_location(current_location)
+        if puzzle_hints:
+            self.current_hints = puzzle_hints
+        else:
+            # Fallback to explore hints if no puzzle hints available
+            self.current_hints = self.default_explore_hints.copy()
+    else:
+        # Location has no puzzles: use objective hints
+        objective_hints = self._get_objective_hints()
+        if objective_hints:
+            self.current_hints = objective_hints
+        else:
+            # Fallback to explore hints if no objective hints available
+            self.current_hints = self.default_explore_hints.copy()
+
+  def update_hints_for_puzzle_activity(self, puzzle_name: str):
+    """Update hints when a puzzle has been given out or interacted with."""
+    # Find the puzzle and switch to its specific hints
+    if puzzle_name in self.puzzles:
+        puzzle = self.puzzles[puzzle_name]
+        puzzle_hints = []
+        
+        print(f"🔍 DEBUG: Processing puzzle '{puzzle_name}'")
+        print(f"🔍 DEBUG: Puzzle has puzzle_hints attribute: {hasattr(puzzle, 'puzzle_hints')}")
+        if hasattr(puzzle, 'puzzle_hints'):
+            print(f"🔍 DEBUG: puzzle_hints value: {puzzle.puzzle_hints}")
+            print(f"🔍 DEBUG: puzzle_hints type: {type(puzzle.puzzle_hints)}")
+        
+        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+            for i, hint in enumerate(puzzle.puzzle_hints):
+                print(f"🔍 DEBUG: Processing hint {i}: {hint} (type: {type(hint)})")
+                if hasattr(hint, 'text') and hasattr(hint, 'given'):
+                    hint_dict = {"text": hint.text, "given": hint.given}
+                    puzzle_hints.append(hint_dict)
+                    print(f"🔍 DEBUG: Added Pydantic hint: {hint_dict}")
+                elif isinstance(hint, dict):
+                    puzzle_hints.append(hint)
+                    print(f"🔍 DEBUG: Added dict hint: {hint}")
+                else:
+                    print(f"🔍 DEBUG: Unknown hint format: {hint}")
+        
+        print(f"🔍 DEBUG: Final puzzle_hints list: {puzzle_hints}")
+        if puzzle_hints:
+            self.current_hints = puzzle_hints
+            print(f"🔍 DEBUG: Updated current_hints to: {self.current_hints}")
+        else:
+            print("🔍 DEBUG: No puzzle hints found, keeping current hints")
+
+  def get_next_hint(self) -> str:
+    """Get the next available hint for the player."""
+    for hint in self.current_hints:
+        if not hint["given"]:
+            hint["given"] = True
+            return hint["text"]
+    
+    # If all hints have been given, return a generic message
+    return "Keep exploring and trying different actions. You're on the right track!"
+
+  def reset_hints(self):
+    """Reset all hints to not given."""
+    for hint in self.current_hints:
+        if isinstance(hint, dict):
+            hint["given"] = False
+
   def update_from_structured(self, world_update, language: str = 'en') -> None:
     """Update world state using structured WorldUpdate object."""
-    from ..llm.structured_data_models import WorldUpdate
     
     # Handle moved objects
     for moved_obj in world_update.moved_objects:
@@ -627,15 +942,43 @@ class World:
         
         if moved_obj.new_location in ['Inventory', 'Inventario', 'Player', 'Jugador', self.player.name]:
           # Player takes item
-          item_location = [character for character in list(self.characters.values()) if world_item in character.inventory]
-          item_location += [location for location in list(self.locations.values()) if world_item in location.items]
-          if item_location:
-            self.player.save_item(world_item, item_location[0])
-            # Check for mystery clue discovery when taking items
-            clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
-            if clue_discovery:
-              # Add discovery message to narration
-              world_update.narration += clue_discovery
+          item_source = next((char for char in self.characters.values() if world_item in char.inventory), None)
+          if not item_source:
+              item_source = next((loc for loc in self.locations.values() if world_item in loc.items), None)
+
+          if item_source:
+              # This is a standard item in a location or inventory
+              self.player.save_item(world_item, item_source)
+              # Check for mystery clue discovery when taking items
+              clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
+              if clue_discovery:
+                  world_update.narration += clue_discovery
+          else:
+              # If not found, check if it's a blocking item
+              obstacle_found = False
+              for location in self.locations.values():
+                  for _, (blocked_loc, obstacle, _) in list(location.blocked_locations.items()):
+                      if obstacle is world_item:
+                          if world_item.gettable:
+                              # Add to player inventory if not already there
+                              if world_item not in self.player.inventory:
+                                  self.player.inventory.append(world_item)
+
+                              # Unblock the passage since the obstacle is taken
+                              location.unblock_passage(blocked_loc)
+                              print(f"INFO: Player took blocking item '{world_item.name}', unblocking passage from '{location.name}' to '{blocked_loc.name}'.")
+
+                              # Check for clue discovery
+                              clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
+                              if clue_discovery:
+                                  world_update.narration += clue_discovery
+
+                          obstacle_found = True
+                          break
+                  if obstacle_found:
+                      break
+              if obstacle_found:
+                  break
             
         elif moved_obj.new_location in self.characters:
           # Player gives item to character
@@ -668,8 +1011,30 @@ class World:
     if world_update.location_changed.new_location:
       try:
         new_location_name = world_update.location_changed.new_location
+        target_location = None
+        
+        # First try exact match
         if new_location_name in self.locations:
-          self.player.move(self.locations[new_location_name])
+          target_location = self.locations[new_location_name]
+        else:
+          target_location = self._find_location_case_insensitive(new_location_name)
+          
+          # If still not found, try partial matching for location names that contain the search term
+          if target_location is None:
+            for name, location in self.locations.items():
+              if new_location_name.lower() in name.lower() or name.lower().startswith(new_location_name.lower()):
+                target_location = location
+                print(f"🔍 Location found via partial match: '{new_location_name}' -> '{name}'")
+                break
+        
+        if target_location:
+          self.player.move(target_location)
+          print(f"✅ Player successfully moved to {target_location.name}")
+          # Update hints when player changes location
+          self.update_hints()
+        else:
+          print(f"❌ Location '{new_location_name}' not found in world")
+          print(f"Available locations: {list(self.locations.keys())}")
       except Exception as e:
         print(f"Error moving player to {world_update.location_changed.new_location}: {e}")
 
@@ -680,12 +1045,44 @@ class World:
           success = self.solve_puzzle(puzzle_solution.puzzle_name, puzzle_solution.answer)
           if success:
             print(f"✅ Puzzle {puzzle_solution.puzzle_name} solved successfully!")
+            # Update hints after solving a puzzle - player may now need different hints
+            self.update_hints()
           else:
             print(f"❌ Incorrect answer for puzzle {puzzle_solution.puzzle_name}")
         else:
           print(f"❌ Player attempted puzzle {puzzle_solution.puzzle_name} but failed")
       except Exception as e:
         print(f"Error processing puzzle solution {puzzle_solution.puzzle_name}: {e}")
+
+    # Check for puzzle proposition when investigating items
+    # This handles cases where investigating items should propose puzzles
+    if hasattr(world_update, 'narration') and world_update.narration:
+      # Look for item investigation keywords in the narration
+      investigation_keywords = ['investigate', 'examine', 'look at', 'inspect', 'observe', 'check', 'study']
+      narration_lower = world_update.narration.lower()
+      
+      # Check if any item in the current location has been investigated
+      for item_name, item in self.items.items():
+        if item in self.player.location.items:
+          # Check if the item is mentioned with investigation keywords
+          item_mentioned = any(keyword in narration_lower and item_name.lower() in narration_lower 
+                             for keyword in investigation_keywords)
+          
+          # Also check if item was mentioned without being moved (indicating investigation)
+          item_investigated_not_moved = (item_name.lower() in narration_lower and 
+                                       not any(moved_obj.object_name == item_name for moved_obj in world_update.moved_objects))
+          
+          if item_mentioned or item_investigated_not_moved:
+            # Check if this item should propose a puzzle
+            puzzle = self.find_puzzle_proposed_by_location(item_name)
+            if puzzle:
+              print(f"🧩 Item {item_name} investigation triggered puzzle: {puzzle.name}")
+              # Update hints to focus on this specific puzzle
+              self.update_hints_for_puzzle_activity(puzzle.name)
+              # Add puzzle proposition to narration if not already present
+              if puzzle.name.lower() not in world_update.narration.lower():
+                puzzle_description = puzzle.descriptions[0] if puzzle.descriptions else puzzle.problem
+                world_update.narration += f"\n\n🧩 {puzzle_description}\n\n{puzzle.problem}"
 
     # Check for mystery clue discovery when interacting with items
     # This handles cases where items can't be picked up (gettable=False) but players interact with them
@@ -700,6 +1097,20 @@ class World:
           if clue_discovery:
             # Add discovery message to narration
             world_update.narration += clue_discovery
+
+    # Check if any puzzle problem is mentioned in the narration (indicates puzzle was presented)
+    if hasattr(world_update, 'narration') and world_update.narration:
+      narration_lower = world_update.narration.lower()
+      for puzzle_name, puzzle in self.puzzles.items():
+        if hasattr(puzzle, 'problem') and puzzle.problem:
+          # Check if the puzzle problem text appears in the narration
+          puzzle_problem_lower = puzzle.problem.lower()
+          # Look for significant portions of the puzzle problem (at least 10 characters)
+          if len(puzzle_problem_lower) >= 10 and puzzle_problem_lower in narration_lower:
+            print(f"🧩 Puzzle problem detected in narration: {puzzle_name}")
+            # Update hints to focus on this specific puzzle
+            self.update_hints_for_puzzle_activity(puzzle_name)
+            break  # Only update for the first puzzle found to avoid conflicts
 
   def update (self, updates: str) -> None:
     """Does the changes in the world according to the output of the language model.
@@ -744,14 +1155,39 @@ class World:
         try:
           world_item = self.items[pair[0][0]]
           
-          if pair[0][1] in ['Inventory', 'Inventario', 'Player',  'Jugador', self.player.name]: #(save_item case)
-            item_location = [character for character in list(self.characters.values()) if world_item in character.inventory]
-            item_location += [location for location in list(self.locations.values()) if world_item in location.items]
-            self.player.save_item(world_item, item_location[0])
-            # Check for mystery clue discovery when taking items
-            clue_discovery = self._check_mystery_clue_discovery(world_item.name)
-            if clue_discovery:
-              print(clue_discovery)
+          if pair[0][1] in ['Inventory', 'Inventario', 'Player',  'Jugador', self.player.name]: # (save_item case)
+            item_location = next((char for char in self.characters.values() if world_item in char.inventory), None)
+            if not item_location:
+                item_location = next((loc for loc in self.locations.values() if world_item in loc.items), None)
+
+            if item_location:
+                self.player.save_item(world_item, item_location)
+                # Check for mystery clue discovery when taking items
+                clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+                if clue_discovery:
+                    print(clue_discovery)
+            else:
+                # Check if it's a blocking item
+                obstacle_found = False
+                for location in self.locations.values():
+                    for _, (blocked_loc, obstacle, _) in list(location.blocked_locations.items()):
+                        if obstacle is world_item:
+                            if world_item.gettable:
+                                if world_item not in self.player.inventory:
+                                    self.player.inventory.append(world_item)
+                                location.unblock_passage(blocked_loc)
+                                print(f"INFO: Player took blocking item '{world_item.name}', unblocking passage from '{location.name}' to '{blocked_loc.name}'.")
+
+                                clue_discovery = self._check_mystery_clue_discovery(world_item.name)
+                                if clue_discovery:
+                                    print(clue_discovery)
+
+                            obstacle_found = True
+                            break
+                    if obstacle_found:
+                        break
+                if obstacle_found:
+                    break
 
           elif pair[0][1] in self.characters: #(give_item case)
             self.player.give_item(self.characters[pair[0][1]], world_item)
@@ -831,6 +1267,8 @@ class World:
       if correct_answer == user_answer:
           # Apply rewards
           self._apply_puzzle_rewards(puzzle)
+          # Mark puzzle as solved
+          self.puzzle_states[puzzle_name] = 'solved'
           return True
       
       return False
@@ -840,20 +1278,34 @@ class World:
       for reward in puzzle.rewards:
           try:
               if hasattr(reward, 'reward_type'):
+                  # Special handling for observation puzzles where the reward is finding the item
+                  if puzzle.puzzle_type == "observation" and reward.reward_type == "ITEM":
+                      item = self._find_item_case_insensitive(reward.item_name)
+                      if item and item in self.player.location.items:
+                          self.player.save_item(item, self.player.location)
+                          print(f"[INFO] Player found observation reward item '{item.name}' in location.")
+                          continue # Move to next reward
+
                   if reward.reward_type == "ITEM" and hasattr(reward, 'item_name'):
                       # Give item to player - case insensitive search
                       item = self._find_item_case_insensitive(reward.item_name)
                       if item:
                           # Find who has the item and transfer it
+                          owner_found = False
+                          # First, check all character inventories
                           for char in self.characters.values():
                               if item in char.inventory:
                                   char.give_item(self.player, item)
-                                  break
-                          # Also check if item is in a location
-                          for location in self.locations.values():
-                              if item in location.items:
-                                  self.player.save_item(item, location)
-                                  break
+                                  owner_found = True
+                                  break  # Exit character loop once found and transferred
+
+                          # If not found in any character's inventory, check locations
+                          if not owner_found:
+                              for location in self.locations.values():
+                                  if item in location.items:
+                                      self.player.save_item(item, location)
+                                      # No need to set owner_found=True, as we break immediately
+                                      break # Exit location loop once found and transferred
                   
                   elif reward.reward_type == "PASSAGE" and hasattr(reward, 'from_location') and hasattr(reward, 'to_location'):
                       # Unblock passage - case insensitive search
@@ -869,6 +1321,14 @@ class World:
       for name, item in self.items.items():
           if name.lower() == item_name.lower():
               return item
+      return None
+
+  def find_puzzle_proposed_by_location(self, item_name: str):
+      """Find a puzzle that is proposed by a specific item when investigated."""
+      for puzzle_name, puzzle in self.puzzles.items():
+          if hasattr(puzzle, 'proposed_by_location') and puzzle.proposed_by_location:
+              if puzzle.proposed_by_location.lower() == item_name.lower():
+                  return puzzle
       return None
 
   def _find_location_case_insensitive(self, location_name: str) -> 'Location':
