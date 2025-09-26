@@ -5,6 +5,12 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from enum import Enum
 
+#---- Hint Models -------------------------------------------------------------
+class Hint(BaseModel):
+    """A hint that can be given to the player."""
+    text: str = Field(description="The hint text to show to the player")
+    given: bool = Field(default=False, description="Whether this hint has been given to the player")
+
 #---- Enums and Types ---------------------------------------------------------
 class PuzzleType(str, Enum):
     RIDDLE = "riddle"           # Adivinanza
@@ -18,14 +24,13 @@ class PuzzleType(str, Enum):
 class ObjectiveType(str, Enum):
     REACH_LOCATION = "reach_location"   # Llegar a un lugar
     GET_ITEM = "get_item"               # Conseguir un objeto
-    DELIVER_ITEM = "deliver_item"       # Entregar objeto a alguien/algún lugar
+    DELIVER_AN_ITEM = "deliver_an_item" # Entregar un objeto a alguien/algún lugar
     FIND_CHARACTER = "find_character"   # Encontrar a un personaje
     SOLVE_MYSTERY = "solve_mystery"     # Resolver un misterio general
 
 class RewardType(str, Enum):
     PASSAGE = "passage"                 # Desbloquea un pasaje
     ITEM = "item"                       # Otorga un objeto
-    INFORMATION = "information"         # Revela información importante
     OBJECTIVE_COMPLETION = "objective_completion"  # Completa directamente el objetivo
 
 class RequirementType(str, Enum):
@@ -38,6 +43,13 @@ class ComponentType(str, Enum):
     ITEM = "item"                       # Componente es un objeto
     CHARACTER = "character"             # Componente es un personaje
     LOCATION = "location"               # Componente es una ubicación
+
+class ItemActionType(str, Enum):
+    """Defines the specific, engine-supported actions an item can perform."""
+    UNLOCK_PASSAGE = "unlock_passage"   # The item is a key for a blocked passage
+    SOLVE_PUZZLE = "solve_puzzle"       # The item is a key or clue for a puzzle
+    GIVE_TO_CHARACTER = "give_to_character" # The item is meant to be given to an NPC
+    LORE = "lore"                       # The item provides story/information but has no mechanical use
 
 #---- Reward Models (lo que se obtiene al resolver puzzles) ------------------
 class PuzzleReward(BaseModel):
@@ -55,12 +67,7 @@ class ItemReward(PuzzleReward):
     """Provides an item."""
     reward_type: RewardType = Field(default=RewardType.ITEM)
     item_name: str = Field(description="Name of the item obtained. Note: this item must exist in the world and be in someone's inventory or a location")
-    
-class InformationReward(PuzzleReward):
-    """Reveals important information."""
-    reward_type: RewardType = Field(default=RewardType.INFORMATION)
-    information: str = Field(description="The crucial information revealed")
-    
+
 class ObjectiveReward(PuzzleReward):
     """Directly completes the objective."""
     reward_type: RewardType = Field(default=RewardType.OBJECTIVE_COMPLETION)
@@ -99,15 +106,19 @@ class GeneratedPuzzle(BaseModel):
     problem: str = Field(description="Clear statement of the puzzle problem")
     answer: str = Field(description="The solution to the puzzle")
     location: Optional[str] = Field(default=None, description="Location where puzzle is found, or None if given by character. Note: if specified, this location must exist in the world")
-    proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental. Note: if specified, this character must exist in the world")
-    rewards: List[Union[PassageReward, ItemReward, InformationReward, ObjectiveReward]] = Field(
+    proposed_by_character: Optional[str] = Field(default=None, description="Character who proposes this puzzle, or None if environmental, NONE IF REWARD IS A PASSAGE. Note: if specified, this character must exist in the world")
+    proposed_by_location: Optional[str] = Field(default=None, description="Location that when investigated/examined should propose this puzzle, or None if it's given by a character.")
+    rewards: List[Union[PassageReward, ItemReward, ObjectiveReward]] = Field(
         description="What you get when you solve this puzzle. Note: all reward items and locations must exist in the world"
     )
     relevance_to_objective: str = Field(description="How solving this puzzle helps achieve the main objective")
     hint: str = Field(description="How the character or the narration hints to the puzzle")
+    puzzle_hints: List[Hint] = Field(default=[], description="Progressive hints for solving this puzzle (from general to specific)")
+    interaction_hint: Optional[Hint] = Field(default=None, description="Hint about how to interact with this puzzle if player hasn't started yet")
 
 class GeneratedItem(BaseModel):
     name: str = Field(description="Unique name of the item")
+    action_type: ItemActionType = Field(description="The single, specific mechanical action this item can be used for. This defines its purpose in the game engine.")
     descriptions: List[str] = Field(description="List of descriptive texts for the item")
     gettable: bool = Field(default=True, description="Whether the item can be picked up. Note: items required for objectives must always be gettable=True")
     is_objective_target: bool = Field(
@@ -131,7 +142,7 @@ class CharacterInteraction(BaseModel):
 class GeneratedCharacter(BaseModel):
     name: str = Field(description="Unique name of the character")
     descriptions: List[str] = Field(description="List of character descriptions")
-    location: str = Field(description="Location where this character is placed. Note: this location must exist in the world")
+    location: str = Field(description="Location where this character is placed. CRITICAL LOGIC RULE: If this character holds an item or puzzle solution required to unlock a passage, they CANNOT be placed in the location behind that very passage or any location only accessible through it.")
     inventory: List[str] = Field(default=[], description="Items this character starts with. Note: all items must exist in the world")
     interaction: Optional[CharacterInteraction] = Field(default=None, description="How this character can help the player, or None if just decorative")
 
@@ -147,7 +158,7 @@ class BlockedPassage(BaseModel):
 class GeneratedLocation(BaseModel):
     name: str = Field(description="Unique name of the location")
     descriptions: List[str] = Field(description="List of atmospheric descriptions")
-    items: List[str] = Field(default=[], description="Names of items initially present. Note: all items must exist in the world")
+    items: List[str] = Field(default=[], description="Names of items initially present. CRITICAL LOGIC RULE: An item required to unlock a passage CANNOT be placed in the location behind that very passage or any location only accessible through it.")
     connecting_locations: List[str] = Field(default=[], description="Directly accessible locations. Note: connections must be bidirectional - if A connects to B, then B must connect to A")
     blocked_passages: List[BlockedPassage] = Field(default=[], description="Blocked passages with their requirements")
     relevance_to_objective: Optional[str] = Field(default=None, description="How this location relates to the main objective")
@@ -174,6 +185,9 @@ class GeneratedObjective(BaseModel):
     success_conditions: List[str] = Field(description="Specific conditions that must be met to complete the objective. Note: ensure these conditions are actually achievable given the world setup")
     mystery_clues: Optional[List[MysteryClue]] = Field(default=None, description="List of clues for mystery objectives. Only used when type is SOLVE_MYSTERY")
     mystery_solution: Optional[str] = Field(default=None, description="The solution to the mystery. Only used when type is SOLVE_MYSTERY")
+    completion_narration: Optional[str] = Field(default=None, description="Narrative description of what happens after the player successfully completes the objective. This should provide a satisfying conclusion to the adventure. Not used for SOLVE_MYSTERY objectives (which use mystery_solution instead)")
+    objective_hints: List[Hint] = Field(default=[], description="Progressive hints for advancing toward the objective (from general to specific). Only used for non-mystery objectives")
+    hints: List[Hint] = Field(default=[], description="List of hints that can be given to the player")
 
 class DependencyChain(BaseModel):
     """Represents a chain of dependencies leading to the objective."""

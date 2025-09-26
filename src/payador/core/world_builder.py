@@ -44,9 +44,12 @@ def create_world_from_llm_response(world_data) -> World:
                 answer=puzzle_data.answer,
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                proposed_by_location=getattr(puzzle_data, 'proposed_by_location', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
-                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
-            )
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None),
+                puzzle_hints=getattr(puzzle_data, 'puzzle_hints', []),
+                interaction_hint=getattr(puzzle_data, 'interaction_hint', None)
+            ) 
             puzzles_dict[puzzle_data.name] = puzzle
         
         # Create locations (without connections yet)
@@ -140,7 +143,8 @@ def create_world_from_llm_response(world_data) -> World:
                 name=char_data.name,
                 descriptions=char_data.descriptions,
                 location=char_location,
-                inventory=char_inventory)
+                inventory=char_inventory,
+                interaction=char_data.interaction)
                         
             characters_list.append(character)
 
@@ -164,6 +168,9 @@ def create_world_from_llm_response(world_data) -> World:
 
         # Set the objective if it exists
         if generated_world.objective:
+            # Store the structured objective data for hints
+            world.objective_data = generated_world.objective
+            # Set the objective tuple for game mechanics
             world.objective = set_objective_from_generated(
                 generated_world.objective, 
                 items_dict, 
@@ -214,7 +221,7 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
                     if character:
                         return (player, character)
         
-        elif obj_type in ["DELIVER_ITEM", "deliver_item"]:
+        elif obj_type in ["DELIVER_AN_ITEM", "deliver_an_item"]:
             # Need both item and location/character components
             item_component = None
             target_component = None
@@ -471,8 +478,11 @@ def expand_world_from_llm_response(world: World, response: str) -> None:
                 answer=puzzle_data.answer,
                 puzzle_type=getattr(puzzle_data, 'puzzle_type', 'riddle'),
                 proposed_by_character=getattr(puzzle_data, 'proposed_by_character', None),
+                proposed_by_location=getattr(puzzle_data, 'proposed_by_location', None),
                 rewards=getattr(puzzle_data, 'rewards', []),
-                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None)
+                relevance_to_objective=getattr(puzzle_data, 'relevance_to_objective', None),
+                puzzle_hints=getattr(puzzle_data, 'puzzle_hints', []),
+                interaction_hint=getattr(puzzle_data, 'interaction_hint', None)
             )
             puzzles_dict[puzzle_data.name] = puzzle
             world.add_puzzle(puzzle)
