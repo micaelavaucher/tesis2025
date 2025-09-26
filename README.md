@@ -12,7 +12,7 @@ tags:
 - llm
 - game-generation
 pinned: false
-short_description: AI-powered dynamic text adventure world generator using structured data and LLMs
+short_description: AI-powered dynamic text adventure world generator
 app_file: ./streamlit_app.py
 ---
 
