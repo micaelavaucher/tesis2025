@@ -145,13 +145,15 @@ def prompt_world_update_structured(world_state: str, input: str, language: str =
 
 REGLAS CRÍTICAS PARA PUZZLES:
 1. **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
+1b. **PROPOSICIÓN DE PUZZLES POR OBJETOS**: Si un puzzle tiene la propiedad "proposed_by_location", el puzzle DEBE ser propuesto cuando el jugador interactúe con ese objeto específico o intente desbloquear el pasaje (investigate, examine, look at, etc.).
 2. **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada.
-3. **REQUISITOS**: Verifica que se cumplan todos los requisitos antes de permitir acciones (objetos necesarios, puzzles resueltos, etc.).
+3. **FLEXIBILIDAD EN OBSERVACIÓN**: Para puzzles de observación (`puzzle_type`: "observation"), si la acción del jugador es un intento razonable de encontrar el objeto (p. ej., 'buscar en el escritorio', 'mirar en los libros'), considera el puzzle resuelto aunque no nombre el escondite exacto ('el cajón con fondo falso'). El objetivo es recompensar la exploración lógica.
+4. **REQUISITOS**: Verifica que se cumplan todos los requisitos antes de permitir acciones (objetos necesarios, puzzles resueltos, etc.).
 
 REGLAS GENERALES:
 - Objetos solo cambian de lugar si el jugador realiza acciones específicas (tomar, dar, dejar)
 - Pasajes bloqueados solo se desbloquean si se cumplen los requisitos específicos
-- El jugador solo se mueve si intenta explícitamente ir a otra ubicación y el movimiento es posible
+- **REGLA DE MOVIMIENTO**: El jugador se mueve si intenta explícitamente ir a otra ubicación Y esa ubicación está listada en "From [ubicación actual] the player can access:" en el estado del mundo. Si una ubicación está listada como accesible, el movimiento ES posible.
 - Presta atención a las descripciones, capacidades y requisitos de cada componente
 
 REGLAS PARA NARRACIÓN RICA:
@@ -201,13 +203,15 @@ IMPORTANTE: Siempre incluye el campo narration con una descripción detallada y 
 
 CRITICAL RULES FOR PUZZLES:
 1. **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
+1b. **PUZZLE PROPOSITION BY ITEMS**: If a puzzle has the "proposed_by_location" property, the puzzle MUST be proposed when the player interacts with that specific item or if they try to unblock the passage it blocks (investigate, examine, look at, etc.).
 2. **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
-3. **REQUIREMENTS**: Verify that all requirements are met before allowing actions (necessary objects, solved puzzles, etc.).
+3. **FLEXIBILITY IN OBSERVATION**: For observation puzzles (`puzzle_type`: "observation"), if the player's action is a reasonable attempt to find the item (e.g., 'search the desk', 'look through the books'), consider the puzzle solved even if they don't name the exact hiding spot ('the false-bottomed drawer'). The goal is to reward logical exploration.
+4. **REQUIREMENTS**: Verify that all requirements are met before allowing actions (necessary objects, solved puzzles, etc.).
 
 GENERAL RULES:
 - Objects only change location if the player performs specific actions (take, give, drop)
 - Blocked passages only unlock if specific requirements are met
-- The player only moves if they explicitly attempt to go to another location and the movement is possible
+- **MOVEMENT RULE**: The player moves if they explicitly attempt to go to another location AND that location is listed in "From [current location] the player can access:" in the world state. If a location is listed as accessible, movement IS possible.
 - Pay attention to the descriptions, capabilities, and requirements of each component
 
 RULES FOR RICH NARRATION:
@@ -257,6 +261,7 @@ def prompt_world_update_spanish (world_state: str, input: str):
     
     **REGLAS CRÍTICAS PARA PUZZLES:**
     (P1) **PROPOSICIÓN DE PUZZLES**: Si un personaje tiene la propiedad "proposes_puzzle", el personaje DEBE proponer el puzzle cuando el jugador interactúe con él, ANTES de dar cualquier recompensa.
+    (P1b) **PROPOSICIÓN DE PUZZLES POR OBJETOS**: Si un puzzle tiene la propiedad "proposed_by_location", el puzzle DEBE ser propuesto cuando el jugador interactúe con ese objeto específico o el pasaje que bloquea (investigate, examine, look at, etc.).
     (P2) **RESOLUCIÓN DE PUZZLES**: Si el jugador intenta resolver un puzzle, analiza cuidadosamente si su respuesta es correcta comparándola con la respuesta esperada del puzzle.
     (P3) **REQUISITOS DE PUZZLES**: Verifica que se cumplan todos los requisitos antes de permitir que un puzzle sea resuelto.
     (P4) **RECOMPENSAS CONDICIONADAS**: Las recompensas (objetos, pasajes, información) solo se otorgan DESPUÉS de resolver exitosamente el puzzle.
@@ -272,7 +277,9 @@ def prompt_world_update_spanish (world_state: str, input: str):
     (B) Si un pasaje está bloqueado, significa que el jugador debe desbloquearlo antes de poder acceder al lugar. Aunque el jugador te diga que va a acceder al lugar bloqueado, tienes que estar seguro de que está cumpliendo con lo pedido para permitirle desbloquear el acceso, por ejemplo usando una llave o resolviendo un puzzle.
     (C) **PERSONAJES CON REQUISITOS**: Si un personaje tiene requisitos específicos (como resolver un puzzle o tener ciertos objetos), NO debe dar objetos o ayudar hasta que esos requisitos se cumplan. Revisa cuidadosamente la sección de "interaction" de cada personaje y sus "requires".
     (D) No asumas que lo que dice el jugador siempre tiene sentido; quizás esas acciones intentan hacer algo que el mundo no lo permite.
+    (D2) **REGLA DE MOVIMIENTO**: El jugador se mueve si intenta explícitamente ir a otra ubicación Y esa ubicación está listada en "From [ubicación actual] the player can access:" en el estado del mundo. Si una ubicación está listada como accesible, el movimiento ES posible.
     (E) **PUZZLES PROPUESTOS POR PERSONAJES**: Si un personaje propone un puzzle ("proposes_puzzle"), debe mencionarlo ANTES de dar cualquier recompensa. El jugador debe resolver el puzzle primero.
+    (E2) **PUZZLES PROPUESTOS POR OBJETOS**: Si un puzzle tiene "proposed_by_location", debe ser propuesto cuando el jugador interactúe con ese objeto específico o el pasaje que bloquea (investigate, examine, etc.).
     (F) Sigue siempre el siguiente formato con las tres categorías, usando "None" en cada caso si no hay cambios y repite la categoría por cada caso:
     - Moved object: <object> now is in <new_location>
     - Blocked passages now available: <now_reachable_location>
@@ -367,6 +374,7 @@ def prompt_world_update_english (world_state: str, input: str):
 
     **CRITICAL RULES FOR PUZZLES:**
     (P1) **PUZZLE PROPOSITION**: If a character has the "proposes_puzzle" property, the character MUST propose the puzzle when the player interacts with them, BEFORE giving any reward.
+    (P1b) **PUZZLE PROPOSITION BY LOCATION**: If a puzzle has the "proposed_by_location" property, the puzzle MUST be proposed when the player explores the location.
     (P2) **PUZZLE RESOLUTION**: If the player attempts to solve a puzzle, carefully analyze if their answer is correct by comparing it with the expected answer.
     (P3) **PUZZLE REQUIREMENTS**: Verify that all requirements are met before allowing a puzzle to be solved.
     (P4) **CONDITIONAL REWARDS**: Rewards (objects, passages, information) are only granted AFTER successfully solving the puzzle.
@@ -376,6 +384,7 @@ def prompt_world_update_english (world_state: str, input: str):
     (B) If a passage is blocked, then the player must unblock it before being able to reach the place. Even if the player tells you that he is going to access the locked location, you have to be sure that he is complying with what you asked to allow him to unlock the access, for example by using a key or solving a puzzle.
     (C) **CHARACTERS WITH REQUIREMENTS**: If a character has specific requirements (like solving a puzzle or having certain objects), they should NOT give objects or help until those requirements are met. Carefully review the "interaction" section of each character and their "requires".
     (D) Do not assume that the player input always makes sense; maybe those actions try to do something that the world does not allow.
+    (D2) **MOVEMENT RULE**: The player moves if they explicitly attempt to go to another location AND that location is listed in "From [current location] the player can access:" in the world state. If a location is listed as accessible, movement IS possible.
     (E) Follow always the following format with the four categories, using "None" in each case if there are no changes and repeat the category for each case:
     - Moved object: <object> now is in <new_location>
     - Blocked passages now available: <now_reachable_location>
@@ -530,6 +539,31 @@ def prompt_generate_world(language: str = 'es') -> str:
 4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
 5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
 
+**REGLAS OBLIGATORIAS PARA SISTEMA DE PISTAS:**
+1. **Pistas de puzzles**: TODOS los puzzles DEBEN incluir:
+   - `puzzle_hints`: Array de 3-5 pistas progresivas (de general a específico)
+   - `interaction_hint`: Pista de interacción si el jugador no ha interactuado aún
+2. **Pistas de objetivos**: TODOS los objetivos NO-misterio DEBEN incluir:
+   - `objective_hints`: Array de exactamente 3 pistas progresivas para avanzar el objetivo
+
+**FORMATO OBLIGATORIO DE PISTAS:**
+```json
+// Para puzzles:
+"puzzle_hints": [
+  {{"hint_text": "Pista general...", "hint_given": false}},
+  {{"hint_text": "Pista más específica...", "hint_given": false}},
+  {{"hint_text": "Pista muy específica...", "hint_given": false}}
+],
+"interaction_hint": {{"hint_text": "Intenta hablar con este personaje", "hint_given": false}}
+
+// Para objetivos:
+"objective_hints": [
+  {{"hint_text": "Explora el área principal...", "hint_given": false}},
+  {{"hint_text": "Busca personajes que puedan ayudarte...", "hint_given": false}},
+  {{"hint_text": "Examina los objetos importantes...", "hint_given": false}}
+]
+```
+
 **TIPOS DE PUZZLES PERMITIDOS:**
 1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
 2. **Puzzles de item**: Requieren usar un objeto específico para resolver un problema (como una llave para abrir una puerta)
@@ -630,6 +664,31 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 4. **Internal logic**: Puzzles must make sense within your story's context
 5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
 
+**MANDATORY HINT SYSTEM RULES:**
+1. **Puzzle hints**: ALL puzzles MUST include:
+   - `puzzle_hints`: Array of 3-5 progressive hints (from general to specific)
+   - `interaction_hint`: Interaction hint if player hasn't interacted yet
+2. **Objective hints**: ALL non-mystery objectives MUST include:
+   - `objective_hints`: Array of exactly 3 progressive hints for objective advancement
+
+**MANDATORY HINT FORMAT:**
+```json
+// For puzzles:
+"puzzle_hints": [
+  {{"hint_text": "General hint...", "hint_given": false}},
+  {{"hint_text": "More specific hint...", "hint_given": false}},
+  {{"hint_text": "Very specific hint...", "hint_given": false}}
+],
+"interaction_hint": {{"hint_text": "Try talking to this character", "hint_given": false}}
+
+// For objectives:
+"objective_hints": [
+  {{"hint_text": "Explore the main area...", "hint_given": false}},
+  {{"hint_text": "Look for characters who can help you...", "hint_given": false}},
+  {{"hint_text": "Examine important objects...", "hint_given": false}}
+]
+```
+
 **ALLOWED PUZZLE TYPES:**
 1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
 2. **Item puzzles**: Require using a specific item to solve a problem (like a key to open a door)
@@ -718,7 +777,7 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 - {objects} objetos (nombres únicos y 2-3 descripciones cada uno)
 - {npcs} personajes no jugadores + 1 personaje jugador
 - {puzzles} puzzles lógicos y solucionables
-- 1 objetivo principal claro y completable (OBLIGATORIO - tu mundo DEBE definir un objetivo específico)
+- 1 objetivo principal claro y completable con UN COMPONENTE PRINCIPAL (OBLIGATORIO - tu mundo DEBE definir un objetivo específico y simple)
 
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
 1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
@@ -744,6 +803,31 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 3. **Recompensas existentes**: Todas las recompensas (objetos, ubicaciones) DEBEN existir en el mundo
 4. **Lógica interna**: Los puzzles deben hacer sentido dentro del contexto de tu historia
 5. **Proceso de resolución**: Los puzzles deben requerir INTERACCIÓN con el mundo (no solo conocer una respuesta)
+
+**REGLAS OBLIGATORIAS PARA SISTEMA DE PISTAS:**
+1. **Pistas de puzzles**: TODOS los puzzles DEBEN incluir:
+   - `puzzle_hints`: Array de 3-5 pistas progresivas (de general a específico)
+   - `interaction_hint`: Pista de interacción si el jugador no ha interactuado aún
+2. **Pistas de objetivos**: TODOS los objetivos NO-misterio DEBEN incluir:
+   - `objective_hints`: Array de exactamente 3 pistas progresivas para avanzar el objetivo
+
+**FORMATO OBLIGATORIO DE PISTAS:**
+```json
+// Para puzzles:
+"puzzle_hints": [
+  {{"hint_text": "Pista general...", "hint_given": false}},
+  {{"hint_text": "Pista más específica...", "hint_given": false}},
+  {{"hint_text": "Pista muy específica...", "hint_given": false}}
+],
+"interaction_hint": {{"hint_text": "Intenta hablar con este personaje", "hint_given": false}}
+
+// Para objetivos:
+"objective_hints": [
+  {{"hint_text": "Explora el área principal...", "hint_given": false}},
+  {{"hint_text": "Busca personajes que puedan ayudarte...", "hint_given": false}},
+  {{"hint_text": "Examina los objetos importantes...", "hint_given": false}}
+]
+```
 
 **TIPOS DE PUZZLES PERMITIDOS:**
 1. **Puzzles de información**: Requieren descubrir información específica (como una nota con la combinación de una caja fuerte)
@@ -773,13 +857,14 @@ def prompt_generate_world_from_inspiration(inspo: str, language: str = 'es') -> 
 **VALIDACIÓN DE COMPLETABILIDAD Y COHERENCIA CON LA INSPIRACIÓN:**
 Antes de finalizar, verifica mentalmente:
 1. **¿HAS DEFINIDO UN OBJETIVO PRINCIPAL CLARO Y DIRECTAMENTE DERIVADO DE LA INSPIRACIÓN?** (OBLIGATORIO)
-2. ¿Puede el jugador completar el objetivo con los elementos disponibles?
-3. ¿Existe al menos una ruta de solución desde el estado inicial?
-4. ¿Todos los elementos referenciados existen realmente en el mundo?
-5. ¿Las interacciones de personajes están completas?
-6. ¿Los puzzles tienen sentido, son solucionables A TRAVÉS DE LA EXPLORACIÓN, y REFLEJAN ASPECTOS de la inspiración?
-7. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
-8. **¿PUEDES EXPLICAR CÓMO CADA UBICACIÓN, OBJETO, PERSONAJE Y PUZZLE ES UNA REPRESENTACIÓN O MANIFESTACIÓN DIRECTA de la inspiración proporcionada?**
+2. **¿EL OBJETIVO TIENE SOLO UN COMPONENTE PRINCIPAL, NO MÚLTIPLES HERRAMIENTAS AUXILIARES?** (OBLIGATORIO)
+3. ¿Puede el jugador completar el objetivo con los elementos disponibles?
+4. ¿Existe al menos una ruta de solución desde el estado inicial?
+5. ¿Todos los elementos referenciados existen realmente en el mundo?
+6. ¿Las interacciones de personajes están completas?
+7. ¿Los puzzles tienen sentido, son solucionables A TRAVÉS DE LA EXPLORACIÓN, y REFLEJAN ASPECTOS de la inspiración?
+8. ¿Para cada código o información necesaria, existe un modo de que el jugador lo descubra?
+9. **¿PUEDES EXPLICAR CÓMO CADA UBICACIÓN, OBJETO, PERSONAJE Y PUZZLE ES UNA REPRESENTACIÓN O MANIFESTACIÓN DIRECTA de la inspiración proporcionada?**
 
 **EJEMPLO DE CADENA DE DEPENDENCIAS VÁLIDA:**
 1. Jugador quiere [objetivo principal DERIVADO DIRECTAMENTE de la inspiración]
@@ -831,7 +916,7 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 **CHARACTER RULES:**
 1. **Functional interactions**: If a character has `interaction`, it MUST have `interaction_text`
 2. **Coherent puzzles**: If a character proposes a puzzle, the puzzle MUST exist and have `proposed_by_character` configured
-3. **Valid inventories**: Every object in character inventories MUST exist in the world's object list
+3. **Valid inventories**: Every object in characters' inventories MUST exist in the world's object list
 4. **Valid locations**: All characters MUST be located in places that exist
 
 **OBJECT RULES:**
@@ -847,6 +932,31 @@ Genera el JSON completo siguiendo el schema de `GeneratedWorld`. Asegúrate de q
 3. **Existing rewards**: All rewards (objects, locations) MUST exist in the world
 4. **Internal logic**: Puzzles must make sense within your story's context
 5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
+
+**MANDATORY HINT SYSTEM RULES:**
+1. **Puzzle hints**: ALL puzzles MUST include:
+   - `puzzle_hints`: Array of 3-5 progressive hints (from general to specific)
+   - `interaction_hint`: Interaction hint if player hasn't interacted yet
+2. **Objective hints**: ALL non-mystery objectives MUST include:
+   - `objective_hints`: Array of exactly 3 progressive hints for objective advancement
+
+**MANDATORY HINT FORMAT:**
+```json
+// For puzzles:
+"puzzle_hints": [
+  {{"hint_text": "General hint...", "hint_given": false}},
+  {{"hint_text": "More specific hint...", "hint_given": false}},
+  {{"hint_text": "Very specific hint...", "hint_given": false}}
+],
+"interaction_hint": {{"hint_text": "Try talking to this character", "hint_given": false}}
+
+// For objectives:
+"objective_hints": [
+  {{"hint_text": "Explore the main area...", "hint_given": false}},
+  {{"hint_text": "Look for characters who can help you...", "hint_given": false}},
+  {{"hint_text": "Examine important objects...", "hint_given": false}}
+]
+```
 
 **ALLOWED PUZZLE TYPES:**
 1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
@@ -1072,6 +1182,7 @@ def PROMPT_STEP_1_CONCEPT(language: str = 'es') -> str:
 - Debe ser MOTIVADOR para el jugador
 - Debe ser COMPLETABLE con elementos físicos del mundo
 - Debe tener una razón narrativa sólida
+- Debe enfocarse en UNA meta principal, no múltiples objetivos
 
 **EJEMPLOS DE BUENOS OBJETIVOS:**
 - "Encontrar la Espada Legendaria para derrotar al dragón"
@@ -1115,6 +1226,7 @@ El concepto debe ser cohesivo, interesante y proporcionar una base sólida para 
 - Must be MOTIVATING for the player
 - Must be COMPLETABLE using physical elements from the world
 - Must have a solid narrative reason
+- Must focus on ONE primary goal, not multiple objectives
 
 **EXAMPLES OF GOOD OBJECTIVES:**
 - "Find the Legendary Sword to defeat the dragon"
@@ -1129,7 +1241,7 @@ El concepto debe ser cohesivo, interesante y proporcionar una base sólida para 
 
 The concept must be cohesive, interesting, and provide a solid foundation to build a complete adventure world.
 
-**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
 """
 
 
@@ -1164,6 +1276,7 @@ def PROMPT_STEP_1_CONCEPT_BY_THEME(theme: str, language: str = 'es') -> str:
 - Debe ser COMPLETABLE con elementos físicos del mundo
 - Debe estar DIRECTAMENTE RELACIONADO con el tema proporcionado
 - Debe tener una razón narrativa sólida dentro del contexto temático
+- Debe enfocarse en UNA meta principal, no múltiples objetivos
 
 **EJEMPLOS DE BUENOS OBJETIVOS:**
 - Si el tema es "piratas": "Encontrar el mapa del tesoro del Capitán Barbanegra en la Isla Calavera"
@@ -1212,6 +1325,7 @@ Tema: {theme}
 - Must be COMPLETABLE using physical elements from the world
 - Must be DIRECTLY RELATED to the provided theme
 - Must have a solid narrative reason within the thematic context
+- Must focus on ONE primary goal, not multiple objectives
 
 **EXAMPLES OF GOOD OBJECTIVES:**
 - If the theme is "pirates": "Find Captain Blackbeard's treasure map on Skull Island"
@@ -1229,7 +1343,7 @@ The concept must be cohesive, interesting, and provide a solid foundation to bui
 
 Theme: {theme}
 
-**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in Spanish. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
+**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys (such as 'title', 'backstory', 'name') must remain in English to match the required schema.**
 """
 
 
@@ -1333,6 +1447,34 @@ Si el objetivo principal es resolver un misterio (type: "solve_mystery"), DEBES 
 2. **mystery_solution**: Solución completa del misterio
 3. **CRÍTICO**: Cada pista debe estar asociada ÚNICAMENTE con un OBJETO/ITEM físico que existe en el mundo - NUNCA con personajes o ubicaciones
 4. **CRÍTICO**: El "associated_item" debe ser exactamente el nombre de un objeto que aparece en la lista de items del mundo
+
+**INSTRUCCIONES CRÍTICAS PARA COMPONENTES DEL OBJETIVO:**
+- El objetivo DEBE tener SOLO UN COMPONENTE PRINCIPAL que representa la meta final
+- Para objetivos tipo "reach_location": UN solo componente de tipo "location" (la ubicación de destino)
+- Para objetivos tipo "get_item": UN solo componente de tipo "item" (el objeto que obtener)
+- Para objetivos tipo "find_character": UN solo componente de tipo "character" (el personaje que encontrar)
+- Para objetivos tipo "deliver_an_item": UN item y UN destino (character o location)
+- NO incluyas elementos auxiliares o herramientas como componentes principales
+- Los componentes principales son SOLO el objetivo final, no los medios para alcanzarlo
+
+**INSTRUCCIONES ESPECIALES PARA OBJETIVOS NO-MISTERIO:**
+Para todos los demás tipos de objetivos (que NO sean "solve_mystery"), DEBES incluir:
+1. **completion_narration**: Una descripción narrativa de lo que sucede después de que el jugador complete exitosamente el objetivo. Esto debe proporcionar una conclusión satisfactoria a la aventura y explicar las consecuencias de lograr el objetivo.
+2. **objective_hints**: Lista de EXACTAMENTE 3 pistas progresivas para el objetivo principal (de general a específica). Estas pistas se usarán cuando el jugador esté en una ubicación sin puzzles y pida ayuda.
+
+Ejemplos de completion_narration:
+- "Con la espada legendaria en tus manos, finalmente derrotas al dragón. El reino está a salvo y eres aclamado como un héroe."
+- "Al entregar todos los documentos requeridos, el oficial te otorga el permiso. Ahora puedes continuar tu viaje hacia tierras lejanas."
+- "Al encontrar todos los ingredientes y preparar la poción, la aldea queda liberada de la maldición que la aquejaba durante décadas."
+
+**FORMATO OBLIGATORIO PARA OBJECTIVE_HINTS:**
+```json
+"objective_hints": [
+  {{"text": "Pista general sobre qué hacer para avanzar hacia el objetivo", "used": false}},
+  {{"text": "Pista más específica sobre dónde buscar o con quién hablar", "used": false}},
+  {{"text": "Pista muy específica que casi revela el siguiente paso", "used": false}}
+]
+```
 5. **CRÍTICO**: El "item_location" debe ser exactamente el nombre de una ubicación que existe en el mundo
 6. Las pistas deben proporcionar información que conduzca lógicamente a la solución
 7. Debe haber al menos 3-5 pistas para hacer el misterio interesante
@@ -1388,7 +1530,7 @@ Debes crear:
 - Ubicaciones completas con descripciones atmosféricas y conexiones lógicas bidireccionales
 - Objetos detallados con descripciones y propiedades apropiadas
 - Personajes con personalidades, ubicaciones e interacciones básicas completas
-- Un objetivo claro y específico con componentes definidos y alcanzables
+- Un objetivo claro y específico con UN COMPONENTE PRINCIPAL definido y alcanzable
 - El personaje jugador en una ubicación inicial apropiada
 - Cadenas de dependencias que muestren cómo completar el objetivo
 
@@ -1432,6 +1574,34 @@ If the main objective is to solve a mystery (type: "solve_mystery"), you MUST in
 2. **mystery_solution**: Complete solution to the mystery
 3. **CRITICAL**: Each clue must be associated ONLY with a physical OBJECT/ITEM that exists in the world - NEVER with characters or locations
 4. **CRITICAL**: The "associated_item" must be exactly the name of an object that appears in the world's items list
+
+**CRITICAL INSTRUCTIONS FOR OBJECTIVE COMPONENTS:**
+- The objective MUST have ONLY ONE PRIMARY COMPONENT that represents the final goal
+- For "reach_location" objectives: ONE single component of type "location" (the destination)
+- For "get_item" objectives: ONE single component of type "item" (the target item)
+- For "find_character" objectives: ONE single component of type "character" (the target character)
+- For "deliver_an_item" objectives: ONE item and ONE destination (character or location)
+- DO NOT include auxiliary elements or tools as primary components
+- Primary components are ONLY the final objective, not the means to achieve it
+
+**SPECIAL INSTRUCTIONS FOR NON-MYSTERY OBJECTIVES:**
+For all other objective types (that are NOT "solve_mystery"), you MUST include:
+1. **completion_narration**: A narrative description of what happens after the player successfully completes the objective. This should provide a satisfying conclusion to the adventure and explain the consequences of achieving the goal.
+2. **objective_hints**: List of EXACTLY 3 progressive hints for the main objective (from general to specific). These hints will be used when the player is in a location with no puzzles and asks for help.
+
+Examples of completion_narration:
+- "With the legendary sword in your hands, you finally defeat the dragon. The kingdom is safe and you are hailed as a hero."
+- "By delivering all the required documents, the official grants you the permit. You can now continue your journey to distant lands."
+- "By finding all the ingredients and preparing the potion, the village is freed from the curse that plagued it for decades."
+
+**MANDATORY FORMAT FOR OBJECTIVE_HINTS:**
+```json
+"objective_hints": [
+  {{"text": "General hint about what to do to progress toward the objective", "used": false}},
+  {{"text": "More specific hint about where to look or who to talk to", "used": false}},
+  {{"text": "Very specific hint that almost reveals the next step", "used": false}}
+]
+```
 5. **CRITICAL**: The "item_location" must be exactly the name of a location that exists in the world
 6. Clues must provide information that logically leads to the solution
 7. There should be at least 3-5 clues to make the mystery interesting
@@ -1487,7 +1657,7 @@ You must create:
 - Fully described locations with atmospheric detail and logical bidirectional connections
 - Detailed objects with appropriate descriptions and properties
 - Characters with personalities, locations, and complete basic interactions
-- A clear and specific objective with defined and achievable components
+- A clear and specific objective with ONE PRIMARY COMPONENT defined and achievable
 - The player character in a suitable starting location
 - Dependency chains showing how to complete the objective
 
@@ -1542,6 +1712,27 @@ Objetivo: Conseguir el Amuleto Mágico
 3. **Soluciones descubribles**: Cada puzzle DEBE tener pistas que el jugador pueda encontrar explorando
 4. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
 5. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
+6. **Si el puzzle es dado por un personaje, el reward debe ser un item, y el item DEBE EXISTIR Y ESTAR EN EL INVENTARIO DEL PERSONAJE QUE LO PROPONE**
+7. **NO CRAFTING**: El motor del juego no soporta la creación o transformación de objetos. No crees puzzles que requieran que el jugador combine o altere objetos (p. ej., usar una receta para hacer una poción). Las recompensas deben ser objetos que se puedan usar directamente.
+8. **OBSTÁCULO vs. LLAVE**: Sé preciso. Un 'obstáculo' es lo que bloquea el camino (p. ej., 'una puerta cerrada'). El 'requisito' es la llave que lo quita (p. ej., 'una llave de hierro'). La llave nunca es el obstáculo.
+
+**REGLAS OBLIGATORIAS PARA SISTEMA DE PISTAS:**
+Para CADA puzzle que añadas, DEBES incluir:
+1. **puzzle_hints**: Lista de 3-5 pistas progresivas (de general a específica) para resolver el puzzle
+2. **interaction_hint**: Pista sobre cómo interactuar con el puzzle si el jugador no ha empezado aún
+   - Para puzzles de personajes: "Intenta hablar con [personaje]"
+   - Para puzzles de objetos: "Intenta examinar [objeto]"
+   - Para puzzles de ubicación: "Busca pistas en esta ubicación"
+
+**FORMATO OBLIGATORIO DE PISTAS:**
+```json
+"puzzle_hints": [
+  {{"text": "Pista general que orienta hacia la solución", "used": false}},
+  {{"text": "Pista más específica que da más detalles", "used": false}},
+  {{"text": "Pista muy específica que casi revela la respuesta", "used": false}}
+],
+"interaction_hint": {{"text": "Pista de interacción apropiada", "used": false}}
+```
 
 **ESTRATEGIAS PARA CREAR COMPLEJIDAD:**
 1. **Bloquear acceso directo**: El objetivo no debe ser directamente accesible - añade obstáculos
@@ -1565,6 +1756,7 @@ Antes de finalizar, verifica mentalmente:
 4. **¿Todas las ubicaciones siguen siendo accesibles?**
 5. **¿Todos los elementos referenciados existen?**
 6. **¿Las cadenas son interesantes pero no frustrantes?**
+6. **Las cadenas tienen relacion a la tematica del mundo?**
 
 Tu misión es convertir un mundo simple y directo en una aventura rica en la que cada logro se sienta ganado a través de exploración, ingenio e interacción social. ¡Haz que el jugador trabaje por su victoria!
 
@@ -1576,67 +1768,92 @@ Tu misión es convertir un mundo simple y directo en una aventura rica en la que
 Current world:
 {world_data}
 
-**MANDATORY PUZZLE RULES:**
-1. **Discoverable solutions**: Every puzzle MUST have a solution that the player can DISCOVER through gameplay
-   - FORBIDDEN: Codes or solutions the player cannot figure out by exploring the world
-   - MANDATORY: Physical clues in the environment, character dialogues, or documents that reveal the solution
-2. **Clear solutions**: Every puzzle MUST have a specific and unambiguous answer
-3. **Existing rewards**: All rewards (objects, locations) MUST already exist in the world
-4. **Internal logic**: Puzzles must make sense within the context of your story
-5. **Resolution process**: Puzzles must require INTERACTION with the world (not just knowing an answer)
-6. **Wordplay**: If present, wordplay puzzles must work well in English
+**CRITICAL OBJECTIVE:** Instead of simply adding isolated puzzles, you must create DEPENDENCY CHAINS that make progression toward the objective much more interesting and challenging.
 
-**ALLOWED PUZZLE TYPES:**
-1. **Information puzzles**: Require discovering specific information (like a note with a safe combination)
-2. **Item puzzles**: Require using a specific object to solve a problem (like a key to open a door)
-3. **Sequence puzzles**: Require performing actions in a specific order (like pressing buttons in a certain sequence)
-4. **Riddle puzzles**: The player must solve a riddle or enigma based on environmental clues
-5. **Combined puzzles**: Mix several of the above types
+**EXAMPLE OF A COMPLEX DEPENDENCY CHAIN:**
+Objective: Obtain the Magic Amulet
+- The Amulet is in the Secret Room, but the door is locked by a Magic Lock
+- To open the Magic Lock you need the Password that only the Wizard knows
+- The Wizard will give you the Password, but first he wants you to bring him his Lost Staff
+- The Staff is in the Merchant's possession, who will trade it for 3 Gems
+- To get the 3 Gems you must solve the Guardian's Riddle in the Cave
+- But to enter the Cave you need the Iron Key that the Old Woman has
+- The Old Woman will give you the Key if you bring her a Healing Potion from the Herbalist
+- The Herbalist will give you the Potion in exchange for finding his Recipe Book...
 
-**EXAMPLE OF A GOOD PUZZLE:**
-- Puzzle: Open a safe with a code
-- Discoverable clue 1: A notebook found on the desk shows a date: "15/7/89"
-- Discoverable clue 2: A character mentions "my daughter’s birthday is very important to me"
-- Solution: The code 1589 (derived from the date the player can find)
+**REQUIRED CHAIN STRUCTURE:**
+- **Main chain**: The main route to the objective must have AT LEAST 3 to 6 interdependent main steps
+- **Subchains**: Each main step may have its own subchains of 1–3 steps
+- **Multiple optional routes**: Where possible, provide alternative routes for some steps
+- **Integrated puzzles**: Puzzles must be organically integrated into the chains
 
-**EXAMPLE OF A BAD PUZZLE (FORBIDDEN):**
-- Puzzle: Open a door with a code
-- There are no clues in the world about what the code is
-- The solution is an arbitrary number the player cannot discover
+**DEPENDENCY CHAIN RULES:**
+- **Logical progression**: Each step must be a logical consequence of the previous one
+- **Clear motivation**: Each character must have a convincing reason for their requests
+- **Task diversity**: Combine different types of challenges (puzzles, trades, exploration, social interactions)
+- **Difficulty scaling**: Challenges should become progressively more complex
+- **Thematic connectivity**: All tasks must be connected to the main story
 
-**BLOCKED PASSAGE RULES:**
-1. **MANDATORY global connectivity**: Even with blocked passages, ALL locations must still be accessible from anywhere – DO NOT create isolated groups
-2. **Separate obstacles**: The `obstacle_name` must be different from the `required_to_unblock.item_name`
-   - Obstacle = what physically blocks (door, lock, barrier)
-   - Requirement = what removes the obstacle (key, tool, knowledge)
-3. **Existing elements**: Both obstacles and requirements MUST exist as objects in the world
-4. **Pre-existing connectivity**: You may only block passages between already connected locations
+**TYPES OF DEPENDENCIES TO CREATE:**
+- **Chained trades**: A wants B from C, who wants D from E, etc.
+- **Cascading information**: To obtain X you need to know Y, which is obtained by solving Z
+- **Progressive access**: To reach A you need key B, which you get in C, accessible with item D
+- **Connected puzzles**: Solving puzzle A reveals the clue for puzzle B, which unlocks access to C
+- **Social relationships**: Character A trusts you only if you help character B first
 
-**CHARACTER PUZZLE RULES:**
-1. **Coherent puzzles**: If a character proposes a puzzle, the puzzle MUST exist and have `proposed_by_character` set
-2. **Complete interactions**: If a character has `interaction`, it MUST have `interaction_text`
+**MANDATORY TECHNICAL RULES:**
+- **Global connectivity**: ALL locations must remain accessible - DO NOT create isolated groups
+- **Existing elements**: All references MUST point to objects/characters/locations that exist
+- **Discoverable solutions**: Each puzzle MUST have hints the player can find by exploring
+- **Complete interactions**: Every interactive character MUST have `interaction_text`
+- **Logical separation of obstacles and solutions**: Obstacles must be separate from their solutions
+6. **If a puzzle is proposed by a character, the reward must be an item, AND THAT ITEM SHOULD EXIST AND BE IN THE INVENTORY OF THE CHARACTER THAT PROPOSES THE PUZZLE**
+7. **NO CRAFTING**: The game engine does not support crafting or transforming items. Do not create puzzles that require the player to combine or alter items (e.g., using a recipe to make a potion). Rewards must be items that can be used directly.
+8. **OBSTACLE vs. KEY**: Be precise. An 'obstacle' is the thing blocking the way (e.g., 'a locked door'). The 'requirement' is the key that removes it (e.g., 'an iron key'). The key is never the obstacle.
 
-You must add:
-- Puzzles that block progress toward the objective BUT are solvable through exploration
-- Obstacles that require problem-solving with discoverable clues
-- Blocked passages that require keys, puzzles, or interactions (following the above rules)
-- Appropriate rewards for each solved puzzle that ALREADY EXIST in the world
+**MANDATORY RULES FOR HINT SYSTEM:**
+For EACH puzzle you add, YOU MUST include:
+- **puzzle_hints**: A list of 3–5 progressive hints (from general to specific) to solve the puzzle
+- **interaction_hint**: A hint about how to interact with the puzzle if the player has not started yet
+  - For character puzzles: "Try talking to [character]"
+  - For object puzzles: "Try examining [object]"
+  - For location puzzles: "Search for clues in this location"
 
-The puzzles must:
-- Be thematically consistent with the world
-- Be logical and solvable THROUGH EXPLORATION
-- Provide natural progression toward the objective
-- Include DISCOVERABLE clues or hints for the player
+**MANDATORY HINT FORMAT:**
+```json
+"puzzle_hints": [
+  {{"text": "General hint that guides toward the solution", "given": false}},
+  {{"text": "More specific hint that gives additional details", "given": false}},
+  {{"text": "Very specific hint that almost reveals the answer", "given": false}}
+],
+"interaction_hint": {{"text": "Appropriate interaction hint", "given": false}}
+```
 
-**PUZZLE VALIDATION:**
-Before finalizing, mentally verify:
-1. **Are ALL locations still accessible even with the new obstacles?** (MANDATORY)
-2. Is there a way for the player to discover every code or necessary piece of information?
-3. Do the puzzles make sense and are they solvable THROUGH EXPLORATION?
-4. Do all obstacles and requirements exist as objects in the world?
-5. Do characters who propose puzzles have complete interactions?
+**STRATEGIES TO CREATE COMPLEXITY:**
+1. **Block direct access**: The objective must not be directly accessible - add obstacles
+2. **Require multiple elements**: The final step requires several items/information
+3. **Create bottlenecks**: Certain key characters control multiple resources
+4. **Hide critical elements**: Important objects in locations that require effort to reach
+5. **Fragmented information**: Split important clues among multiple characters/locations
 
-Modify existing character interactions so they propose puzzles when appropriate, but ensure they have complete `interaction_text`.
+**REQUIRED MODIFICATIONS TO THE WORLD:**
+1. **Expand character interactions**: Add requests, trades, pieces of information
+2. **Add strategic puzzles**: That block critical progression points
+3. **Create blocked passages**: With obstacles that require chain items to bypass
+4. **Redistribute objects**: Move important items to less accessible locations
+5. **Add new elements**: If necessary to create the complex chains
+
+**CHAIN VALIDATION:**
+Before finalizing, verify mentally:
+1. **Does the path to the objective have AT LEAST 3–6 main steps?** (MANDATORY)
+2. **Does each step have a logical and clear motivation?**
+3. **Is there variety in the types of challenges?**
+4. **Are all locations still accessible?**
+5. **Do all referenced elements exist?**
+6. **Are the chains interesting but not frustrating?**
+6. **Do the chains relate to the world's theme?**
+
+Your mission is to turn a simple, straightforward world into a richly layered adventure where every achievement feels earned through exploration, ingenuity, and social interaction. Make the player work for their victory!
 
 **CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
 """
