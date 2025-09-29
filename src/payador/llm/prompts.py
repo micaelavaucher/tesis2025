@@ -197,6 +197,9 @@ Devuelve un objeto JSON con la siguiente estructura:
     "narration": "Descripción narrativa rica de lo que ocurrió"
 }}
 
+CRÍTICO - NOMBRES EXACTOS DE OBJETOS:
+El campo "object_name" en moved_objects DEBE ser el nombre EXACTO de un objeto listado en el estado del mundo. NO uses aproximaciones, nombres parciales, o variaciones del nombre. Por ejemplo, si el estado del mundo contiene "El Recipiente Mágico", debes usar exactamente "El Recipiente Mágico", NO "el recipiente", "recipiente", o "recipiente mágico". Revisa cuidadosamente el estado del mundo y copia el nombre exacto tal como aparece listado.
+
 IMPORTANTE: Siempre incluye el campo narration con una descripción detallada y evocativa de lo que ocurrió en el mundo. Usa las descripciones específicas de objetos, ubicaciones y personajes del estado del mundo para crear una narración rica en detalles sensoriales. Menciona texturas, colores, sonidos, olores y sensaciones cuando sea apropiado."""
     else:
         system_msg = """You are an expert narrator managing an interactive fictional world. Your task is to analyze the player's actions and determine the exact changes in the world state.
@@ -251,6 +254,9 @@ Return a JSON object with the following structure:
     ],
     "narration": "Rich narrative description of what happened"
 }}
+
+CRITICAL - EXACT OBJECT NAMES:
+The "object_name" field in moved_objects MUST be the EXACT name of an object listed in the world state. Do NOT use approximations, partial names, or variations of the name. For example, if the world state contains "The Ancient Key", you must use exactly "The Ancient Key", NOT "ancient key", "key", or "the key". Carefully review the world state and copy the exact name as it appears listed.
 
 IMPORTANT: Always include the narration field with a detailed, evocative description of what occurred in the world. Use the specific descriptions of objects, locations, and characters from the world state to create rich narrations with sensory details. Mention textures, colors, sounds, smells, and sensations when appropriate."""
     
