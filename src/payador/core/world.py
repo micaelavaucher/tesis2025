@@ -938,7 +938,12 @@ class World:
     # Handle moved objects
     for moved_obj in world_update.moved_objects:
       try:
-        world_item = self.items[moved_obj.object_name]
+        # Use flexible object matching instead of strict dictionary lookup
+        world_item = self._find_object_flexible(moved_obj.object_name)
+        
+        if world_item is None:
+          print(f"❌ Object '{moved_obj.object_name}' not found in world")
+          continue
         
         if moved_obj.new_location in ['Inventory', 'Inventario', 'Player', 'Jugador', self.player.name]:
           # Player takes item
@@ -1336,4 +1341,37 @@ class World:
       for name, location in self.locations.items():
           if name.lower() == location_name.lower():
               return location
+      return None
+
+  def _find_object_flexible(self, object_name: str):
+      """Find an object by name with flexible matching strategies."""
+      # Strategy 1: Exact match (preserves existing behavior)
+      if object_name in self.items:
+          return self.items[object_name]
+      
+      # Strategy 2: Case-insensitive exact match
+      for name, item in self.items.items():
+          if name.lower() == object_name.lower():
+              return item
+      
+      # Strategy 3: Partial matching - object_name contained in item name or item name starts with object_name
+      for name, item in self.items.items():
+          # Remove common articles and prepositions for better matching
+          clean_object_name = object_name.lower().strip()
+          clean_item_name = name.lower().strip()
+          
+          # Remove leading articles in both Spanish and English
+          for article in ['el ', 'la ', 'los ', 'las ', 'un ', 'una ', 'the ', 'a ', 'an ']:
+              if clean_object_name.startswith(article):
+                  clean_object_name = clean_object_name[len(article):]
+              if clean_item_name.startswith(article):
+                  clean_item_name = clean_item_name[len(article):]
+          
+          # Check if the cleaned object name is contained in the item name or vice versa
+          if (clean_object_name in clean_item_name or 
+              clean_item_name.startswith(clean_object_name) or
+              clean_object_name.startswith(clean_item_name)):
+              return item
+      
+      # No match found
       return None
