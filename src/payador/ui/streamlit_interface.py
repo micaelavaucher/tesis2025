@@ -123,7 +123,7 @@ def render_sidebar():
         st.markdown("---")
         
         # Reset button
-        if st.button("🔄 Reset Game", type="secondary"):
+        if st.button("🏠 Home", type="secondary"):
             st.session_state.world = None
             st.session_state.game_loop = None
             st.session_state.chat_history = []
@@ -441,12 +441,13 @@ def render_tutorial_mode():
         - El narrador responderá describiendo lo que sucede
         - El mundo reacciona a tus decisiones dinámicamente
         
-        **Comandos básicos que puedes probar:**
+        **Ejemplos de cosas que puedes intentar:**
         - `mirar alrededor` - observar tu entorno
         - `ir al jardín` - moverte a otra ubicación  
         - `tomar tortuga` - recoger objetos
         - `inventario` - ver qué llevas contigo
         - `objetivo` - recordar tu misión
+        (¡También puedes probar con otras acciones!)
         
         **📊 Aviso de Investigación:** Tu gameplay puede ser registrado de forma anónima para investigación sobre generación de narrativas con IA.
         """)
@@ -470,12 +471,13 @@ def render_tutorial_mode():
         - The narrator will respond describing what happens
         - The world reacts to your decisions dynamically
         
-        **Basic commands you can try:**
+        **Examples of things you can try:**
         - `look around` - observe your surroundings
         - `go to garden` - move to another location  
         - `take turtle` - pick up objects
         - `inventory` - see what you're carrying
         - `objective` - remember your mission
+        (You can experiment with other actions too!)
         
         **📊 Research Notice:** Your gameplay may be recorded anonymously for research on AI narrative generation.
         """)
