@@ -688,6 +688,32 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown',
         world_id=session_world_id  # Use consistent world_id
     )
+    
+    # Initialize turn 0 with world state
+    game_log_dictionary[0] = {
+        "date": time.ctime(time.time()),
+        "initial_symbolic_world_state": jsonpickle.encode(world, unpicklable=True),
+        "initial_rendered_world_state": world.render_world(language=language),
+    }
+    
+    # Initialize MongoDB trace document
+    if db_handler:
+        mongo_document = {
+            "world_id": session_world_id,
+            "nickname": game_log_dictionary["nickname"],
+            "language": language,
+            "narrative_model_name": narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown',
+            "reasoning_model_name": reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown',
+            "created_at": time.time(),
+            "turns": {
+                "0": game_log_dictionary[0]
+            }
+        }
+        try:
+            db_handler.initialize_trace(mongo_document)
+            print(f"💾 Game trace initialized in MongoDB with world_id: {session_world_id}")
+        except Exception as e:
+            print(f"⚠️ Failed to initialize MongoDB trace: {e}")
 
     # Initialize memory system with consistent world_id only if RAG is enabled
     memory_system = None
@@ -745,7 +771,7 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         print(f"\n🌎 World state 🌍\n>Player input: {message}\n{world.render_world(language=language)}\n")
 
         # Save game log
-        save_game_log(game_log_dictionary, log_filename, number_of_turns, answer)
+        save_game_log(game_log_dictionary, number_of_turns, answer)
 
         return answer.replace("<", r"\<").replace(">", r"\>")
 

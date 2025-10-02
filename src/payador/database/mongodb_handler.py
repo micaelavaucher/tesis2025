@@ -1,4 +1,5 @@
 import pymongo
+from pymongo.mongo_client import MongoClient
 from ..config import load_config, get_database_config
 
 class MongoHandler:
@@ -13,13 +14,16 @@ class MongoHandler:
                 if not uri:
                     raise ValueError("MONGO_URI not found in environment variables.")
 
-                cls._instance.client = pymongo.MongoClient(uri)
+                cls._instance.client = MongoClient(uri)
                 cls._instance.db = cls._instance.client[db_name]
                 cls._instance.collection = cls._instance.db[collection_name]
+                
+                # Test connection with ping
+                cls._instance.client.admin.command('ping')
                 print("✅ Successfully connected to MongoDB.")
             except Exception as e:
                 print(f"❌ Failed to connect to MongoDB: {e}")
-                cls._instance = None # Prevent returning a broken instance
+                cls._instance = None
         return cls._instance
 
     def initialize_trace(self, initial_log_entry: dict):
