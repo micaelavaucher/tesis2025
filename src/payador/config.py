@@ -6,8 +6,12 @@ Only application-level configurations are managed here.
 User-level configurations are handled via Streamlit session state.
 """
 
+import os
+from dotenv import load_dotenv
 import configparser
 import time
+
+load_dotenv()
 
 PATH_GAMELOGS = 'logs'
 
@@ -36,3 +40,10 @@ def get_enable_rag(config):
 def get_debug(config):
     """Get the debug setting from config."""
     return config["Options"].getboolean("Debug", fallback=False)
+
+def get_database_config(config):
+    """Get database settings from config."""
+    db_name = config['Database']['DatabaseName']
+    collection_name = config['Database']['TracesCollection']
+    mongo_uri = os.getenv('MONGO_URI')
+    return mongo_uri, db_name, collection_name

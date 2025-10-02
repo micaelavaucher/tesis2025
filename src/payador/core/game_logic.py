@@ -5,15 +5,14 @@ and game-related utility functions with intelligent memory integration.
 """
 
 import re
-import json
-import os
 import jsonpickle
 import time
 from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured, prompt_describe_objective
 from .world_builder import inspect_generated_world
-from ..config import PATH_GAMELOGS
+from .world_utils import create_world_state_summary
 from ..llm.structured_data_models import WorldUpdate
 from ..llm.memory_system import create_memory_system
+from ..database.mongodb_handler import db_handler
 
 def generate_starting_narration(world, language, narrative_model):
     """Generate the starting narration for a world."""
@@ -65,102 +64,6 @@ def generate_starting_narration(world, language, narrative_model):
     
     return starting_narration
 
-def create_world_state_summary(world, player_action, language='en'):
-    """Create a rich contextual summary of the world state for memory embedding."""
-    try:
-        player_location = world.player.location.name
-        
-        location_description = ""
-        if hasattr(world.player.location, 'descriptions') and world.player.location.descriptions:
-            # Take the first description or join multiple descriptions
-            if isinstance(world.player.location.descriptions, list):
-                location_description = " ".join(world.player.location.descriptions)
-            else:
-                location_description = str(world.player.location.descriptions)
-        elif hasattr(world.player.location, 'description'):
-            location_description = world.player.location.description
-        elif hasattr(world.player.location, 'desc'):
-            location_description = world.player.location.desc
-        
-        # Safely get visible items in current location
-        visible_items = []
-        if hasattr(world.player.location, 'items') and world.player.location.items:
-            visible_items = [item.name for item in world.player.location.items]
-        
-        # Get characters in current location (they are stored in world.characters, not location.characters)
-        present_characters = []
-        if hasattr(world, 'characters') and world.characters:
-            for character in world.characters.values():
-                if hasattr(character, 'location') and character.location is world.player.location:
-                    # Don't include the player character in the list
-                    if character is not world.player:
-                        present_characters.append(character.name)
-        
-        # Safely get player inventory
-        player_items = []
-        if hasattr(world.player, 'inventory') and world.player.inventory:
-            player_items = [item.name for item in world.player.inventory]
-        
-        # Extract key object from player action if possible
-        key_object = ""
-        action_words = player_action.lower().split()
-        if hasattr(world, 'items') and world.items:
-            for item_name, item in world.items.items():
-                if any(word in item_name.lower() for word in action_words):
-                    key_object = item_name
-                    break
-        
-        # Build rich contextual summary
-        if language == 'es':
-            summary = f"Ubicación: {player_location}. "
-            
-            if location_description:
-                summary += f"Descripción: {location_description[:100]}{'...' if len(location_description) > 100 else ''}. "
-            
-            if visible_items:
-                summary += f"Objetos visibles: {', '.join(visible_items)}. "
-            
-            if present_characters:
-                summary += f"Personajes presentes: {', '.join(present_characters)}. "
-                
-            if player_items:
-                summary += f"Inventario del jugador: {', '.join(player_items)}. "
-                
-            if key_object:
-                summary += f"Objeto clave de la acción: {key_object}. "
-                
-            summary += f"Acción realizada: {player_action}"
-            
-        else:
-            summary = f"Location: {player_location}. "
-            
-            if location_description:
-                summary += f"Description: {location_description[:100]}{'...' if len(location_description) > 100 else ''}. "
-            
-            if visible_items:
-                summary += f"Visible items: {', '.join(visible_items)}. "
-            
-            if present_characters:
-                summary += f"Present characters: {', '.join(present_characters)}. "
-                
-            if player_items:
-                summary += f"Player inventory: {', '.join(player_items)}. "
-                
-            if key_object:
-                summary += f"Key object in action: {key_object}. "
-                
-            summary += f"Action performed: {player_action}"
-        
-        return summary
-        
-    except Exception as e:
-        print(f"⚠️ Error creating world state summary: {e}")
-        # Fallback to basic summary
-        if language == 'es':
-            return f"Ubicación: {world.player.location.name}. Acción: {player_action}"
-        else:
-            return f"Location: {world.player.location.name}. Action: {player_action}"
-
 def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, world_id=None):
     """Create initial game log dictionary."""
     game_log_dictionary = {}
@@ -189,8 +92,22 @@ def initialize_game_state(world, language, log_filename, narrative_model_name, r
         "starting_narration": starting_narration
     }
 
-    with open(os.path.join(PATH_GAMELOGS, log_filename), 'w', encoding='utf-8') as f:
-        json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
+    # Prepare the document for MongoDB
+    mongo_document = {
+        "world_id": game_log_dictionary["world_id"],
+        "nickname": game_log_dictionary["nickname"],
+        "language": game_log_dictionary["language"],
+        "narrative_model_name": game_log_dictionary["narrative_model_name"],
+        "reasoning_model_name": game_log_dictionary["reasoning_model_name"],
+        "created_at": time.time(),
+        "turns": {
+            "0": game_log_dictionary[0] # Store the initial state as turn 0
+        }
+    }
+
+    # Save to MongoDB
+    if db_handler:
+        db_handler.initialize_trace(mongo_document)
     
     return last_player_position, number_of_turns, game_log_dictionary
 
@@ -744,12 +661,15 @@ def check_objective_completion(world, answer, language):
     
     return answer
 
-def save_game_log(game_log_dictionary, log_filename, number_of_turns, answer):
+def save_game_log(game_log_dictionary, number_of_turns, answer):
     """Save current game state to log file."""
     game_log_dictionary[number_of_turns]["narration"] = answer
-    
-    with open(os.path.join(PATH_GAMELOGS, log_filename), 'w', encoding='utf-8') as f:
-        json.dump(game_log_dictionary, f, ensure_ascii=False, indent=4)
+
+    world_id = game_log_dictionary.get("world_id")
+    current_turn_data = game_log_dictionary.get(number_of_turns)
+
+    if db_handler and world_id and current_turn_data:
+        db_handler.add_turn_to_trace(world_id, number_of_turns, current_turn_data)
 
 def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None, enable_rag=True):
     """Create the main game loop function with intelligent memory system."""
@@ -777,8 +697,8 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
             print(f"🧠 Intelligent memory system initialized for world {session_world_id}")
             
             # Load existing memories from previous logs if available
-            if log_filename:
-                memory_system.load_memories_from_logs(log_filename)
+            if session_world_id:
+                memory_system.load_memories_from_db(session_world_id)
         except Exception as e:
             print(f"⚠️ Failed to initialize memory system: {e}")
             print("🔄 Continuing without memory enhancement...")

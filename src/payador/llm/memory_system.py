@@ -6,22 +6,21 @@ retrieve relevant past memories when processing new player actions.
 """
 
 import os
-import json
 import time
+from typing import List, Dict
+from pathlib import Path
+import jsonpickle
+import numpy as np
+from google import genai
+from google.genai import types
+import chromadb
+from chromadb.config import Settings
+from ..config import PATH_GAMELOGS
+from src.payador.core.world_utils import create_world_state_summary
+from ..database.mongodb_handler import db_handler
 
 # Disable ChromaDB telemetry at module level
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
-
-from typing import List, Dict
-from pathlib import Path
-from ..config import PATH_GAMELOGS
-import numpy as np
-
-from google import genai
-from google.genai import types
-
-import chromadb
-from chromadb.config import Settings
 
 
 class AtomicMemory:
@@ -262,44 +261,60 @@ class IntelligentMemorySystem:
         
         return header + "\n".join(formatted_memories) + "\n"
     
-    def load_memories_from_logs(self, log_filename: str) -> int:
-        """Load memories from existing game logs."""
+    def load_memories_from_db(self, world_id: str) -> int:
+        """Load memories from an existing game trace in the database, re-hydrating world state for rich context."""
+        if not db_handler:
+            print("⚠️ Database handler not available, cannot load memories.")
+            return 0
+
         try:
-            log_path = Path(PATH_GAMELOGS) / log_filename
-            if not log_path.exists():
-                print(f"⚠️ Log file {log_filename} not found")
+            game_trace = db_handler.get_trace_by_world_id(world_id)
+            if not game_trace or "turns" not in game_trace:
+                print(f"🧠 No existing trace found in DB for world {world_id}")
                 return 0
-            
-            with open(log_path, 'r', encoding='utf-8') as f:
-                game_log = json.load(f)
-            
+
             memories_loaded = 0
-            for turn_key, turn_data in game_log.items():
-                if not turn_key.isdigit() or int(turn_key) == 0:
-                    continue
-                
+            language = game_trace.get("language", "en") # Get language for the summary function
+
+            # Sort turns by turn number to process them chronologically
+            sorted_turns = sorted(game_trace["turns"].items(), key=lambda item: int(item[0]))
+
+            for turn_key, turn_data in sorted_turns:
                 turn_number = int(turn_key)
-                if turn_number <= self.last_turn_processed:
+                if turn_number == 0 or turn_number <= self.last_turn_processed:
                     continue
-                
-                # Extract information from log
-                player_action = turn_data.get("user_input", "")
-                result_narration = turn_data.get("narration", "")
-                
-                if player_action and result_narration:
+
+                player_action = turn_data.get("user_input")
+                result_narration = turn_data.get("narration")
+                world_state_str = turn_data.get("previous_symbolic_world_state")
+
+                if player_action and result_narration and world_state_str:
+                    # Re-hydrate the world object from the stored JSON string
+                    # This deserializes the string back into a full Python World object
+                    world_at_turn = jsonpickle.decode(world_state_str)
+
+                    world_state_summary = create_world_state_summary(
+                        world=world_at_turn,
+                        player_action=player_action,
+                        language=language
+                    )
+
                     success = self.ingest_memory(
                         turn_number=turn_number,
                         player_action=player_action,
-                        result_narration=result_narration
+                        result_narration=result_narration,
+                        world_state_summary=world_state_summary
                     )
                     if success:
                         memories_loaded += 1
-            
-            print(f"🧠 Loaded {memories_loaded} memories from logs")
+
+            print(f"🧠 Loaded {memories_loaded} memories from database for world {world_id} with rich context.")
             return memories_loaded
-            
+
         except Exception as e:
-            print(f"⚠️ Error loading memories from logs: {e}")
+            print(f"⚠️ Error loading memories from database: {e}")
+            import traceback
+            traceback.print_exc()
             return 0
 
 def create_memory_system(world_id: str, api_key: str = None) -> IntelligentMemorySystem:
