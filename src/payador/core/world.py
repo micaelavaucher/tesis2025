@@ -124,6 +124,9 @@ class Location (Component):
     self.connecting_locations = connecting_locations or []
     """a list of the reachable locations from itself."""
 
+    self.visited = False
+    """indicates if the location has been visited by the player before"""
+
     self.blocked_locations = {}
     """a dictionary with the name of a location as key and <location,obstacle,symmetric> as value.
     A blocked passage between self and a location means that it

@@ -127,6 +127,10 @@ def create_world_from_llm_response(world_data) -> World:
             location=player_location,
             inventory=player_inventory)
         
+        # Mark the starting location as visited since the player begins there
+        if player_location:
+            player_location.visited = True
+        
         # Create NPCs
         characters_list = []
         for char_data in generated_world.characters:

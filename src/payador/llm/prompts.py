@@ -72,28 +72,27 @@ def prompt_describe_objective_spanish (objective):
 
     return system_msg, user_msg
 
-def prompt_narrate_current_scene (world_state: str, previous_narrations: 'list[str]', language: str = 'en', starting_scene: bool = False):
+def prompt_narrate_current_scene (world_state: str, previous_narrations: 'list[str]', language: str = 'en', starting_scene: bool = False, first_visit: bool = None):
     system_msg = ""
     user_msg = ""
 
     if language == 'es':
-        system_msg, user_msg = prompt_narrate_current_scene_spanish(world_state, previous_narrations, starting_scene)
+        system_msg, user_msg = prompt_narrate_current_scene_spanish(world_state, previous_narrations, starting_scene, first_visit)
     else:
-        system_msg, user_msg = prompt_narrate_current_scene_english(world_state, previous_narrations, starting_scene)
+        system_msg, user_msg = prompt_narrate_current_scene_english(world_state, previous_narrations, starting_scene, first_visit)
 
 
     return system_msg, user_msg
 
-def prompt_narrate_current_scene_english (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
-
+def prompt_narrate_current_scene_english (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False, first_visit: bool = None):
     system_msg = "You are a storyteller. Take the state of the world given to you and narrate it in vivid, evocative sentences. Use the detailed descriptions of locations, objects, and characters provided in the world state to create rich, immersive narrations with sensory details. Incorporate textures, colors, sounds, smells, and visual elements based on the available descriptions. Be careful not to include details that contradict the current state of the world, that move the story forward, or invent new puzzles that aren't in the world."
     
     if starting_scene:
         system_msg += "\nTake into account that this is the first scene in the story: introduce the main character using their descriptions, creating a small background story and why that character is in that specific location. Use the location descriptions to paint a vivid scene. It is important that you mention all components in this location using their descriptions to bring them to life. It is very important that you name the places the player can access from this position in an engaging way.\n"
-    elif len(previous_narrations)==0:
+    elif first_visit or (first_visit is None and len(previous_narrations)==0):
         system_msg += "Take into account that the player already knows what the main character looks like, so do not mention anything about that. However, it is the first time the player visits this place, so describe it exhaustively using the location descriptions. Mention all components in this location using their descriptions. It is very important that you name the places the player can access from this position."
     else:
-        system_msg += "Take into account that the player already knows what the main character looks like, so do not mention anything about that. Additionally, it is not the first time the player visits this place. Next I’ll give you some previous narrations of this same location (from oldest to newest) so you can be sure to not repeat the same details again:\n"
+        system_msg += "Take into account that the player already knows what the main character looks like, so just describe changes or anything absolutely necessary, keep the narration short. Next I’ll give you some previous narrations of this same location (from oldest to newest) so you can be sure to not repeat the same details again:\n"
         for narration in previous_narrations:
             system_msg+=f'- {narration}\n'
 
@@ -105,16 +104,16 @@ def prompt_narrate_current_scene_english (world_state: str, previous_narrations:
 
     return system_msg, user_msg
 
-def prompt_narrate_current_scene_spanish (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False):
+def prompt_narrate_current_scene_spanish (world_state: str, previous_narrations: 'list[str]', starting_scene: bool = False, first_visit: bool = None):
     
     system_msg = f"""Eres un narrador. Toma el estado del mundo que se te de y nárralo con oraciones vívidas y evocativas. Usa las descripciones detalladas de ubicaciones, objetos y personajes proporcionadas en el estado del mundo para crear narraciones ricas e inmersivas con detalles sensoriales. Incorpora texturas, colores, sonidos, olores y elementos visuales basándote en las descripciones disponibles. Ten cuidado de no incluir detalles que contradigan el estado del mundo actual, o que hagan avanzar la historia, o inventar puzzles o acertijos que no estén ya en el mundo. Además, si el jugador está en la misma ubicación en la que existe un puzzle, debes darle una pista que le haga saber que allí hay un puzzle, o que un personaje tiene un puzzle para él."""
     
     if starting_scene:
         system_msg += "\nTen en cuenta que esta es la primera escena en la historia narrada: presenta al personaje del jugador usando sus descripciones, creando un pequeño trasfondo y por qué este personaje está en ese lugar específicamente. Usa las descripciones de la ubicación para pintar una escena vívida. Es importante que menciones todos los componentes que hay en este lugar usando sus descripciones para darles vida. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición de manera atractiva.\n"
-    elif len(previous_narrations)==0:
+    elif first_visit or (first_visit is None and len(previous_narrations)==0):
         system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Sin embargo, es la primera vez que el jugador visita este lugar, así que descríbelo exhaustivamente usando las descripciones de la ubicación. Menciona todos los componentes que hay en este lugar usando sus descripciones. Es muy importante que nombres los lugares a los que puede acceder el jugador desde esta posición.\n"
     else:
-        system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Además, no es la primera vez que el jugador visita este lugar. A continuación te daré algunas narraciones previas de este mismo lugar (de la más antigua a la más nueva), así te puedes asegurar de no repetir los mismos detalles de nuevo, pero aún usar las ricas descripciones disponibles:\n"
+        system_msg += "Ten en cuenta que el jugador ya conoce a su personaje, y cómo se ve, así que no menciones nada sobre esto. Además, no es la primera vez que el jugador visita este lugar, así solo describe cualquier cambio o aspecto sumamente relevante, manten la narracion corta. A continuación te daré algunas narraciones previas de este mismo lugar (de la más antigua a la más nueva), así te puedes asegurar de no repetir los mismos detalles de nuevo:\n"
         for narration in previous_narrations:
             system_msg+=f'- {narration}\n'
 

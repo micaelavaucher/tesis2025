@@ -652,14 +652,23 @@ def generate_narration(world, last_player_position, response_update, language, n
     
     if last_player_position is not world.player.location:
         # Narrate new scene
+        # Check if this is the first visit to this location
+        is_first_visit = not world.player.location.visited
+        
         system_msg_new_scene, user_msg_new_scene = prompt_narrate_current_scene(
             world.render_world(language=language),
             previous_narrations=world.player.visited_locations[world.player.location.name],
-            language=language
+            language=language,
+            first_visit=is_first_visit
         )
         new_scene_narration = narrative_model.prompt_model(system_msg=system_msg_new_scene, user_msg=user_msg_new_scene)
         world.player.visited_locations[world.player.location.name] += [new_scene_narration]
         answer += f"\n{new_scene_narration}\n\n"
+        
+        # Mark location as visited on first visit
+        if is_first_visit:
+            world.player.location.visited = True
+            
         last_player_position = world.player.location
     else:
         # Narrate actions in current scene

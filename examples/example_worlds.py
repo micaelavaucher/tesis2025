@@ -62,6 +62,8 @@ def get_world_0_english() -> World:
                     location=place_3)
 
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([place_1, place_2, place_3])
     the_world.add_items([item_1, item_2, item_3])
     the_world.add_character(npc)
@@ -108,6 +110,8 @@ def get_world_0_spanish() -> World:
     
 
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([place_1, place_2, place_3])
     the_world.add_items([item_1, item_2, item_3])
     the_world.add_character(npc)
@@ -152,6 +156,8 @@ def get_world_1_english() -> World:
                         location= place_1)
 
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([place_1,place_2,place_3])
     the_world.add_items([item_1,item_2,item_3,item_4,item_5])
     the_world.add_character(npc)
@@ -196,6 +202,8 @@ def get_world_1_spanish() -> World:
                         location= place_1)
 
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([place_1,place_2,place_3])
     the_world.add_items([item_1,item_2,item_3,item_4,item_5])
     the_world.add_character(npc)
@@ -247,6 +255,8 @@ def get_world_2_spanish() -> World:
                         location= place_1)
 
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([place_1,place_2,place_3])
     the_world.add_items([item_1,item_2,item_3])
     the_world.add_character(npc)
@@ -298,6 +308,8 @@ def get_world_2_english() -> World:
                         location= place_1)
 
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([place_1,place_2,place_3])
     the_world.add_items([item_1,item_2,item_3])
     the_world.add_character(npc)
@@ -354,6 +366,8 @@ def get_tutorial_world_english() -> World:
     
     # Create the world
     the_world = World(player)
+    # Mark starting location as visited
+    player.location.visited = True
     the_world.add_locations([starting_room, garden])
     the_world.add_items([turtle, instructions_poster])
     the_world.add_character(edward)
@@ -410,6 +424,8 @@ def get_tutorial_world_spanish() -> World:
     
     # Crear el mundo
     el_mundo = World(jugador)
+    # Mark starting location as visited
+    jugador.location.visited = True
     el_mundo.add_locations([habitacion_inicial, jardin])
     el_mundo.add_items([tortuga, cartel_instrucciones])
     el_mundo.add_character(eduardo)
