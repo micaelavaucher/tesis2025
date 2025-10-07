@@ -51,6 +51,15 @@ class MongoHandler:
         except Exception as e:
             print(f"Error retrieving trace for world_id {world_id}: {e}")
             return None
+    
+    def trace_exists(self, world_id: str) -> bool:
+        """Check if a trace exists for the given world_id."""
+        try:
+            count = self.collection.count_documents({"world_id": world_id})
+            return count > 0
+        except Exception as e:
+            print(f"Error checking trace existence for world_id {world_id}: {e}")
+            return False
 
 # Create a single, importable instance of the handler
 db_handler = MongoHandler()

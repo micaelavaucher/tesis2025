@@ -15,6 +15,213 @@ from ..core.world_builder import create_world_from_llm_response
 from .ui_components import get_ui_texts, get_progress_messages
 import examples.example_worlds as example_worlds
 
+def render_mermaid(mermaid_code: str, height: int = 600):
+    """Render a Mermaid diagram using Mermaid.js from CDN with zoom controls.
+    
+    Args:
+        mermaid_code: The Mermaid diagram code
+        height: Height of the rendered diagram in pixels
+    """
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+        <script>
+            mermaid.initialize({{ 
+                startOnLoad: true,
+                theme: 'default',
+                flowchart: {{
+                    useMaxWidth: false,
+                    htmlLabels: true,
+                    curve: 'basis'
+                }}
+            }});
+        </script>
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: #ffffff;
+                font-family: 'Arial', sans-serif;
+            }}
+            
+            #zoom-controls {{
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 1000;
+                background: white;
+                padding: 10px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                display: flex;
+                gap: 5px;
+            }}
+            
+            .zoom-btn {{
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                transition: background 0.3s;
+            }}
+            
+            .zoom-btn:hover {{
+                background: #45a049;
+            }}
+            
+            .zoom-btn:active {{
+                background: #3d8b40;
+            }}
+            
+            #zoom-reset {{
+                background: #2196F3;
+            }}
+            
+            #zoom-reset:hover {{
+                background: #0b7dda;
+            }}
+            
+            #zoom-level {{
+                background: #f0f0f0;
+                color: #333;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 14px;
+                font-weight: bold;
+                min-width: 60px;
+                text-align: center;
+            }}
+            
+            #diagram-container {{
+                width: 100%;
+                height: {height}px;
+                overflow: auto;
+                cursor: grab;
+                position: relative;
+            }}
+            
+            #diagram-container:active {{
+                cursor: grabbing;
+            }}
+            
+            #diagram-wrapper {{
+                display: inline-block;
+                transform-origin: top left;
+                transition: transform 0.2s ease;
+            }}
+            
+            .mermaid {{
+                font-family: 'Arial', sans-serif;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="zoom-controls">
+            <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+            <div id="zoom-level">100%</div>
+            <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+            <button class="zoom-btn" id="zoom-reset" title="Reset Zoom">⟲</button>
+        </div>
+        
+        <div id="diagram-container">
+            <div id="diagram-wrapper">
+                <div class="mermaid">
+{mermaid_code}
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            let scale = 1.0;
+            const minScale = 0.3;
+            const maxScale = 3.0;
+            const scaleStep = 0.1;
+            
+            const wrapper = document.getElementById('diagram-wrapper');
+            const container = document.getElementById('diagram-container');
+            const zoomLevel = document.getElementById('zoom-level');
+            
+            function updateZoom() {{
+                wrapper.style.transform = `scale(${{scale}})`;
+                zoomLevel.textContent = Math.round(scale * 100) + '%';
+            }}
+            
+            document.getElementById('zoom-in').addEventListener('click', () => {{
+                if (scale < maxScale) {{
+                    scale = Math.min(scale + scaleStep, maxScale);
+                    updateZoom();
+                }}
+            }});
+            
+            document.getElementById('zoom-out').addEventListener('click', () => {{
+                if (scale > minScale) {{
+                    scale = Math.max(scale - scaleStep, minScale);
+                    updateZoom();
+                }}
+            }});
+            
+            document.getElementById('zoom-reset').addEventListener('click', () => {{
+                scale = 1.0;
+                updateZoom();
+                container.scrollTop = 0;
+                container.scrollLeft = 0;
+            }});
+            
+            // Mouse wheel zoom
+            container.addEventListener('wheel', (e) => {{
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -scaleStep : scaleStep;
+                const newScale = Math.max(minScale, Math.min(maxScale, scale + delta));
+                
+                if (newScale !== scale) {{
+                    scale = newScale;
+                    updateZoom();
+                }}
+            }});
+            
+            // Pan functionality
+            let isPanning = false;
+            let startX, startY, scrollLeft, scrollTop;
+            
+            container.addEventListener('mousedown', (e) => {{
+                isPanning = true;
+                startX = e.pageX - container.offsetLeft;
+                startY = e.pageY - container.offsetTop;
+                scrollLeft = container.scrollLeft;
+                scrollTop = container.scrollTop;
+            }});
+            
+            container.addEventListener('mouseleave', () => {{
+                isPanning = false;
+            }});
+            
+            container.addEventListener('mouseup', () => {{
+                isPanning = false;
+            }});
+            
+            container.addEventListener('mousemove', (e) => {{
+                if (!isPanning) return;
+                e.preventDefault();
+                const x = e.pageX - container.offsetLeft;
+                const y = e.pageY - container.offsetTop;
+                const walkX = (x - startX) * 2;
+                const walkY = (y - startY) * 2;
+                container.scrollLeft = scrollLeft - walkX;
+                container.scrollTop = scrollTop - walkY;
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    st.components.v1.html(html_code, height=height, scrolling=True)
+
 def initialize_session_state():
     """Initialize Streamlit session state variables."""
     if 'language' not in st.session_state:
@@ -85,7 +292,8 @@ def render_sidebar():
             'Inspiration': 'inspiration',
             'Generate': 'generate', 
             'Preset': 'preset',
-            'Tutorial': 'tutorial'
+            'Tutorial': 'tutorial',
+            'Replay': 'replay'
         }
         current_mode = st.session_state.generation_mode
         selected_mode_name = next(k for k, v in mode_options.items() if v == current_mode)
@@ -415,6 +623,259 @@ def load_preset_world(world_id: int):
         
     except Exception as e:
         st.error(f"❌ Error loading preset world: {str(e)}")
+
+def render_replay_mode():
+    """Render the replay mode interface."""
+    st.markdown("# 🌱 PAYADOR")
+    st.markdown("### Dynamic Text Adventure World Generator")
+    
+    # Initialize inspection state if not exists
+    if 'inspecting_world' not in st.session_state:
+        st.session_state.inspecting_world = False
+    if 'loaded_world_for_inspection' not in st.session_state:
+        st.session_state.loaded_world_for_inspection = None
+    
+    if st.session_state.language == 'es':
+        st.markdown("**Modo Replay:** Reproduce un mundo guardado desde MongoDB")
+        st.markdown("""
+        🔬 **Modo de Desarrollo**
+        
+        Este modo te permite inspeccionar y jugar mundos previamente generados desde MongoDB.
+        
+        **Cómo usarlo:**
+        1. Ir al cluster de MongoDB Compass
+        2. Buscar en la colección de trazas
+        3. Copiar el `world_id` del mundo que se desea reproducir
+        4. Pegarlo abajo y hacer clic en "Cargar Mundo"
+        5. Elegir entre **Inspeccionar** (ver diagrama del mundo) o **Jugar** directamente
+        
+        ⚠️ El mundo se va a cargar desde el estado inicial (turno 0)
+        """)
+    else:
+        st.markdown("**Replay Mode:** Replay a saved world from MongoDB")
+        st.markdown("""
+        🔬 **Development Mode**
+        
+        This mode allows you to inspect and play previously generated worlds from MongoDB.
+        
+        **How to use:**
+        1. Go to the MongoDB Compass cluster
+        2. Search in the traces collection
+        3. Copy the `world_id` of the world you want to replay
+        4. Paste it below and click "Load World"
+        5. Choose between **Inspect** (view world diagram) or **Play** directly
+        
+        ⚠️ The world will be loaded from initial state (turn 0)
+        """)
+    
+    # If already playing, show the game
+    if st.session_state.world_generated and not st.session_state.inspecting_world:
+        render_chat_interface()
+        return
+    
+    # If inspecting, show the inspection view
+    if st.session_state.inspecting_world and st.session_state.loaded_world_for_inspection:
+        render_world_inspection(st.session_state.loaded_world_for_inspection)
+        return
+    
+    # Otherwise, show the world ID input
+    world_id = st.text_input(
+        "🆔 World ID:",
+        placeholder="e.g., generated_1756850394",
+        help="Enter the world_id from MongoDB"
+    )
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("� Inspect World", type="secondary", disabled=not world_id.strip()):
+            load_world_for_inspection(world_id.strip())
+    
+    with col2:
+        if st.button("🎮 Play World", type="primary", disabled=not world_id.strip()):
+            load_replay_world(world_id.strip())
+
+def load_world_for_inspection(world_id: str):
+    """Load a world from MongoDB for inspection only (no gameplay)."""
+    from ..database.mongodb_handler import db_handler
+    from ..core.world_builder import create_world_from_trace
+    
+    try:
+        with st.spinner(f"🔍 Loading world {world_id} for inspection..."):
+            if not db_handler or not db_handler.trace_exists(world_id):
+                st.error(f"❌ No trace found for world_id: {world_id}")
+                st.info("💡 Make sure the world_id is correct and exists in MongoDB")
+                return
+            
+            trace_data = db_handler.get_trace_by_world_id(world_id)
+            
+            if not trace_data:
+                st.error(f"❌ Failed to retrieve trace for world_id: {world_id}")
+                return
+            
+            world = create_world_from_trace(trace_data)
+            
+            st.session_state.loaded_world_for_inspection = world
+            st.session_state.inspecting_world = True
+            
+            st.success(f"✅ World {world_id} loaded for inspection!")
+            time.sleep(0.5)
+            st.rerun()
+            
+    except ValueError as e:
+        st.error(f"❌ Invalid trace data: {str(e)}")
+        st.info("💡 The trace may be corrupted or incomplete")
+    except Exception as e:
+        st.error(f"❌ Error loading world for inspection: {str(e)}")
+        import traceback
+        if st.session_state.debug_mode:
+            st.code(traceback.format_exc())
+
+def render_world_inspection(world):
+    """Render the world inspection view with diagram and details."""
+    from ..core.world_visualizer import generate_world_mermaid_diagram, generate_world_text_summary
+    
+    st.markdown("# 🔍 World Inspector")
+    
+    if st.session_state.language == 'es':
+        st.markdown("### Visualización del Mundo")
+    else:
+        st.markdown("### World Visualization")
+    
+    # Action buttons at the top
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    with col1:
+        if st.button("🎮 Play This World", type="primary"):
+            # Move from inspection to playing
+            st.session_state.world = st.session_state.loaded_world_for_inspection
+            st.session_state.world_generated = True
+            st.session_state.inspecting_world = False
+            
+            config = load_config()
+            narrative_model_name = config.get('Models', 'NarrativeModel', fallback='gemini-2.0-flash')
+            narrative_model = get_llm(narrative_model_name)
+            
+            starting_narration = generate_starting_narration(
+                world,
+                st.session_state.language,
+                narrative_model
+            )
+            
+            st.session_state.chat_history = [
+                {"role": "assistant", "content": starting_narration}
+            ]
+            
+            st.rerun()
+    
+    with col2:
+        if st.button("🏠 Back to World Selection", type="secondary"):
+            st.session_state.inspecting_world = False
+            st.session_state.loaded_world_for_inspection = None
+            st.rerun()
+    
+    with col3:
+        pass  # Spacer
+    
+    st.markdown("---")
+    
+    # Tabs for different views
+    tab1, tab2 = st.tabs(["📊 Diagram", "📝 Details"])
+    
+    with tab1:
+        if st.session_state.language == 'es':
+            st.markdown("""
+            **Leyenda:**
+            - 🟢 Ubicación inicial del jugador
+            - 🔵 Ubicaciones normales
+            - ➖➖ Pasaje bloqueado (con 🔒 y el elemento que bloquea)
+            - 📦 Objeto (se puede tomar)
+            - 🚫 Objeto decorativo (no se puede tomar)
+            - 👤 Personaje
+            - 🧩 Puzzle
+            """)
+        else:
+            st.markdown("""
+            **Legend:**
+            - 🟢 Player starting location
+            - 🔵 Normal locations
+            - ➖➖ Blocked passage (with 🔒 and blocking element)
+            - 📦 Item (can be taken)
+            - 🚫 Decorative item (cannot be taken)
+            - 👤 Character
+            - 🧩 Puzzle
+            """)
+        
+        # Generate and display Mermaid diagram
+        try:
+            mermaid_code = generate_world_mermaid_diagram(world, st.session_state.language)
+            render_mermaid(mermaid_code, height=800)
+        except Exception as e:
+            st.error(f"❌ Error generating diagram: {str(e)}")
+            if st.session_state.debug_mode:
+                import traceback
+                st.code(traceback.format_exc())
+    
+    with tab2:
+        # Generate and display text summary
+        try:
+            text_summary = generate_world_text_summary(world, st.session_state.language)
+            st.markdown(text_summary)
+        except Exception as e:
+            st.error(f"❌ Error generating summary: {str(e)}")
+            if st.session_state.debug_mode:
+                import traceback
+                st.code(traceback.format_exc())
+
+def load_replay_world(world_id: str):
+    """Load a world from MongoDB trace."""
+    from ..database.mongodb_handler import db_handler
+    from ..core.world_builder import create_world_from_trace
+    
+    try:
+        with st.spinner(f"🔍 Searching for world {world_id}..."):
+            if not db_handler or not db_handler.trace_exists(world_id):
+                st.error(f"❌ No trace found for world_id: {world_id}")
+                st.info("💡 Make sure the world_id is correct and exists in MongoDB")
+                return
+            
+            trace_data = db_handler.get_trace_by_world_id(world_id)
+            
+            if not trace_data:
+                st.error(f"❌ Failed to retrieve trace for world_id: {world_id}")
+                return
+            
+            world = create_world_from_trace(trace_data)
+            
+            st.session_state.world = world
+            st.session_state.world_generated = True
+            
+            config = load_config()
+            narrative_model_name = config.get('Models', 'NarrativeModel', fallback='gemini-2.0-flash')
+            narrative_model = get_llm(narrative_model_name)
+            
+            starting_narration = generate_starting_narration(
+                world,
+                st.session_state.language,
+                narrative_model
+            )
+            
+            st.session_state.chat_history = [
+                {"role": "assistant", "content": starting_narration}
+            ]
+            
+            st.success(f"World {world_id} loaded successfully from MongoDB!")
+            time.sleep(1)
+            st.rerun()
+            
+    except ValueError as e:
+        st.error(f"❌ Invalid trace data: {str(e)}")
+        st.info("The trace may be corrupted or incomplete")
+    except Exception as e:
+        st.error(f"❌ Error loading replay world: {str(e)}")
+        import traceback
+        if st.session_state.debug_mode:
+            st.code(traceback.format_exc())
 
 def render_tutorial_mode():
     """Render the tutorial mode interface."""
@@ -788,11 +1249,8 @@ def main():
             render_tutorial_mode()
         else:
             render_chat_interface()
-    elif st.session_state.generation_mode == 'tutorial':
-        if not st.session_state.world_generated:
-            render_tutorial_mode()
-        else:
-            render_chat_interface()
+    elif st.session_state.generation_mode == 'replay':
+        render_replay_mode()
 
 if __name__ == "__main__":
     main()
