@@ -41,12 +41,6 @@ Instead of generating the whole world in a single pass, the system uses an incre
 - Adds: Interconnected dependency chains, integrated puzzles, complex progression toward the objective
 - Output: `GeneratedWorld` with multiple interdependent steps making the adventure more challenging
 
-**STEP 5 - Optional Expansion:**
-- Function: `run_step_5_expansion()`
-- Prompt: `PROMPT_STEP_5_EXPANSION`
-- Adds: Side content, atmospheric locations, decorative items
-- Output: Enriched `GeneratedWorld`
-
 ## **2. Incremental Data Structures (structured_data_models.py)**
 
 The system uses specialized Pydantic models for each stage:

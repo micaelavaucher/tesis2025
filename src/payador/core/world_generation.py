@@ -9,7 +9,7 @@ import time
 import json
 import os
 import jsonpickle
-from ..llm.generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles, run_step_5_expansion, create_world_incrementally
+from ..llm.generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles, create_world_incrementally
 from .world_builder import create_world_from_llm_response
 from ..llm.prompts import prompt_narrate_current_scene, prompt_describe_objective
 from ..ui.ui_components import get_progress_messages
@@ -56,15 +56,8 @@ def generate_world_step_by_step(inspo, language):
         puzzles=len(world_with_puzzles.puzzles)
     )
     progress_messages.append(completion_msg)
-    
-    # Step 5: Expansion
-    generated_world = run_step_5_expansion(world_with_puzzles, language)
-    completion_msg = get_progress_messages(language)['STEP_5_COMPLETE'].format(
-        locations=len(generated_world.locations)
-    )
-    progress_messages.append(completion_msg)
-    
-    return generated_world, progress_messages
+        
+    return world_with_puzzles, progress_messages
 
 def generate_world_simple(theme, language):
     """Generate world using simple pipeline without UI progress."""

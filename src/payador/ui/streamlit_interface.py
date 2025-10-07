@@ -399,7 +399,7 @@ def generate_world_from_inspiration(inspiration: str):
             narrative_model = get_llm(narrative_model_name)
             
             # Step-by-step generation with proper progress tracking
-            from ..llm.generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles, run_step_5_expansion
+            from ..llm.generation_pipeline import run_step_1_concept, run_step_2_skeleton, run_step_3_details, run_step_4_puzzles
             
             # Step 1: Concept
             status_text.text(progress_messages['STEP_1'])

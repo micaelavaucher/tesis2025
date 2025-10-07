@@ -293,45 +293,6 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> Gene
             print(f"      " + "\n      ".join([f"- {hint}" for hint in puzzle.puzzle_hints]))
     return enhanced_world
 
-def run_step_5_expansion(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
-    """
-    Paso 5: Expansion with optional content.
-    
-    Args:
-        world_data: World from the previous step
-        language: Language for generation
-        model: Model instance to use (if None, will get from config)
-        
-    Returns:
-        GeneratedWorld: Final and complete object
-    """
-    if model is None:
-        config = load_config()
-        reasoning_model_name, _ = get_model_names(config)
-        model = get_llm(reasoning_model_name)
-    
-    world_json = world_data.model_dump_json(indent=2)
-    
-    prompt_text = prompts.PROMPT_STEP_5_EXPANSION(
-        world_data=world_json,
-        language=language
-    )
-    
-    print(f"[DEBUG] Expanding world with optional content")
-    final_world_response = model.prompt_model_structured(prompt_text, GeneratedWorld)
-
-    if isinstance(final_world_response, dict):
-        final_world = GeneratedWorld(**final_world_response)
-    else:
-        final_world = final_world_response
-        
-    print(f"[DEBUG] ✅ Step 5 - Expansion completed:")
-    print(f"  Final locations: {len(final_world.locations)} (was {len(world_data.locations)})")
-    print(f"  Final items: {len(final_world.items)} (was {len(world_data.items)})")
-    print(f"  Final characters: {len(final_world.characters)} (was {len(world_data.characters)})")
-    print(f"  Final puzzles: {len(final_world.puzzles)} (was {len(world_data.puzzles)})")
-    return final_world
-
 def create_world_incrementally(theme: str, language: str, progress_callback=None) -> GeneratedWorld:
     """
     Main orchestrator of the incremental generation pipeline.
@@ -483,59 +444,17 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     if progress_callback:
         progress_callback(completion_msg)
 
-    # Paso 5: Expandir con contenido opcional (with verification)
-    step_msg = "🎨 Paso 5: Expandiendo con contenido adicional..."
-    print(step_msg)
-    if progress_callback:
-        progress_callback(step_msg)
-    final_world = None
-    for attempt in range(1, max_attempts + 1):
-        final_world = run_step_5_expansion(world_with_puzzles, language, model)
-        json_ok = verify_pydantic_model(final_world, GeneratedWorld)
-        
-        # Validate and fix puzzle rewards
-        rewards_ok, final_world = verify_puzzle_rewards_and_fix(final_world)
-        
-        connectivity_ok = verify_location_connectivity(final_world)
-        objective_ok = verify_objective_completability(final_world)
-        if json_ok and rewards_ok and connectivity_ok and objective_ok:
-            break
-        else:
-            if not json_ok:
-                print(f"[WARNING] Expansion JSON verification failed on attempt {attempt}. Retrying...")
-                if progress_callback:
-                    progress_callback(f"[WARNING] Expansion JSON verification failed on attempt {attempt}. Retrying...")
-            if not rewards_ok:
-                print(f"[WARNING] Expansion puzzle rewards validation failed on attempt {attempt}. Retrying...")
-                if progress_callback:
-                    progress_callback(f"[WARNING] Expansion puzzle rewards validation failed on attempt {attempt}. Retrying...")
-            if not connectivity_ok:
-                print(f"[WARNING] Expansion broke location connectivity on attempt {attempt}. Retrying...")
-                if progress_callback:
-                    progress_callback(f"[WARNING] Expansion broke location connectivity on attempt {attempt}. Retrying...")
-            if not objective_ok:
-                print(f"[WARNING] Expansion broke objective completability on attempt {attempt}. Retrying...")
-                if progress_callback:
-                    progress_callback(f"[WARNING] Expansion broke objective completability on attempt {attempt}. Retrying...")
-            final_world = None
-    if final_world is None:
-        raise ValueError("Failed to generate valid expansion while maintaining location connectivity and objective completability after multiple attempts.")
-    completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones (todas accesibles)"
-    print(completion_msg)
-    if progress_callback:
-        progress_callback(completion_msg)
-    
     final_msg = "🌱 ¡Generación incremental completada exitosamente!"
     print(final_msg)
-    if not validate_world_size(final_world):
+    if not validate_world_size(world_with_puzzles):
         print("The generated world does not meet the size requirements.")
-    if not verify_location_connectivity(final_world):
+    if not verify_location_connectivity(world_with_puzzles):
         print("The generated world does not have all locations connected.")
-    if not verify_objective_completability(final_world):
+    if not verify_objective_completability(world_with_puzzles):
         print("The generated world has an objective that cannot be completed with available elements.")
     if progress_callback:
         progress_callback(final_msg)
-    return final_world
+    return world_with_puzzles
 
 def create_world_incrementally_generate(language: str, progress_callback=None) -> GeneratedWorld:
     """
@@ -683,17 +602,6 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     print(completion_msg)
     if progress_callback:
         progress_callback(completion_msg)
-
-    # Paso 5: Expandir con contenido opcional
-    # step_msg = "🎨 Paso 5: Expandiendo con contenido adicional..."
-    # print(step_msg)
-    # if progress_callback:
-    #     progress_callback(step_msg)
-    # final_world = run_step_5_expansion(world_with_puzzles, language)
-    # completion_msg = f"✅ Expansión completada: mundo final con {len(final_world.locations)} ubicaciones"
-    # print(completion_msg)
-    # if progress_callback:
-    #     progress_callback(completion_msg)
 
     final_msg = "🌱 ¡Generación incremental completada exitosamente!"
     print(final_msg)

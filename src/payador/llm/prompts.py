@@ -1430,6 +1430,10 @@ Entidades clave a desarrollar:
 
 **RESTRICCIONES TÉCNICAS OBLIGATORIAS:**
 
+**RESTRICCIÓN DE TAMAÑO CRÍTICA:**
+- SOLO puedes usar las ubicaciones listadas arriba - PROHIBIDO crear nuevas ubicaciones
+- NO agregues ubicaciones adicionales más allá del esqueleto proporcionado
+
 **REGLAS DE CONEXIÓN OBLIGATORIAS:**
 1. **Conexiones bidireccionales**: Si A conecta con B, entonces B DEBE conectar con A
 2. **Conectividad global**: TODAS las ubicaciones deben ser accesibles desde cualquier punto del mundo - NO puede haber ubicaciones aisladas o grupos separados
@@ -1556,6 +1560,10 @@ Key entities to develop:
 {skeleton_data}
 
 **MANDATORY TECHNICAL RESTRICTIONS:**
+
+**CRITICAL SIZE RESTRICTION:**
+- You may ONLY use the locations listed above - FORBIDDEN to create new locations
+- DO NOT add additional locations beyond the provided skeleton
 
 **MANDATORY CONNECTION RULES:**
 1. **Bidirectional connections**: If A connects to B, then B MUST connect to A
@@ -1712,14 +1720,15 @@ Objetivo: Conseguir el Amuleto Mágico
 5. **Relaciones sociales**: Personaje A confía en ti solo si ayudas a personaje B primero
 
 **REGLAS TÉCNICAS OBLIGATORIAS:**
-1. **Conectividad global**: TODAS las ubicaciones deben seguir siendo accesibles - NO crear grupos aislados
-2. **Elementos existentes**: Todas las referencias DEBEN apuntar a objetos/personajes/ubicaciones que existen
-3. **Soluciones descubribles**: Cada puzzle DEBE tener pistas que el jugador pueda encontrar explorando
-4. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
-5. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
-6. **Si el puzzle es dado por un personaje, el reward debe ser un item, y el item DEBE EXISTIR Y ESTAR EN EL INVENTARIO DEL PERSONAJE QUE LO PROPONE**
-7. **NO CRAFTING**: El motor del juego no soporta la creación o transformación de objetos. No crees puzzles que requieran que el jugador combine o altere objetos (p. ej., usar una receta para hacer una poción). Las recompensas deben ser objetos que se puedan usar directamente.
-8. **OBSTÁCULO vs. LLAVE**: Sé preciso. Un 'obstáculo' es lo que bloquea el camino (p. ej., 'una puerta cerrada'). El 'requisito' es la llave que lo quita (p. ej., 'una llave de hierro'). La llave nunca es el obstáculo.
+1. **NO NUEVAS UBICACIONES**: PROHIBIDO crear nuevas ubicaciones - solo usa las existentes
+2. **Conectividad global**: TODAS las ubicaciones deben seguir siendo accesibles - NO crear grupos aislados
+3. **Elementos existentes**: Todas las referencias DEBEN apuntar a objetos/personajes/ubicaciones que existen
+4. **Soluciones descubribles**: Cada puzzle DEBE tener pistas que el jugador pueda encontrar explorando
+5. **Interacciones completas**: Todo personaje con interacción DEBE tener `interaction_text`
+6. **Obstáculos lógicos**: Los obstáculos deben estar separados de sus soluciones
+7. **Si el puzzle es dado por un personaje, el reward debe ser un item, y el item DEBE EXISTIR Y ESTAR EN EL INVENTARIO DEL PERSONAJE QUE LO PROPONE**
+8. **NO CRAFTING**: El motor del juego no soporta la creación o transformación de objetos. No crees puzzles que requieran que el jugador combine o altere objetos (p. ej., usar una receta para hacer una poción). Las recompensas deben ser objetos que se puedan usar directamente.
+9. **OBSTÁCULO vs. LLAVE**: Sé preciso. Un 'obstáculo' es lo que bloquea el camino (p. ej., 'una puerta cerrada'). El 'requisito' es la llave que lo quita (p. ej., 'una llave de hierro'). La llave nunca es el obstáculo.
 
 **REGLAS OBLIGATORIAS PARA SISTEMA DE PISTAS:**
 Para CADA puzzle que añadas, DEBES incluir:
@@ -1751,7 +1760,7 @@ Para CADA puzzle que añadas, DEBES incluir:
 2. **Añadir puzzles estratégicos**: Que bloqueen puntos críticos de la progresión
 3. **Crear pasajes bloqueados**: Con obstáculos que requieren elementos de las cadenas
 4. **Redistribuir objetos**: Mueve objetos importantes a ubicaciones menos accesibles
-5. **Añadir nuevos elementos**: Si es necesario para crear las cadenas complejas
+5. **Añadir nuevos objetos/personajes**: SOLO si es absolutamente necesario (NO ubicaciones)
 
 **VALIDACIÓN DE CADENAS:**
 Antes de finalizar, verifica mentalmente:
@@ -1807,6 +1816,7 @@ Objective: Obtain the Magic Amulet
 - **Social relationships**: Character A trusts you only if you help character B first
 
 **MANDATORY TECHNICAL RULES:**
+- **NO NEW LOCATIONS**: FORBIDDEN to create new locations - only use existing ones
 - **Global connectivity**: ALL locations must remain accessible - DO NOT create isolated groups
 - **Existing elements**: All references MUST point to objects/characters/locations that exist
 - **Discoverable solutions**: Each puzzle MUST have hints the player can find by exploring
@@ -1846,7 +1856,7 @@ For EACH puzzle you add, YOU MUST include:
 2. **Add strategic puzzles**: That block critical progression points
 3. **Create blocked passages**: With obstacles that require chain items to bypass
 4. **Redistribute objects**: Move important items to less accessible locations
-5. **Add new elements**: If necessary to create the complex chains
+5. **Add new objects/characters**: ONLY if absolutely necessary (NO locations)
 
 **CHAIN VALIDATION:**
 Before finalizing, verify mentally:
@@ -1859,110 +1869,6 @@ Before finalizing, verify mentally:
 6. **Do the chains relate to the world's theme?**
 
 Your mission is to turn a simple, straightforward world into a richly layered adventure where every achievement feels earned through exploration, ingenuity, and social interaction. Make the player work for their victory!
-
-**CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
-"""
-
-def PROMPT_STEP_5_EXPANSION(world_data: str, language: str = 'es') -> str:
-    if language == 'es':
-        return  f"""Eres un enriquecedor de mundos de ficción interactiva. Tu tarea es expandir el mundo existente con contenido adicional opcional que añada profundidad y exploration sin complicar excesivamente la ruta principal.
-
-Mundo actual:
-{world_data}
-
-**REGLAS DE EXPANSIÓN OBLIGATORIAS:**
-1. **Conexiones bidireccionales**: Si añades nuevas conexiones, A conecta con B entonces B DEBE conectar con A
-2. **Conectividad global**: TODAS las ubicaciones (incluyendo las nuevas) deben ser accesibles desde cualquier punto - NO crear grupos aislados
-3. **Elementos existentes**: Todas las referencias a objetos, ubicaciones o personajes DEBEN existir
-4. **Coherencia temática**: Todo contenido nuevo debe ser coherente con el mundo existente
-5. **No interferencia**: El contenido adicional NO debe alterar la ruta principal al objetivo
-6. **Inventarios válidos**: Si añades objetos a inventarios de personajes, DEBEN existir en la lista de objetos
-
-**REGLAS DE NUEVOS PUZZLES OPCIONALES:**
-Si añades puzzles opcionales, deben seguir las mismas reglas que los puzzles principales:
-- **Soluciones descubribles**: Pistas físicas, diálogos o documentos que revelen la solución
-- **Lógica interna**: Deben hacer sentido dentro del contexto
-- **Recompensas existentes**: Las recompensas DEBEN existir en el mundo
-
-**TIPOS DE EXPANSIÓN RECOMENDADOS:**
-1. **Ubicaciones atmosféricas**: Lugares que enriquezcan la ambientación sin ser necesarios
-2. **Objetos decorativos**: Elementos que añadan inmersión (`gettable: false` está bien)
-3. **Personajes secundarios**: NPCs con historias paralelas o información adicional
-4. **Detalles descriptivos**: Enriquecimiento de descripciones existentes
-
-Debes añadir:
-- **Ubicaciones secundarias opcionales** que enriquezcan la exploración pero mantengan conexiones lógicas
-- **Objetos decorativos o de ambiente** que añadan inmersión sin alterar la jugabilidad principal
-- **Personajes secundarios** que proporcionen contexto o historias paralelas (con interacciones completas)
-- **Puzzles opcionales** con recompensas menores (siguiendo las reglas de puzzles descubribles)
-- **Detalles adicionales** que enriquezcan las descripciones existentes
-
-El contenido adicional debe:
-- Ser opcional para completar el objetivo principal
-- Enriquecer la experiencia sin confundir al jugador
-- Mantener la coherencia temática ABSOLUTA
-- Proporcionar recompensas menores pero satisfactorias
-- Seguir todas las reglas técnicas del mundo principal
-
-**VALIDACIÓN DE EXPANSIÓN:**
-Antes de finalizar, verifica mentalmente:
-1. **¿TODAS las ubicaciones (originales y nuevas) son accesibles desde cualquier punto?** (OBLIGATORIO)
-2. ¿Todas las nuevas conexiones son bidireccionales?
-3. ¿Todos los elementos referenciados existen en el mundo?
-4. ¿El contenido adicional mantiene la coherencia temática?
-5. ¿La ruta principal sigue siendo clara y no se ve interferida?
-6. ¿Los nuevos personajes tienen interacciones completas?
-
-**INSTRUCCIÓN DE IDIOMA CRÍTICA: La respuesta DEBE estar íntegramente en español. Todos los valores de texto (nombres, descripciones, etc.) deben ser generados en español. Las claves del JSON deben permanecer en inglés para coincidir con el esquema solicitado.**
-"""
-    else:
-        return f"""You are an enhancer of interactive fiction worlds. Your task is to expand the existing world with optional additional content that adds depth and exploration without overly complicating the main path.
-
-Current world:
-{world_data}
-
-**MANDATORY EXPANSION RULES:**
-1. **Bidirectional connections**: If you add new connections, if A connects to B then B MUST connect to A
-2. **Global connectivity**: ALL locations (including new ones) must be accessible from any point – DO NOT create isolated groups
-3. **Existing elements**: All references to objects, locations, or characters MUST exist
-4. **Thematic coherence**: All new content must be consistent with the existing world
-5. **No interference**: Additional content MUST NOT alter the main path to the objective
-6. **Valid inventories**: If you add items to characters’ inventories, they MUST exist in the object list
-
-**RULES FOR OPTIONAL NEW PUZZLES:**
-If you add optional puzzles, they must follow the same rules as main puzzles:
-- **Discoverable solutions**: Physical clues, dialogues, or documents that reveal the solution
-- **Internal logic**: They must make sense within the context
-- **Existing rewards**: The rewards MUST exist in the world
-
-**RECOMMENDED TYPES OF EXPANSION:**
-1. **Atmospheric locations**: Places that enrich the setting without being necessary
-2. **Decorative objects**: Elements that add immersion (`gettable: false` is fine)
-3. **Secondary characters**: NPCs with side stories or additional information
-4. **Descriptive details**: Enrichment of existing descriptions
-
-You must add:
-- **Optional secondary locations** that enhance exploration while maintaining logical connections
-- **Decorative or ambient objects** that add immersion without altering core gameplay
-- **Secondary characters** who provide context or side stories (with complete interactions)
-- **Optional puzzles** with minor rewards (following the rules for discoverable puzzles)
-- **Additional details** that enrich existing descriptions
-
-The additional content must:
-- Be optional to complete the main objective
-- Enrich the experience without confusing the player
-- Maintain ABSOLUTE thematic coherence
-- Provide minor but satisfying rewards
-- Follow all technical rules of the main world
-
-**EXPANSION VALIDATION:**
-Before finalizing, mentally verify:
-1. **Are ALL locations (original and new) accessible from any point?** (MANDATORY)
-2. Are all new connections bidirectional?
-3. Do all referenced elements exist in the world?
-4. Does the additional content maintain thematic coherence?
-5. Is the main path still clear and unaffected?
-6. Do the new characters have complete interactions?
 
 **CRITICAL LANGUAGE INSTRUCTION: The response MUST be entirely in English. All text values (names, descriptions, etc.) must be generated in English. The JSON keys must remain in English to match the required schema.**
 """
