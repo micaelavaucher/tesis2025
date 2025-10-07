@@ -4,14 +4,62 @@
 # Imports and Configs                       #
 # ----------------------------------------- #
 import json
+import jsonpickle
 from typing import Dict
 
 from .world import World, Location, Item, Character, Puzzle
-from ..llm.structured_data_models import GeneratedWorld, WorldExpansion, RequirementType
+from ..llm.structured_data_models import GeneratedWorld, WorldExpansion
 
 # ----------------------------------------- #
 # Main functions for creating the world     #
 # ----------------------------------------- #
+def create_world_from_trace(trace_data: dict) -> World:
+    """Reconstruct a World object from a MongoDB trace.
+    
+    Args:
+        trace_data: MongoDB trace document containing turns with initial_symbolic_world_state
+        
+    Returns:
+        World: Reconstructed world object from turn 0
+        
+    Raises:
+        ValueError: If trace data is invalid or missing required fields
+    """
+    try:
+        if not trace_data:
+            raise ValueError("Trace data is empty or None")
+        
+        if "turns" not in trace_data:
+            raise ValueError("Trace data missing 'turns' field")
+        
+        if "0" not in trace_data["turns"]:
+            raise ValueError("Trace data missing turn 0")
+        
+        turn_0 = trace_data["turns"]["0"]
+        
+        if "initial_symbolic_world_state" not in turn_0:
+            raise ValueError("Turn 0 missing 'initial_symbolic_world_state'")
+        
+        initial_state = turn_0["initial_symbolic_world_state"]
+        
+        world = jsonpickle.decode(initial_state)
+        
+        if not isinstance(world, World):
+            raise ValueError(f"Decoded object is not a World instance, got {type(world)}")
+        
+        print(f"World successfully reconstructed from trace")
+        print(f"   - Player: {world.player.name}")
+        print(f"   - Starting location: {world.player.location.name}")
+        print(f"   - Total locations: {len(world.locations)}")
+        print(f"   - Total items: {len(world.items)}")
+        print(f"   - Total characters: {len(world.characters)}")
+        
+        return world
+        
+    except Exception as e:
+        print(f"❌ Error reconstructing world from trace: {e}")
+        raise
+
 def create_world_from_llm_response(world_data) -> World:
     """Parse structured LLM response and create a World object."""
     try:
