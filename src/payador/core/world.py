@@ -948,7 +948,11 @@ class World:
           print(f"❌ Object '{moved_obj.object_name}' not found in world")
           continue
         
-        if moved_obj.new_location in ['Inventory', 'Inventario', 'Player', 'Jugador', self.player.name]:
+        # Check if item should go to player inventory (case-insensitive)
+        new_location_lower = moved_obj.new_location.lower()
+        player_name_lower = self.player.name.lower()
+        
+        if new_location_lower in ['inventory', 'inventario', 'player', 'jugador', player_name_lower]:
           # Player takes item
           item_source = next((char for char in self.characters.values() if world_item in char.inventory), None)
           if not item_source:
@@ -968,13 +972,13 @@ class World:
                   for _, (blocked_loc, obstacle, _) in list(location.blocked_locations.items()):
                       if obstacle is world_item:
                           if world_item.gettable:
-                              # Add to player inventory if not already there
+                              # Add blocking item to player inventory
                               if world_item not in self.player.inventory:
                                   self.player.inventory.append(world_item)
 
                               # Unblock the passage since the obstacle is taken
                               location.unblock_passage(blocked_loc)
-                              print(f"INFO: Player took blocking item '{world_item.name}', unblocking passage from '{location.name}' to '{blocked_loc.name}'.")
+                              print(f"✅ Player took blocking item '{world_item.name}', unblocking passage from '{location.name}' to '{blocked_loc.name}'.")
 
                               # Check for clue discovery
                               clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
