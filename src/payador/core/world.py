@@ -960,11 +960,22 @@ class World:
 
           if item_source:
               # This is a standard item in a location or inventory
-              self.player.save_item(world_item, item_source)
-              # Check for mystery clue discovery when taking items
-              clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
-              if clue_discovery:
-                  world_update.narration += clue_discovery
+              try:
+                  self.player.save_item(world_item, item_source)
+                  # Check for mystery clue discovery when taking items
+                  clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
+                  if clue_discovery:
+                      world_update.narration += clue_discovery
+              except Exception as e:
+                  # Item cannot be taken - override the narration to reflect reality
+                  if "cannot be taken" in str(e):
+                      if language == 'es':
+                          world_update.narration = f"Intentas tomar {world_item.name}, pero es demasiado grande, está fijado en su lugar, o simplemente no puedes llevarlo contigo. Tendrás que dejarlo aquí."
+                      else:
+                          world_update.narration = f"You try to take {world_item.name}, but it's too large, fixed in place, or you simply can't carry it with you. You'll have to leave it here."
+                      print(f"⚠️ Item '{world_item.name}' is not gettable - narration corrected")
+                  else:
+                      raise  # Re-raise if it's a different error
           else:
               # If not found, check if it's a blocking item
               obstacle_found = False
@@ -984,6 +995,13 @@ class World:
                               clue_discovery = self._check_mystery_clue_discovery(world_item.name, language)
                               if clue_discovery:
                                   world_update.narration += clue_discovery
+                          else:
+                              # Blocking item is not gettable - override narration
+                              if language == 'es':
+                                  world_update.narration = f"Intentas tomar {world_item.name}, pero está bloqueando el paso y no puedes moverlo. Necesitas encontrar otra forma de lidiar con esto."
+                              else:
+                                  world_update.narration = f"You try to take {world_item.name}, but it's blocking the passage and you can't move it. You need to find another way to deal with this."
+                              print(f"⚠️ Blocking item '{world_item.name}' is not gettable - narration corrected")
 
                           obstacle_found = True
                           break
