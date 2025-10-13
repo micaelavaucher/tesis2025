@@ -378,6 +378,10 @@ def check_character_puzzle_mention(world, message, language):
                     
                     puzzle_name = character.interaction.proposes_puzzle
                     
+                    # Check if puzzle is already solved - if so, let LLM handle interaction
+                    if puzzle_name in world.puzzle_states and world.puzzle_states[puzzle_name] == 'solved':
+                        return None  # Don't intercept - let player interact normally with NPC
+                    
                     # Find the puzzle
                     if puzzle_name in world.puzzles:
                         puzzle = world.puzzles[puzzle_name]
@@ -497,6 +501,9 @@ def process_player_input_structured(world, message, language, reasoning_model,
         print("🛠️ Predicted outcomes of the player input 🛠️")
         print(f"> Player input: {message}")
         print(f"{world_update.narration}\n")
+        
+        # Debug: Show puzzles_solved field
+        print(f"🔍 DEBUG: WorldUpdate.puzzles_solved = {world_update.puzzles_solved}")
         
         game_log_dictionary[number_of_turns]["predicted_outcomes"] = world_update.narration
         game_log_dictionary[number_of_turns]["structured_update"] = world_update.model_dump()

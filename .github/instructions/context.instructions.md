@@ -1,6 +1,3 @@
----
-applyTo: '**'
----
 General Concept of the Project
 
 This project, called **PAYADOR**, is a system to dynamically generate text adventure worlds (interactive fiction) using Large Language Models (LLMs) such as Gemini or Llama 3.

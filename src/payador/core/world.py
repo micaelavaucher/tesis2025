@@ -1069,7 +1069,9 @@ class World:
         print(f"Error moving player to {world_update.location_changed.new_location}: {e}")
 
     # Handle puzzle solutions
+    print(f"🔍 DEBUG: Checking puzzles_solved - count: {len(world_update.puzzles_solved)}")
     for puzzle_solution in world_update.puzzles_solved:
+      print(f"🔍 DEBUG: Processing puzzle solution: {puzzle_solution.puzzle_name}, answer: {puzzle_solution.answer}, success: {puzzle_solution.success}")
       try:
         if puzzle_solution.success:
           success = self.solve_puzzle(puzzle_solution.puzzle_name, puzzle_solution.answer)
@@ -1285,10 +1287,30 @@ class World:
 
   def solve_puzzle(self, puzzle_name: str, answer: str) -> bool:
       """Attempt to solve a puzzle and apply rewards if successful."""
-      if puzzle_name not in self.puzzles:
-          return False
+      # Try exact match first
+      puzzle = None
+      actual_puzzle_name = None
       
-      puzzle = self.puzzles[puzzle_name]
+      if puzzle_name in self.puzzles:
+          puzzle = self.puzzles[puzzle_name]
+          actual_puzzle_name = puzzle_name
+      else:
+          # Fuzzy matching for puzzle names (case-insensitive, partial match)
+          puzzle_name_lower = puzzle_name.lower()
+          for actual_name, p in self.puzzles.items():
+              actual_name_lower = actual_name.lower()
+              # Check if names match with flexible comparison
+              if (puzzle_name_lower == actual_name_lower or
+                  puzzle_name_lower in actual_name_lower or
+                  actual_name_lower in puzzle_name_lower):
+                  puzzle = p
+                  actual_puzzle_name = actual_name
+                  print(f"🔍 Fuzzy matched puzzle: '{puzzle_name}' → '{actual_name}'")
+                  break
+      
+      if not puzzle:
+          print(f"❌ Puzzle not found: '{puzzle_name}'. Available puzzles: {list(self.puzzles.keys())}")
+          return False
       
       # Check if answer is correct (flexible comparison)
       correct_answer = puzzle.answer.lower().strip()
@@ -1297,8 +1319,9 @@ class World:
       if correct_answer == user_answer:
           # Apply rewards
           self._apply_puzzle_rewards(puzzle)
-          # Mark puzzle as solved
-          self.puzzle_states[puzzle_name] = 'solved'
+          # Mark puzzle as solved (use actual puzzle name from world)
+          self.puzzle_states[actual_puzzle_name] = 'solved'
+          print(f"✅ Puzzle state updated: puzzle_states['{actual_puzzle_name}'] = 'solved'")
           return True
       
       return False
