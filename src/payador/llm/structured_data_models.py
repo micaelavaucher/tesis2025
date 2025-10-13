@@ -222,7 +222,7 @@ class PuzzleSolved(BaseModel):
     """Represents a puzzle that was solved by the player."""
     puzzle_name: str = Field(description="Name of the puzzle that was solved")
     answer: str = Field(description="Answer provided by the player")
-    success: bool = Field(default=True, description="Whether the answer was correct")
+    success: bool = Field(description="Whether the answer was correct. Set to true ONLY if the player's answer exactly matches the puzzle's expected answer field (case-insensitive). Set to false if the answer is wrong or doesn't match.")
 
 class WorldUpdate(BaseModel):
     moved_objects: List[MovedObject] = Field(default=[], description="List of objects that were moved")

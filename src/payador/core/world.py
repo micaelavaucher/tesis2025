@@ -1285,6 +1285,16 @@ class World:
                 except Exception as e:
                     print(f"Error processing puzzle solution: {e}")
 
+  def normalize_answer(self, answer: str) -> str:
+      """Normalize an answer for comparison by removing articles and extra whitespace."""
+      import re
+      answer = answer.lower().strip()
+      # Remove leading articles (a, an, the) - case insensitive
+      answer = re.sub(r'^(a |an |the )', '', answer, flags=re.IGNORECASE)
+      # Normalize whitespace (multiple spaces to single space)
+      answer = ' '.join(answer.split())
+      return answer
+
   def solve_puzzle(self, puzzle_name: str, answer: str) -> bool:
       """Attempt to solve a puzzle and apply rewards if successful."""
       # Try exact match first
@@ -1312,11 +1322,15 @@ class World:
           print(f"❌ Puzzle not found: '{puzzle_name}'. Available puzzles: {list(self.puzzles.keys())}")
           return False
       
-      # Check if answer is correct (flexible comparison)
-      correct_answer = puzzle.answer.lower().strip()
-      user_answer = answer.lower().strip()
+      # Normalize both answers for flexible comparison
+      correct_answer_norm = self.normalize_answer(puzzle.answer)
+      user_answer_norm = self.normalize_answer(answer)
       
-      if correct_answer == user_answer:
+      print(f"🔍 Puzzle validation: '{puzzle_name}'")
+      print(f"   Expected (normalized): '{correct_answer_norm}'")
+      print(f"   Player (normalized): '{user_answer_norm}'")
+      
+      if correct_answer_norm == user_answer_norm:
           # Apply rewards
           self._apply_puzzle_rewards(puzzle)
           # Mark puzzle as solved (use actual puzzle name from world)
@@ -1324,6 +1338,7 @@ class World:
           print(f"✅ Puzzle state updated: puzzle_states['{actual_puzzle_name}'] = 'solved'")
           return True
       
+      print(f"❌ Answer mismatch: '{user_answer_norm}' != '{correct_answer_norm}'")
       return False
 
   def _apply_puzzle_rewards(self, puzzle: 'Puzzle'):

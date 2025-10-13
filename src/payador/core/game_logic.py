@@ -382,6 +382,24 @@ def check_character_puzzle_mention(world, message, language):
                     if puzzle_name in world.puzzle_states and world.puzzle_states[puzzle_name] == 'solved':
                         return None  # Don't intercept - let player interact normally with NPC
                     
+                    # Check if player is asking for hints or help with the puzzle
+                    hint_keywords = ['hint', 'pista', 'help', 'ayuda', 'clue', 'stuck', 'atascado']
+                    if any(keyword in message_lower for keyword in hint_keywords):
+                        # Let hint system handle this - don't block with full puzzle
+                        return None
+                    
+                    # Check if player is just asking about the puzzle or character (not solving)
+                    question_keywords = ['about', 'sobre', 'tell me', 'dime', 'what', 'qué', 'who', 'quién', 'why', 'por qué']
+                    is_question = any(keyword in message_lower for keyword in question_keywords)
+                    
+                    # Check if player is attempting to solve the puzzle (has "answer", "solve", etc.)
+                    solve_keywords = ['answer', 'respuesta', 'solve', 'resolver', 'solution', 'solución']
+                    is_solving = any(keyword in message_lower for keyword in solve_keywords)
+                    
+                    # If asking questions, allow some interaction but remind about puzzle
+                    if is_question and not is_solving:
+                        return None  # Let LLM handle questions, but it should mention the puzzle
+                    
                     # Find the puzzle
                     if puzzle_name in world.puzzles:
                         puzzle = world.puzzles[puzzle_name]

@@ -191,10 +191,34 @@ Devuelve un objeto JSON con la siguiente estructura:
         "new_location": "nombre_ubicación_o_null"
     }},
     "puzzles_solved": [
-        {{"puzzle_name": "nombre", "answer": "respuesta", "success": true}}
+        {{"puzzle_name": "nombre_exacto_del_puzzle", "answer": "respuesta_del_jugador", "success": true}}
     ],
     "narration": "Descripción narrativa rica de lo que ocurrió"
 }}
+
+CRÍTICO - VALIDACIÓN DE PUZZLES:
+Cuando el jugador intenta resolver un puzzle, DEBES validar la respuesta:
+1. Busca el puzzle en el estado del mundo por su nombre exacto
+2. Compara la respuesta del jugador (answer) con el campo "answer" del puzzle
+3. Comparación case-insensitive: convierte ambas a minúsculas antes de comparar
+4. Si coinciden EXACTAMENTE (después de lowercase y trim): success = true
+5. Si NO coinciden: success = false
+6. NUNCA asumas que la respuesta es correcta sin compararla
+
+Ejemplos de validación:
+- Puzzle answer: "A map", Player: "a map" → success: true ✅ (match case-insensitive)
+- Puzzle answer: "A map", Player: "map" → success: false ❌ (falta artículo)
+- Puzzle answer: "A map", Player: "chart" → success: false ❌ (palabra diferente)
+- Puzzle answer: "Conch, Scallop", Player: "Conch, Scallop" → success: true ✅
+- Puzzle answer: "Conch, Scallop", Player: "Scallop, Conch" → success: false ❌ (orden incorrecto)
+
+CRÍTICO - PASAJES BLOQUEADOS:
+NO manipules manualmente "blocked_passages_available" para desbloquear pasajes de puzzles. Los pasajes se desbloquean AUTOMÁTICAMENTE cuando:
+1. Un puzzle con recompensa de PASAJE es resuelto (success=true)
+2. El jugador toma un objeto que estaba bloqueando un pasaje
+3. La lógica del juego determina que el requisito se cumplió
+
+Solo debes establecer blocked_passages_available cuando detectes que el jugador ha tomado un objeto que estaba bloqueando físicamente un pasaje.
 
 CRÍTICO - NOMBRES EXACTOS DE OBJETOS:
 El campo "object_name" en moved_objects DEBE ser el nombre EXACTO de un objeto listado en el estado del mundo. NO uses aproximaciones, nombres parciales, o variaciones del nombre. Por ejemplo, si el estado del mundo contiene "El Recipiente Mágico", debes usar exactamente "El Recipiente Mágico", NO "el recipiente", "recipiente", o "recipiente mágico". Revisa cuidadosamente el estado del mundo y copia el nombre exacto tal como aparece listado.
@@ -250,10 +274,34 @@ Return a JSON object with the following structure:
         "new_location": "location_name_or_null"
     }},
     "puzzles_solved": [
-        {{"puzzle_name": "name", "answer": "answer", "success": true}}
+        {{"puzzle_name": "exact_puzzle_name", "answer": "player_answer", "success": true}}
     ],
     "narration": "Rich narrative description of what happened"
 }}
+
+CRITICAL - PUZZLE VALIDATION:
+When the player attempts to solve a puzzle, you MUST validate their answer:
+1. Find the puzzle in the world state by its exact name
+2. Compare the player's answer with the puzzle's "answer" field
+3. Case-insensitive comparison: convert both to lowercase before comparing
+4. If they match EXACTLY (after lowercase and trim): success = true
+5. If they DON'T match: success = false
+6. NEVER assume the answer is correct without comparing
+
+Validation examples:
+- Puzzle answer: "A map", Player: "a map" → success: true ✅ (case-insensitive match)
+- Puzzle answer: "A map", Player: "map" → success: false ❌ (missing article)
+- Puzzle answer: "A map", Player: "chart" → success: false ❌ (different word)
+- Puzzle answer: "Conch, Scallop", Player: "Conch, Scallop" → success: true ✅
+- Puzzle answer: "Conch, Scallop", Player: "Scallop, Conch" → success: false ❌ (wrong order)
+
+CRITICAL - BLOCKED PASSAGES:
+DO NOT manually manipulate "blocked_passages_available" to unblock puzzle passages. Passages are unblocked AUTOMATICALLY when:
+1. A puzzle with a PASSAGE reward is solved (success=true)
+2. The player takes an item that was physically blocking a passage
+3. The game logic determines the requirement is met
+
+You should ONLY set blocked_passages_available when you detect the player has taken an item that was physically blocking a passage.
 
 CRITICAL - EXACT OBJECT NAMES:
 The "object_name" field in moved_objects MUST be the EXACT name of an object listed in the world state. Do NOT use approximations, partial names, or variations of the name. For example, if the world state contains "The Ancient Key", you must use exactly "The Ancient Key", NOT "ancient key", "key", or "the key". Carefully review the world state and copy the exact name as it appears listed.
