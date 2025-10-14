@@ -151,11 +151,12 @@ class Location (Component):
 
     In case that the block was symmetric, self will be added to the connecting locations of location.
     """
-    if self.blocked_locations[location.name]:
+    if location.name in self.blocked_locations and self.blocked_locations[location.name]:
       self.connecting_locations += [location]
       if self.blocked_locations[location.name][2] and self not in location.connecting_locations:
         location.connecting_locations += [self]
       del self.blocked_locations[location.name]
+      print(f"✅ Passage unblocked: {self.name} → {location.name}")
     else:
       raise Exception("Error: That is not a blocked passage")
 
@@ -980,7 +981,7 @@ class World:
               # If not found, check if it's a blocking item
               obstacle_found = False
               for location in self.locations.values():
-                  for _, (blocked_loc, obstacle, _) in list(location.blocked_locations.items()):
+                  for _, (blocked_loc, obstacle, _) in location.blocked_locations.items():
                       if obstacle is world_item:
                           if world_item.gettable:
                               # Add blocking item to player inventory
@@ -1286,11 +1287,15 @@ class World:
                     print(f"Error processing puzzle solution: {e}")
 
   def normalize_answer(self, answer: str) -> str:
-      """Normalize an answer for comparison by removing articles and extra whitespace."""
+      """Normalize an answer for comparison by removing articles, punctuation, and extra whitespace."""
       import re
       answer = answer.lower().strip()
       # Remove leading articles (a, an, the) - case insensitive
       answer = re.sub(r'^(a |an |the )', '', answer, flags=re.IGNORECASE)
+      # Remove punctuation at the end and beginning of the answer
+      answer = re.sub(r'^[^\w\s]+|[^\w\s]+$', '', answer)
+      # Remove all punctuation except spaces between words
+      answer = re.sub(r'[^\w\s]', '', answer)
       # Normalize whitespace (multiple spaces to single space)
       answer = ' '.join(answer.split())
       return answer
@@ -1336,6 +1341,10 @@ class World:
           # Mark puzzle as solved (use actual puzzle name from world)
           self.puzzle_states[actual_puzzle_name] = 'solved'
           print(f"✅ Puzzle state updated: puzzle_states['{actual_puzzle_name}'] = 'solved'")
+          
+          # Automatically unblock passages that are blocked by this puzzle
+          self._unblock_passages_for_solved_puzzle(actual_puzzle_name, puzzle)
+          
           return True
       
       print(f"❌ Answer mismatch: '{user_answer_norm}' != '{correct_answer_norm}'")
@@ -1438,3 +1447,40 @@ class World:
       
       # No match found
       return None
+
+  def _unblock_passages_for_solved_puzzle(self, puzzle_name: str, puzzle: 'Puzzle'):
+      """Automatically unblock passages that are blocked by the solved puzzle."""
+      passages_unblocked = []
+      
+      # Check all locations for blocked passages blocked by this puzzle
+      for location in self.locations.values():
+          if hasattr(location, 'blocked_locations') and location.blocked_locations:
+              # Create a list of items to remove (to avoid modifying dict during iteration)
+              passages_to_unblock = []
+              
+              for blocked_loc_name, (blocked_loc, obstacle, symmetric) in location.blocked_locations.items():
+                  print(f"🔍 DEBUG: Checking blocked passage {location.name} → {blocked_loc_name}")
+                  print(f"🔍 DEBUG: Obstacle type: {type(obstacle)}, Obstacle name: {getattr(obstacle, 'name', 'NO_NAME')}")
+                  print(f"🔍 DEBUG: Looking for puzzle: {puzzle_name}")
+                  
+                  # Check if the obstacle is the puzzle we just solved
+                  if (isinstance(obstacle, type(puzzle)) and 
+                      hasattr(obstacle, 'name') and 
+                      obstacle.name == puzzle_name):
+                      print(f"🔍 DEBUG: Found matching puzzle blocking passage!")
+                      passages_to_unblock.append(blocked_loc)
+                  else:
+                      print(f"🔍 DEBUG: No match - obstacle is not the solved puzzle")
+                      
+              # Unblock the passages
+              for blocked_loc in passages_to_unblock:
+                  try:
+                      location.unblock_passage(blocked_loc)
+                      passages_unblocked.append(f"{location.name} → {blocked_loc.name}")
+                  except Exception as e:
+                      print(f"⚠️ Error unblocking passage {location.name} → {blocked_loc.name}: {e}")
+      
+      if passages_unblocked:
+          print(f"🔓 Passages automatically unblocked: {', '.join(passages_unblocked)}")
+      else:
+          print(f"🔍 No passages found blocked by puzzle '{puzzle_name}'")
