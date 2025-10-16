@@ -7,6 +7,8 @@ and game-related utility functions with intelligent memory integration.
 import re
 import jsonpickle
 import time
+import streamlit as st
+
 from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured, prompt_describe_objective
 from .world_builder import inspect_generated_world
 from .world_utils import create_world_state_summary
@@ -67,7 +69,7 @@ def generate_starting_narration(world, language, narrative_model):
 def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, world_id=None):
     """Create initial game log dictionary."""
     game_log_dictionary = {}
-    game_log_dictionary["nickname"] = "anonymous"
+    game_log_dictionary["nickname"] = st.session_state.nickname
     game_log_dictionary["language"] = language
     # Use provided world_id or generate new one
     game_log_dictionary["world_id"] = world_id or f"generated_{int(time.time())}"
@@ -720,7 +722,7 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         world, language, log_filename, 
         narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown', 
         reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown',
-        world_id=session_world_id  # Use consistent world_id
+        world_id=session_world_id
     )
     
     # Initialize turn 0 with world state

@@ -227,6 +227,9 @@ def initialize_session_state():
     if 'language' not in st.session_state:
         st.session_state.language = 'en'  # Default to English
     
+    if 'nickname' not in st.session_state:
+        st.session_state.nickname = ''
+    
     if 'generation_mode' not in st.session_state:
         st.session_state.generation_mode = 'inspiration'  # Default to inspiration mode
     
@@ -286,6 +289,17 @@ def render_sidebar():
         if not game_active and language_options[new_lang] != st.session_state.language:
             st.session_state.language = language_options[new_lang]
             st.rerun()
+
+        nickname = st.text_input(
+            label="🎭 Nickname",
+            value=st.session_state.get('nickname', ''),
+            max_chars=16,
+            placeholder="Enter your nickname" if st.session_state.language == 'en' else 'Ingresa tu nickname',
+            disabled=game_active
+        )
+
+        if not game_active and nickname != st.session_state.get('nickname', ''):
+            st.session_state.nickname = nickname
         
         # Mode selector
         mode_options = {
