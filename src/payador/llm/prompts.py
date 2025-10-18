@@ -1416,7 +1416,7 @@ Concepto del mundo:
 - Concepto del jugador: {player_concept}
 - Objetivo principal: {main_objective}
 
-**ESTRUCTURA MÍNIMA REQUERIDA:**
+**ESTRUCTURA REQUERIDA:**
 - {locations} ubicaciones: Los lugares más importantes para la historia y el objetivo
 - {objects} objetos: Los elementos físicos esenciales para completar el objetivo
 - {npcs} personajes no jugadores: Los NPCs importantes que ayudarán o desafiarán al jugador
@@ -1444,7 +1444,7 @@ World concept:
 - Player concept: {player_concept}
 - Main objective: {main_objective}
 
-**MINIMUM REQUIRED STRUCTURE:**
+**REQUIRED STRUCTURE:**
 - {locations} locations: The most important places for the story and the objective
 - {objects} objects: The essential physical elements to complete the objective
 - {npcs} non-player characters: Key NPCs who will help or challenge the player
@@ -1820,7 +1820,7 @@ Antes de finalizar, verifica mentalmente:
 4. **¿Todas las ubicaciones siguen siendo accesibles?**
 5. **¿Todos los elementos referenciados existen?**
 6. **¿Las cadenas son interesantes pero no frustrantes?**
-6. **Las cadenas tienen relacion a la tematica del mundo?**
+7. **Las cadenas tienen relacion a la tematica del mundo?**
 
 Tu misión es convertir un mundo simple y directo en una aventura rica en la que cada logro se sienta ganado a través de exploración, ingenio e interacción social. ¡Haz que el jugador trabaje por su victoria!
 
@@ -1872,9 +1872,9 @@ Objective: Obtain the Magic Amulet
 - **Discoverable solutions**: Each puzzle MUST have hints the player can find by exploring
 - **Complete interactions**: Every interactive character MUST have `interaction_text`
 - **Logical separation of obstacles and solutions**: Obstacles must be separate from their solutions
-6. **If a puzzle is proposed by a character, the reward must be an item, AND THAT ITEM SHOULD EXIST AND BE IN THE INVENTORY OF THE CHARACTER THAT PROPOSES THE PUZZLE**
-7. **NO CRAFTING**: The game engine does not support crafting or transforming items. Do not create puzzles that require the player to combine or alter items (e.g., using a recipe to make a potion). Rewards must be items that can be used directly.
-8. **OBSTACLE vs. KEY**: Be precise. An 'obstacle' is the thing blocking the way (e.g., 'a locked door'). The 'requirement' is the key that removes it (e.g., 'an iron key'). The key is never the obstacle.
+- **If a puzzle is proposed by a character, the reward must be an item, AND THAT ITEM SHOULD EXIST AND BE IN THE INVENTORY OF THE CHARACTER THAT PROPOSES THE PUZZLE**
+- **NO CRAFTING**: The game engine does not support crafting or transforming items. Do not create puzzles that require the player to combine or alter items (e.g., using a recipe to make a potion). Rewards must be items that can be used directly.
+- **OBSTACLE vs. KEY**: Be precise. An 'obstacle' is the thing blocking the way (e.g., 'a locked door'). The 'requirement' is the key that removes it (e.g., 'an iron key'). The key is never the obstacle.
 
 **MANDATORY RULES FOR HINT SYSTEM:**
 For EACH puzzle you add, YOU MUST include:
@@ -1916,7 +1916,7 @@ Before finalizing, verify mentally:
 4. **Are all locations still accessible?**
 5. **Do all referenced elements exist?**
 6. **Are the chains interesting but not frustrating?**
-6. **Do the chains relate to the world's theme?**
+7. **Do the chains relate to the world's theme?**
 
 Your mission is to turn a simple, straightforward world into a richly layered adventure where every achievement feels earned through exploration, ingenuity, and social interaction. Make the player work for their victory!
 
