@@ -66,7 +66,7 @@ def generate_starting_narration(world, language, narrative_model):
     
     return starting_narration
 
-def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, world_id=None):
+def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, world_id=None, inspiration=""):
     """Create initial game log dictionary."""
     game_log_dictionary = {}
     game_log_dictionary["nickname"] = st.session_state.nickname
@@ -75,10 +75,11 @@ def create_game_log_entry(world, language, log_filename, narrative_model_name, r
     game_log_dictionary["world_id"] = world_id or f"generated_{int(time.time())}"
     game_log_dictionary["narrative_model_name"] = narrative_model_name
     game_log_dictionary["reasoning_model_name"] = reasoning_model_name
+    game_log_dictionary["inspiration"] = inspiration
     
     return game_log_dictionary
 
-def initialize_game_state(world, language, log_filename, narrative_model_name, reasoning_model_name, starting_narration):
+def initialize_game_state(world, language, log_filename, narrative_model_name, reasoning_model_name, starting_narration, inspiration=""):
     """Initialize game state variables and create initial log entry."""
     last_player_position = world.player.location
     number_of_turns = 0
@@ -86,7 +87,7 @@ def initialize_game_state(world, language, log_filename, narrative_model_name, r
     # Initialize hints system for the world
     world.update_hints()
     
-    game_log_dictionary = create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name)
+    game_log_dictionary = create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, inspiration=inspiration)
     game_log_dictionary[0] = {
         "date": time.ctime(time.time()),
         "initial_symbolic_world_state": jsonpickle.encode(world, unpicklable=True),
@@ -101,6 +102,7 @@ def initialize_game_state(world, language, log_filename, narrative_model_name, r
         "language": game_log_dictionary["language"],
         "narrative_model_name": game_log_dictionary["narrative_model_name"],
         "reasoning_model_name": game_log_dictionary["reasoning_model_name"],
+        "inspiration": game_log_dictionary["inspiration"],
         "created_at": time.time(),
         "turns": {
             "0": game_log_dictionary[0] # Store the initial state as turn 0
@@ -707,7 +709,7 @@ def save_game_log(game_log_dictionary, number_of_turns, answer):
     if db_handler and world_id and current_turn_data:
         db_handler.add_turn_to_trace(world_id, number_of_turns, current_turn_data)
 
-def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None, enable_rag=True):
+def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None, enable_rag=True, inspiration=""):
     """Create the main game loop function with intelligent memory system."""
     last_player_position = world.player.location
     number_of_turns = 0
@@ -722,7 +724,8 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         world, language, log_filename, 
         narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown', 
         reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown',
-        world_id=session_world_id
+        world_id=session_world_id,
+        inspiration=inspiration
     )
     
     # Initialize turn 0 with world state
@@ -740,6 +743,7 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
             "language": language,
             "narrative_model_name": narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown',
             "reasoning_model_name": reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown',
+            "inspiration": inspiration,
             "created_at": time.time(),
             "turns": {
                 "0": game_log_dictionary[0]

@@ -250,6 +250,9 @@ def initialize_session_state():
     if 'world_generated' not in st.session_state:
         st.session_state.world_generated = False
     
+    if 'current_inspiration' not in st.session_state:
+        st.session_state.current_inspiration = ""
+    
     if 'visited_locations' not in st.session_state:
         st.session_state.visited_locations = set()
 
@@ -484,6 +487,7 @@ def generate_world_from_inspiration(inspiration: str):
             
             st.session_state.world = world
             st.session_state.world_generated = True
+            st.session_state.current_inspiration = inspiration
             
             # Generate starting narration
             starting_narration = generate_starting_narration(
@@ -561,6 +565,7 @@ def generate_random_world():
             
             st.session_state.world = world
             st.session_state.world_generated = True
+            st.session_state.current_inspiration = ""
             
             # Generate starting narration
             starting_narration = generate_starting_narration(
@@ -616,6 +621,7 @@ def load_preset_world(world_id: int):
         world = example_worlds.get_world(world_id, language=st.session_state.language)
         st.session_state.world = world
         st.session_state.world_generated = True
+        st.session_state.current_inspiration = ""
         
         config = load_config()
         narrative_model_name = config.get('Models', 'NarrativeModel', fallback='gpt-4o-mini')
@@ -788,6 +794,7 @@ def render_world_inspection(world):
             # Move from inspection to playing
             st.session_state.world = st.session_state.loaded_world_for_inspection
             st.session_state.world_generated = True
+            st.session_state.current_inspiration = ""
             st.session_state.inspecting_world = False
             
             config = load_config()
@@ -887,6 +894,8 @@ def load_replay_world(world_id: str):
             
             st.session_state.world = world
             st.session_state.world_generated = True
+            # Get inspiration from trace data if available, otherwise empty
+            st.session_state.current_inspiration = trace_data.get('inspiration', "")
             
             config = load_config()
             narrative_model_name = config.get('Models', 'NarrativeModel', fallback='gemini-2.0-flash')
@@ -1080,6 +1089,7 @@ def load_tutorial_world():
         world = example_worlds.get_world('tutorial', language=st.session_state.language)
         st.session_state.world = world
         st.session_state.world_generated = True
+        st.session_state.current_inspiration = ""
         
         config = load_config()
         narrative_model_name = config.get('Models', 'NarrativeModel', fallback='gpt-4o-mini')
@@ -1128,7 +1138,8 @@ def render_chat_interface():
             log_filename, 
             st.session_state.visited_locations, 
             api_key, 
-            enable_rag
+            enable_rag,
+            st.session_state.current_inspiration
         )
     
     # Handle pending command if exists (process before displaying anything)
