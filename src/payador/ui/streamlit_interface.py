@@ -7,6 +7,8 @@ replacing the Gradio interface with enhanced UI and functionality.
 import streamlit as st
 import os
 import time
+import json
+import base64
 from ..config import load_config
 from ..llm.models import get_llm
 from ..core.game_logic import create_game_loop, generate_starting_narration
@@ -681,6 +683,24 @@ def render_replay_mode():
         
         ⚠️ The world will be loaded from initial state (turn 0)
         """)
+
+    # If user requested the played conversation viewer, show it full-width
+    if st.session_state.get('show_played_conversation'):
+        st.markdown("# 📄 Played Conversation")
+        # Close button
+        if st.button("⤶ Close Viewer"):
+            for k in ('show_played_conversation', 'played_conversation_html', 'played_conversation_world_id'):
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
+
+        # Render the previously prepared HTML at full width
+        html_to_render = st.session_state.get('played_conversation_html')
+        if html_to_render:
+            st.components.v1.html(html_to_render, height=900, scrolling=True)
+        else:
+            st.error("❌ No played conversation available to display.")
+        return
     
     # If already playing, show the game
     if st.session_state.world_generated and not st.session_state.inspecting_world:
@@ -699,15 +719,19 @@ def render_replay_mode():
         help="Enter the world_id from MongoDB"
     )
     
-    col1, col2 = st.columns(2)
-    
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        if st.button("� Inspect World", type="secondary", disabled=not world_id.strip()):
+        if st.button("🔎 Inspect World", type="secondary", disabled=not world_id.strip()):
             load_world_for_inspection(world_id.strip())
-    
+
     with col2:
         if st.button("🎮 Play World", type="primary", disabled=not world_id.strip()):
             load_replay_world(world_id.strip())
+
+    with col3:
+        if st.button("📄 View Played Conversation", type="secondary", disabled=not world_id.strip()):
+            render_played_conversation(world_id.strip())
 
 def load_world_for_inspection(world_id: str):
     """Load a world from MongoDB for inspection only (no gameplay)."""
@@ -887,6 +911,93 @@ def load_replay_world(world_id: str):
         st.info("The trace may be corrupted or incomplete")
     except Exception as e:
         st.error(f"❌ Error loading replay world: {str(e)}")
+        import traceback
+        if st.session_state.debug_mode:
+            st.code(traceback.format_exc())
+
+def render_played_conversation(world_id: str):
+    """Render the played conversation using the static HTML viewer and the stored trace JSON.
+
+    The function loads the trace from MongoDB, reads the `ver_mundos.html` template from
+    the `static` folder, injects the trace as a base64 string and runs the viewer JS to
+    display the played conversation immediately.
+    """
+    from ..database.mongodb_handler import db_handler
+
+    try:
+        with st.spinner(f"🔍 Loading played conversation for {world_id}..."):
+            if not db_handler or not db_handler.trace_exists(world_id):
+                st.error(f"❌ No trace found for world_id: {world_id}")
+                st.info("💡 Make sure the world_id is correct and exists in MongoDB")
+                return
+
+            trace_data = db_handler.get_trace_by_world_id(world_id)
+
+            if not trace_data:
+                st.error(f"❌ Failed to retrieve trace for world_id: {world_id}")
+                return
+
+            # Read HTML template
+            template_path = os.path.join(os.path.dirname(__file__), 'static', 'ver_mundos.html')
+            if not os.path.exists(template_path):
+                st.error("❌ Viewer template not found: ver_mundos.html")
+                return
+
+            with open(template_path, 'r', encoding='utf-8') as f:
+                html_template = f.read()
+
+            # Convert Mongo-specific types to JSON-serializable primitives
+            def _make_serializable(obj):
+                # Local imports to avoid heavy top-level deps when not needed
+                try:
+                    from bson import ObjectId
+                except Exception:
+                    ObjectId = None
+                import datetime
+
+                if ObjectId is not None and isinstance(obj, ObjectId):
+                    return str(obj)
+                if isinstance(obj, dict):
+                    return {k: _make_serializable(v) for k, v in obj.items()}
+                if isinstance(obj, (list, tuple, set)):
+                    return [_make_serializable(v) for v in obj]
+                if isinstance(obj, datetime.datetime):
+                    # Convert to ISO string
+                    return obj.isoformat()
+                # Fallback: return as-is (json.dumps may still error if unsupported)
+                return obj
+
+            serializable_trace = _make_serializable(trace_data)
+            # Encode JSON to base64 to safely inject into the template
+            trace_json = json.dumps(serializable_trace)
+            trace_b64 = base64.b64encode(trace_json.encode('utf-8')).decode('ascii')
+
+            injection_script = (
+                "<script>\n"
+                f"const __traceJsonB64 = '{trace_b64}';\n"
+                "try {\n"
+                "  const traceData = JSON.parse(atob(__traceJsonB64));\n"
+                "  document.getElementById('jsonInput').value = JSON.stringify(traceData);\n"
+                "  parseAndDisplay();\n"
+                "} catch(e) { console.error('Error injecting trace:', e); }\n"
+                "</script>"
+            )
+
+            # Insert script before closing </body>
+            if '</body>' in html_template:
+                final_html = html_template.replace('</body>', injection_script + '\n</body>')
+            else:
+                final_html = html_template + injection_script
+
+            # Save the final HTML to session state and request a rerun so it can be
+            # rendered full-width at the top of the replay view (outside columns).
+            st.session_state['played_conversation_html'] = final_html
+            st.session_state['played_conversation_world_id'] = world_id
+            st.session_state['show_played_conversation'] = True
+            st.rerun()
+
+    except Exception as e:
+        st.error(f"❌ Error rendering played conversation: {str(e)}")
         import traceback
         if st.session_state.debug_mode:
             st.code(traceback.format_exc())
