@@ -10,7 +10,7 @@ import time
 import streamlit as st
 
 from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured, prompt_describe_objective
-from .world_builder import inspect_generated_world
+from .world_builder import inspect_generated_world, generate_world_overview, generate_objective_validation_report
 from .world_utils import create_world_state_summary
 from ..llm.structured_data_models import WorldUpdate
 from ..llm.memory_system import create_memory_system
@@ -460,9 +460,13 @@ def handle_debug_command(message, world, language):
         debug_info = inspect_generated_world(world, language)
         return debug_info.replace("<", r"\<").replace(">", r"\>")
     
-    elif message_lower in ["see world", "ver mundo", "world overview", "resumen mundo"]:
+    elif message_lower in ["see world", "ver mundo", "world overview", "resumen mundo", "overview"]:
         world_overview = generate_world_overview(world, language)
         return world_overview.replace("<", r"\<").replace(">", r"\>")
+    
+    elif message_lower in ["validate objective", "validar objetivo", "check objective", "objetivo válido", "objetivo valido", "valid objective"]:
+        validation_report = generate_objective_validation_report(world, language)
+        return validation_report.replace("<", r"\<").replace(">", r"\>")
     
     elif message_lower in ["objective", "objetivo", "what is my objective", "what is my objective?", 
                            "cuál es mi objetivo", "cuál es mi objetivo?", "cual es mi objetivo", 

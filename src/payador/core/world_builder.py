@@ -376,6 +376,340 @@ def set_objective_from_generated(objective_data, items_dict, locations_dict, cha
         traceback.print_exc()
         return None
 
+def validate_objective_components(world: World) -> tuple:
+    """Validate if all objective components exist and are valid in the world.
+    
+    Returns:
+        tuple: (is_valid: bool, missing_components: list, validation_details: str)
+    """
+    missing_components = []
+    validation_details = ""
+    
+    # Check if world has an objective
+    if not hasattr(world, 'objective') or not world.objective:
+        return False, ["Objective not defined"], "No objective is set for this world"
+    
+    # Get objective components from the structured data if available
+    if hasattr(world, 'objective_data') and world.objective_data:
+        objective_data = world.objective_data
+        obj_type = objective_data.type.value if hasattr(objective_data.type, 'value') else str(objective_data.type)
+        
+        # Check each component exists in the world
+        for component in objective_data.components:
+            component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+            component_name = component.name
+            
+            if component_type.upper() in ["ITEM"]:
+                if component_name not in world.items:
+                    missing_components.append(f"Item '{component_name}' does not exist in world registry")
+                else:
+                    # Check if the item is actually accessible (placed in world or in inventories)
+                    item_found = False
+                    
+                    # Check if item is in any location
+                    for location in world.locations.values():
+                        if hasattr(location, 'items') and location.items:
+                            for item in location.items:
+                                if item.name == component_name:
+                                    item_found = True
+                                    break
+                        if item_found:
+                            break
+                    
+                    # Check if item is in any character's inventory (including player)
+                    if not item_found:
+                        for character in world.characters.values():
+                            if hasattr(character, 'inventory') and character.inventory:
+                                for item in character.inventory:
+                                    if hasattr(item, 'name') and item.name == component_name:
+                                        item_found = True
+                                        break
+                            if item_found:
+                                break
+                    
+                    if not item_found:
+                        missing_components.append(f"Item '{component_name}' exists in registry but is not accessible (not placed in any location or inventory)")
+                        
+            elif component_type.upper() in ["LOCATION"]:
+                if component_name not in world.locations:
+                    missing_components.append(f"Location '{component_name}' (required for objective)")
+            elif component_type.upper() in ["CHARACTER"]:
+                character_exists = any(c.name == component_name for c in world.characters.values())
+                if not character_exists:
+                    missing_components.append(f"Character '{component_name}' (required for objective)")
+        
+        # Now check if the actual objective tuple matches the expected objective type
+        obj_first = world.objective[0]
+        obj_second = world.objective[1]
+        
+        if obj_type.upper() in ["DELIVER_AN_ITEM"]:
+            # For deliver_an_item, first should be item, second should be location or character
+            item_component = None
+            target_component = None
+            
+            # Find the item and target components from the objective data
+            for component in objective_data.components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type.upper() in ["ITEM"]:
+                    item_component = component
+                elif component_type.upper() in ["LOCATION", "CHARACTER"]:
+                    target_component = component
+            
+            # Check if the actual objective matches
+            if item_component and target_component:
+                expected_item = world.items.get(item_component.name)
+                
+                if target_component.component_type.value.upper() in ["LOCATION"]:
+                    expected_target = world.locations.get(target_component.name)
+                else:
+                    expected_target = next((c for c in world.characters.values() if c.name == target_component.name), None)
+                
+                if obj_first != expected_item or obj_second != expected_target:
+                    missing_components.append(f"Objective tuple mismatch: expected ({item_component.name}, {target_component.name}) but got ({getattr(obj_first, 'name', str(obj_first))}, {getattr(obj_second, 'name', str(obj_second))})")
+        
+        elif obj_type.upper() in ["GET_ITEM"]:
+            # For get_item, first should be player, second should be item
+            item_component = None
+            for component in objective_data.components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type.upper() in ["ITEM"]:
+                    item_component = component
+                    break
+            
+            if item_component:
+                expected_item = world.items.get(item_component.name)
+                if obj_first != world.player or obj_second != expected_item:
+                    missing_components.append(f"Objective tuple mismatch: expected (player, {item_component.name}) but got ({getattr(obj_first, 'name', str(obj_first))}, {getattr(obj_second, 'name', str(obj_second))})")
+        
+        elif obj_type.upper() in ["REACH_LOCATION"]:
+            # For reach_location, first should be player, second should be location
+            location_component = None
+            for component in objective_data.components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type.upper() in ["LOCATION"]:
+                    location_component = component
+                    break
+            
+            if location_component:
+                expected_location = world.locations.get(location_component.name)
+                if obj_first != world.player or obj_second != expected_location:
+                    missing_components.append(f"Objective tuple mismatch: expected (player, {location_component.name}) but got ({getattr(obj_first, 'name', str(obj_first))}, {getattr(obj_second, 'name', str(obj_second))})")
+        
+        elif obj_type.upper() in ["FIND_CHARACTER"]:
+            # For find_character, first should be player, second should be character
+            character_component = None
+            for component in objective_data.components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                if component_type.upper() in ["CHARACTER"]:
+                    character_component = component
+                    break
+            
+            if character_component:
+                expected_character = next((c for c in world.characters.values() if c.name == character_component.name), None)
+                if obj_first != world.player or obj_second != expected_character:
+                    missing_components.append(f"Objective tuple mismatch: expected (player, {character_component.name}) but got ({getattr(obj_first, 'name', str(obj_first))}, {getattr(obj_second, 'name', str(obj_second))})")
+        
+        # Check mystery clues if it's a mystery objective
+        if obj_type.upper() in ["SOLVE_MYSTERY"] and hasattr(objective_data, 'mystery_clues') and objective_data.mystery_clues:
+            for clue in objective_data.mystery_clues:
+                if clue.associated_item not in world.items:
+                    missing_components.append(f"Clue item '{clue.associated_item}' (required for mystery clue '{clue.name}')")
+                if clue.item_location and clue.item_location not in world.locations:
+                    missing_components.append(f"Clue location '{clue.item_location}' (required for mystery clue '{clue.name}')")
+    
+    else:
+        # Fallback: validate the objective tuple structure (legacy support)
+        obj_first = world.objective[0]
+        obj_second = world.objective[1]
+        
+        # Check if components exist in world
+        if hasattr(obj_first, 'name'):
+            if obj_first.__class__.__name__ == "Character":
+                character_exists = any(c.name == obj_first.name for c in world.characters.values())
+                if not character_exists:
+                    missing_components.append(f"Character '{obj_first.name}' (objective component)")
+            elif obj_first.__class__.__name__ == "Item":
+                if obj_first.name not in world.items:
+                    missing_components.append(f"Item '{obj_first.name}' (objective component)")
+        
+        if hasattr(obj_second, 'name'):
+            if obj_second.__class__.__name__ == "Character":
+                character_exists = any(c.name == obj_second.name for c in world.characters.values())
+                if not character_exists:
+                    missing_components.append(f"Character '{obj_second.name}' (objective component)")
+            elif obj_second.__class__.__name__ == "Item":
+                if obj_second.name not in world.items:
+                    missing_components.append(f"Item '{obj_second.name}' (objective component)")
+            elif obj_second.__class__.__name__ == "Location":
+                if obj_second.name not in world.locations:
+                    missing_components.append(f"Location '{obj_second.name}' (objective component)")
+    
+    is_valid = len(missing_components) == 0
+    
+    if is_valid:
+        validation_details = "All objective components exist and match the expected objective structure"
+    else:
+        validation_details = f"Found {len(missing_components)} issue(s) with the objective"
+    
+    return is_valid, missing_components, validation_details
+
+
+def generate_world_overview(world: World, language: str = 'es') -> str:
+    """Generate a brief overview with world counts."""
+    
+    # Count puzzles
+    puzzles_count = 0
+    if hasattr(world, 'puzzles'):
+        if isinstance(world.puzzles, dict):
+            puzzles_count = len(world.puzzles)
+        elif isinstance(world.puzzles, list):
+            puzzles_count = len(world.puzzles)
+    
+    # Count NPCs (excluding player)
+    npc_count = len([c for c in world.characters.values() if c != world.player])
+    
+    if language == 'es':
+        overview = "📊 **RESUMEN DEL MUNDO** 📊\n\n"
+        overview += f"🏠 **Ubicaciones:** {len(world.locations)}\n"
+        overview += f"📦 **Objetos:** {len(world.items)}\n"
+        overview += f"👤 **Personajes (NPCs):** {npc_count}\n"
+        overview += f"🧩 **Puzzles:** {puzzles_count}\n\n"
+    else:
+        overview = "📊 **WORLD OVERVIEW** 📊\n\n"
+        overview += f"🏠 **Locations:** {len(world.locations)}\n"
+        overview += f"📦 **Objects:** {len(world.items)}\n"
+        overview += f"👤 **Characters (NPCs):** {npc_count}\n"
+        overview += f"🧩 **Puzzles:** {puzzles_count}\n\n"
+    
+    return overview
+
+
+def generate_objective_validation_report(world: World, language: str = 'es') -> str:
+    """Generate a report about objective validity."""
+    
+    is_valid, missing_components, validation_details = validate_objective_components(world)
+    
+    if language == 'es':
+        report = "🎯 **VALIDACIÓN DEL OBJETIVO** 🎯\n\n"
+        
+        if is_valid:
+            report += "✅ **Estado:** Válido\n"
+            report += f"**Detalles:** {validation_details}\n\n"
+        else:
+            report += "❌ **Estado:** Inválido\n"
+            report += f"**Detalles:** {validation_details}\n\n"
+            report += "**Problemas encontrados:**\n"
+            for missing in missing_components:
+                report += f"• {missing}\n"
+            report += "\n"
+        
+        # Show objective description and actual implementation
+        if hasattr(world, 'objective_data') and world.objective_data:
+            obj_type = world.objective_data.type.value if hasattr(world.objective_data.type, 'value') else str(world.objective_data.type)
+            report += f"**Tipo de objetivo esperado:** {obj_type}\n"
+            report += f"**Descripción del objetivo:** {world.objective_data.description}\n"
+            
+            # Show components with their locations
+            report += "**Componentes esperados y su accesibilidad:**\n"
+            for component in world.objective_data.components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                
+                if component_type.upper() in ["ITEM"]:
+                    # Find where the item is located
+                    item_locations = []
+                    
+                    # Check locations
+                    for loc_name, location in world.locations.items():
+                        if hasattr(location, 'items') and location.items:
+                            for item in location.items:
+                                if item.name == component.name:
+                                    item_locations.append(f"Ubicación: {loc_name}")
+                    
+                    # Check character inventories
+                    for char_name, character in world.characters.items():
+                        if hasattr(character, 'inventory') and character.inventory:
+                            for item in character.inventory:
+                                if hasattr(item, 'name') and item.name == component.name:
+                                    item_locations.append(f"Personaje: {char_name}")
+                    
+                    location_text = ", ".join(item_locations) if item_locations else "❌ NO ACCESIBLE"
+                    report += f"• {component.name} ({component_type}) - {location_text}\n"
+                else:
+                    report += f"• {component.name} ({component_type})\n"
+            
+        # Show actual objective tuple
+        if hasattr(world, 'objective') and world.objective:
+            obj_first = world.objective[0]
+            obj_second = world.objective[1]
+            first_name = obj_first.name if hasattr(obj_first, 'name') else str(obj_first)
+            second_name = obj_second.name if hasattr(obj_second, 'name') else str(obj_second)
+            first_type = obj_first.__class__.__name__
+            second_type = obj_second.__class__.__name__
+            report += f"\n**Objetivo actual implementado:** ({first_name}, {second_name})\n"
+            report += f"**Tipos:** ({first_type}, {second_type})\n"
+        
+    else:
+        report = "🎯 **OBJECTIVE VALIDATION** 🎯\n\n"
+        
+        if is_valid:
+            report += "✅ **Status:** Valid\n"
+            report += f"**Details:** {validation_details}\n\n"
+        else:
+            report += "❌ **Status:** Invalid\n"
+            report += f"**Details:** {validation_details}\n\n"
+            report += "**Issues found:**\n"
+            for missing in missing_components:
+                report += f"• {missing}\n"
+            report += "\n"
+        
+        # Show objective description and actual implementation
+        if hasattr(world, 'objective_data') and world.objective_data:
+            obj_type = world.objective_data.type.value if hasattr(world.objective_data.type, 'value') else str(world.objective_data.type)
+            report += f"**Expected objective type:** {obj_type}\n"
+            report += f"**Objective description:** {world.objective_data.description}\n"
+            
+            # Show components with their locations
+            report += "**Expected components and their accessibility:**\n"
+            for component in world.objective_data.components:
+                component_type = component.component_type.value if hasattr(component.component_type, 'value') else str(component.component_type)
+                
+                if component_type.upper() in ["ITEM"]:
+                    # Find where the item is located
+                    item_locations = []
+                    
+                    # Check locations
+                    for loc_name, location in world.locations.items():
+                        if hasattr(location, 'items') and location.items:
+                            for item in location.items:
+                                if item.name == component.name:
+                                    item_locations.append(f"Location: {loc_name}")
+                    
+                    # Check character inventories
+                    for char_name, character in world.characters.items():
+                        if hasattr(character, 'inventory') and character.inventory:
+                            for item in character.inventory:
+                                if hasattr(item, 'name') and item.name == component.name:
+                                    item_locations.append(f"Character: {char_name}")
+                    
+                    location_text = ", ".join(item_locations) if item_locations else "❌ NOT ACCESSIBLE"
+                    report += f"• {component.name} ({component_type}) - {location_text}\n"
+                else:
+                    report += f"• {component.name} ({component_type})\n"
+        
+        # Show actual objective tuple
+        if hasattr(world, 'objective') and world.objective:
+            obj_first = world.objective[0]
+            obj_second = world.objective[1]
+            first_name = obj_first.name if hasattr(obj_first, 'name') else str(obj_first)
+            second_name = obj_second.name if hasattr(obj_second, 'name') else str(obj_second)
+            first_type = obj_first.__class__.__name__
+            second_type = obj_second.__class__.__name__
+            report += f"\n**Actual implemented objective:** ({first_name}, {second_name})\n"
+            report += f"**Types:** ({first_type}, {second_type})\n"
+    
+    return report
+
+
 def inspect_generated_world(world: World, language: str = 'es') -> str:
     """Generate a concise inspection report of the generated world."""
     

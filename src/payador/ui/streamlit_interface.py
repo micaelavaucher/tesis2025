@@ -825,9 +825,33 @@ def render_world_inspection(world):
     st.markdown("---")
     
     # Tabs for different views
-    tab1, tab2 = st.tabs(["📊 Diagram", "📝 Details"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "🎯 Valid Objective", "📊 Diagram", "📝 Details"])
     
     with tab1:
+        # Generate and display world overview
+        try:
+            from ..core.world_builder import generate_world_overview
+            overview = generate_world_overview(world, st.session_state.language)
+            st.markdown(overview)
+        except Exception as e:
+            st.error(f"❌ Error generating overview: {str(e)}")
+            if st.session_state.debug_mode:
+                import traceback
+                st.code(traceback.format_exc())
+    
+    with tab2:
+        # Generate and display objective validation
+        try:
+            from ..core.world_builder import generate_objective_validation_report
+            validation_report = generate_objective_validation_report(world, st.session_state.language)
+            st.markdown(validation_report)
+        except Exception as e:
+            st.error(f"❌ Error generating objective validation: {str(e)}")
+            if st.session_state.debug_mode:
+                import traceback
+                st.code(traceback.format_exc())
+    
+    with tab3:
         if st.session_state.language == 'es':
             st.markdown("""
             **Leyenda:**
@@ -861,7 +885,7 @@ def render_world_inspection(world):
                 import traceback
                 st.code(traceback.format_exc())
     
-    with tab2:
+    with tab4:
         # Generate and display text summary
         try:
             text_summary = generate_world_text_summary(world, st.session_state.language)

@@ -1,6 +1,7 @@
 """World visualization utilities for debugging and inspection."""
 
 from .world import World
+from .world_builder import generate_world_overview, generate_objective_validation_report
 
 def generate_world_mermaid_diagram(world: World, language: str = 'en') -> str:
     """Generate a Mermaid diagram representing the world structure.
