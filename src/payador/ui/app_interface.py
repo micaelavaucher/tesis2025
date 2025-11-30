@@ -118,7 +118,7 @@ def create_standard_interface(world, starting_narration, language, reasoning_mod
             type='messages',
         ),
         textbox=gr.Textbox(placeholder="What do you want to do?", container=False, scale=5),
-        title="PAYADOR",
+        title="IVIE",
         theme="Soft",
         type='messages',
         autoscroll=True,

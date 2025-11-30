@@ -1,5 +1,5 @@
 ---
-title: PAYADOR - Dynamic Text Adventure Generator
+title: IVIE - Incrementally Validated Interactive Experiences
 emoji: 🌱
 colorFrom: blue
 colorTo: green
@@ -16,9 +16,9 @@ short_description: AI-powered dynamic text adventure world generator
 app_file: ./streamlit_app.py
 ---
 
-# 🌱 PAYADOR - Dynamic Text Adventure Generator
+# 🌱 IVIE - Incrementally Validated Interactive Experiences
 
-PAYADOR is an innovative AI-powered system that generates dynamic text adventure worlds using Large Language Models (LLMs). It addresses the world-update problem in Interactive Storytelling through a minimalist approach to grounding language models on structured data.
+IVIE is an innovative AI-powered system that generates dynamic text adventure worlds using Large Language Models (LLMs). It addresses the world-update problem in Interactive Storytelling through a minimalist approach to grounding language models on structured data.
 
 ## 🎮 Features
 

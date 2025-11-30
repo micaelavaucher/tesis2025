@@ -1,6 +1,6 @@
-"""Run PAYADOR with Streamlit interface.
+"""Run IVIE with Streamlit interface.
 
-Simple script to launch the Streamlit version of PAYADOR.
+Simple script to launch the Streamlit version of IVIE.
 """
 
 import subprocess
@@ -16,14 +16,14 @@ def main():
     # Run streamlit
     cmd = [sys.executable, "-m", "streamlit", "run", "streamlit_app.py", "--server.headless", "true"]
     
-    print("🚀 Starting PAYADOR with Streamlit interface...")
+    print("🚀 Starting IVIE with Streamlit interface...")
     print("🌐 The app will open in your default browser")
     print("📌 Press Ctrl+C to stop the application")
     
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
-        print("\n👋 PAYADOR application stopped")
+        print("\n👋 IVIE application stopped")
 
 if __name__ == "__main__":
     main()

@@ -1,12 +1,12 @@
 # ⚠️UNDER CONSTRUCTION ⚠️ (Santiago Góngora - Master's Thesis)
 
-This repository contains the code for the latest version of the PAYADOR approach, the same that was used to perform the experiments presented in this thesis. 
+This repository contains the code for the latest version of the IVIE approach, the same that was used to perform the experiments presented in this thesis. 
 
-The PAYADOR approach is an approach to the world-update problem in Interactive Storytellig, and it was described in the ICCC24 paper “[PAYADOR: A Minimalist Approach to Grounding Language Models on Structured Data for Interactive Storytelling and Role-playing Games](https://computationalcreativity.net/iccc24/papers/ICCC24_paper_152.pdf)”.
+The IVIE approach is an approach to the world-update problem in Interactive Storytellig, and it was described in the ICCC24 paper “[PAYADOR: A Minimalist Approach to Grounding Language Models on Structured Data for Interactive Storytelling and Role-playing Games](https://computationalcreativity.net/iccc24/papers/ICCC24_paper_152.pdf)”.
 
 ## 🗂️ Project structure
 
-This folder contains all the files needed to run the latest version of PAYADOR, used to perform the experiments presented in this thesis.
+This folder contains all the files needed to run the latest version of IVIE, used to perform the experiments presented in this thesis.
 
 - `logs_processing.py` implements an algorithm to convert the gamelogs stored in .json files to human-readable .txt files.
 

@@ -362,8 +362,8 @@ def render_inspiration_mode():
     """Render the inspiration mode interface."""
     texts = get_ui_texts(st.session_state.language)
     
-    st.markdown("# 🌱 PAYADOR")
-    st.markdown("### Dynamic Text Adventure World Generator")
+    st.markdown("# 🌱 IVIE: Incremental & Validated Interactive Experiences")
+    st.markdown("### *Where generated worlds come to life*")
     
     if st.session_state.language == 'es':
         st.markdown("**Modo Inspiración:** Escribe una idea y genera un mundo único")
@@ -511,8 +511,8 @@ def generate_world_from_inspiration(inspiration: str):
 
 def render_generate_mode():
     """Render the generate mode interface."""
-    st.markdown("# 🌱 PAYADOR")
-    st.markdown("### Dynamic Text Adventure World Generator")
+    st.markdown("# 🌱 IVIE: Incremental & Validated Interactive Experiences")
+    st.markdown("### Where generated worlds come to life")
     
     if st.session_state.language == 'es':
         st.markdown("**Modo Generar:** Genera un mundo completamente aleatorio")
@@ -589,8 +589,8 @@ def generate_random_world():
 
 def render_preset_mode():
     """Render the preset mode interface."""
-    st.markdown("# 🌱 PAYADOR")
-    st.markdown("### Dynamic Text Adventure World Generator")
+    st.markdown("# 🌱 IVIE: Incremental & Validated Interactive Experiences")
+    st.markdown("### Where generated worlds come to life")
     
     if st.session_state.language == 'es':
         st.markdown("**Modo Predefinido:** Usa un mundo preconstruido")
@@ -648,8 +648,8 @@ def load_preset_world(world_id: int):
 
 def render_replay_mode():
     """Render the replay mode interface."""
-    st.markdown("# 🌱 PAYADOR")
-    st.markdown("### Dynamic Text Adventure World Generator")
+    st.markdown("# 🌱 IVIE: Incremental & Validated Interactive Experiences")
+    st.markdown("### Where generated worlds come to life")
     
     # Initialize inspection state if not exists
     if 'inspecting_world' not in st.session_state:
@@ -1037,13 +1037,13 @@ def render_played_conversation(world_id: str):
 
 def render_tutorial_mode():
     """Render the tutorial mode interface."""
-    st.markdown("# 🌱 PAYADOR")
-    st.markdown("### Dynamic Text Adventure World Generator")
+    st.markdown("# 🌱 IVIE: Incremental & Validated Interactive Experiences")
+    st.markdown("### Where generated worlds come to life")
     
     if st.session_state.language == 'es':
         st.markdown("**Modo Tutorial:** Aprende a jugar con un mundo simple")
         st.markdown("""
-        **¡Bienvenido al Tutorial de PAYADOR!** 🎮
+        **¡Bienvenido al Tutorial de IVIE!** 🎮
         
         Este es un mundo simple diseñado para enseñarte cómo jugar:
         
@@ -1052,7 +1052,7 @@ def render_tutorial_mode():
         🎯 **Meta:** Recoger la tortuga del jardín
         
         ### 🤖 Estilo de Juego Chatbot
-        PAYADOR funciona como una conversación entre tú y un narrador IA. Cada mensaje que escribas representa **una acción en el juego**.
+        IVIE funciona como una conversación entre tú y un narrador IA. Cada mensaje que escribas representa **una acción en el juego**.
         
         **📝 Mecánicas por Turnos:**
         - Un mensaje = Un turno de juego
@@ -1073,7 +1073,7 @@ def render_tutorial_mode():
     else:
         st.markdown("**Tutorial Mode:** Learn to play with a simple world")
         st.markdown("""
-        **Welcome to the PAYADOR Tutorial!** 🎮
+        **Welcome to the IVIE Tutorial!** 🎮
         
         This is a simple world designed to teach you how to play:
         
@@ -1082,7 +1082,7 @@ def render_tutorial_mode():
         🎯 **Goal:** Collect the turtle from the garden
         
         ### 🤖 Chatbot-Style Gameplay
-        PAYADOR works like a conversation between you and an AI narrator. Each message you write represents **one action in the game**.
+        IVIE works like a conversation between you and an AI narrator. Each message you write represents **one action in the game**.
         
         **📝 Turn-Based Mechanics:**
         - One message = One game turn
@@ -1276,7 +1276,7 @@ def render_chat_interface():
 def main():
     """Main Streamlit application."""
     st.set_page_config(
-        page_title="PAYADOR - Text Adventure Generator",
+        page_title="IVIE - Text Adventure Generator",
         page_icon="🌱",
         layout="wide",
         initial_sidebar_state="expanded"
