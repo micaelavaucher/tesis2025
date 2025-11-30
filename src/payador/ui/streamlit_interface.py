@@ -24,19 +24,34 @@ def render_mermaid(mermaid_code: str, height: int = 600):
         mermaid_code: The Mermaid diagram code
         height: Height of the rendered diagram in pixels
     """
+    # Simple test to verify rendering works
     html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-        <script>
-            mermaid.initialize({{ 
-                startOnLoad: true,
-                theme: 'default',
-                flowchart: {{
-                    useMaxWidth: false,
-                    htmlLabels: true,
-                    curve: 'basis'
+        <meta charset="UTF-8">
+        <script type="module">
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+            
+            window.addEventListener('load', async () => {{
+                mermaid.initialize({{ 
+                    startOnLoad: false,
+                    theme: 'default',
+                    flowchart: {{
+                        useMaxWidth: false,
+                        htmlLabels: true,
+                        curve: 'basis'
+                    }},
+                    securityLevel: 'loose'
+                }});
+                
+                try {{
+                    const {{svg}} = await mermaid.render('mermaid-svg', document.getElementById('diagram-code').textContent);
+                    document.getElementById('diagram-output').innerHTML = svg;
+                    console.log('Mermaid rendered successfully');
+                }} catch(e) {{
+                    console.error('Mermaid error:', e);
+                    document.getElementById('diagram-output').innerHTML = '<pre style="color:red;">Error: ' + e.message + '</pre>';
                 }}
             }});
         </script>
@@ -107,6 +122,7 @@ def render_mermaid(mermaid_code: str, height: int = 600):
                 overflow: auto;
                 cursor: grab;
                 position: relative;
+                background-color: #f9f9f9;
             }}
             
             #diagram-container:active {{
@@ -117,10 +133,13 @@ def render_mermaid(mermaid_code: str, height: int = 600):
                 display: inline-block;
                 transform-origin: top left;
                 transition: transform 0.2s ease;
+                padding: 20px;
             }}
             
             .mermaid {{
                 font-family: 'Arial', sans-serif;
+                background-color: white;
+                padding: 10px;
             }}
         </style>
     </head>
@@ -134,9 +153,8 @@ def render_mermaid(mermaid_code: str, height: int = 600):
         
         <div id="diagram-container">
             <div id="diagram-wrapper">
-                <div class="mermaid">
-{mermaid_code}
-                </div>
+                <pre id="diagram-code" style="display:none;">{mermaid_code}</pre>
+                <div id="diagram-output"></div>
             </div>
         </div>
         
@@ -878,6 +896,12 @@ def render_world_inspection(world):
         # Generate and display Mermaid diagram
         try:
             mermaid_code = generate_world_mermaid_diagram(world, st.session_state.language)
+            
+            # Debug: show the code if in debug mode
+            if st.session_state.debug_mode:
+                with st.expander("🔍 Ver código Mermaid" if st.session_state.language == 'es' else "🔍 View Mermaid code"):
+                    st.code(mermaid_code, language="mermaid")
+            
             render_mermaid(mermaid_code, height=800)
         except Exception as e:
             st.error(f"❌ Error generating diagram: {str(e)}")
