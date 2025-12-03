@@ -1,4 +1,8 @@
-"""Includes two example worlds to experiment with different scenarios."""
+"""
+NOT SUPPORTED IN IVIE (maybe someday)
+
+Includes two example worlds to experiment with different scenarios.
+"""
 
 import random
 from src.payador.core.world import Character, Item, Location, Puzzle, World
