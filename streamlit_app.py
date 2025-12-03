@@ -6,5 +6,5 @@ text adventure world generator.
 """
 
 if __name__ == "__main__":
-    from src.payador.ui.streamlit_interface import main
+    from src.ivie.ui.streamlit_interface import main
     main()
