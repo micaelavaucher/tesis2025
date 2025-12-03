@@ -11,7 +11,7 @@ from typing import Type
 class Component:
   """A class to represent a component of the world.
 
-  The components considered in the PAYADOR approach are Items, Locations and Characters.
+  The components considered in the IVIE approach are Items, Locations and Characters.
   """
   def __init__ (self, name:str, descriptions: 'list[str]'):
 

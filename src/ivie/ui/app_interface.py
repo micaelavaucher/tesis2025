@@ -1,4 +1,4 @@
-"""Application interface management for PAYADOR.
+"""Application interface management for IVIE.
 
 This module handles the different UI modes and interfaces,
 including inspiration mode, generate mode, and preset mode.

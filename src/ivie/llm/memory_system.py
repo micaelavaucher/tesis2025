@@ -1,4 +1,4 @@
-"""Intelligent Memory System for PAYADOR.
+"""Intelligent Memory System for IVIE.
 
 This module implements a RAG (Retrieval-Augmented Generation) system that creates
 and maintains an intelligent memory of game events, allowing the system to 
@@ -16,7 +16,7 @@ from google.genai import types
 import chromadb
 from chromadb.config import Settings
 from ..config import PATH_GAMELOGS
-from src.payador.core.world_utils import create_world_state_summary
+from src.ivie.core.world_utils import create_world_state_summary
 from ..database.mongodb_handler import db_handler
 
 # Disable ChromaDB telemetry at module level

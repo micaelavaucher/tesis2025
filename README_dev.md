@@ -14,7 +14,7 @@ and then activate the environment
 
 
 ```shell
-conda activate payador
+conda activate ivie
 ```
 
 Also, you can use python standard virtual environments, installing the dependencies via `requirements.txt`.

@@ -1,4 +1,4 @@
-"""World generation logic for PAYADOR.
+"""World generation logic for IVIE.
 
 This module handles world generation workflows for different modes,
 providing simplified world generation functions that are UI-independent.

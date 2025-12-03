@@ -1,4 +1,4 @@
-"""Configuration management for PAYADOR.
+"""Configuration management for IVIE.
 
 This module handles all configuration-related functionality including
 reading config files, setting up paths, and managing global settings.

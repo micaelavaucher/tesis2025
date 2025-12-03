@@ -1,4 +1,4 @@
-"""Modern Streamlit interface for PAYADOR.
+"""Modern Streamlit interface for IVIE.
 
 This module provides a beautiful and modern chat interface using Streamlit,
 replacing the Gradio interface with enhanced UI and functionality.

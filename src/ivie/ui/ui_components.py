@@ -1,4 +1,4 @@
-"""UI components and text constants for PAYADOR.
+"""UI components and text constants for IVIE.
 
 This module contains all UI-related constants, messages, and component
 definitions for different languages and modes.
@@ -8,7 +8,7 @@ def get_ui_texts(language):
     """Get UI text constants based on language."""
     if language == "es":
         return {
-            'TITLE': "# 🌱 PAYADOR: Modo inspiración",
+            'TITLE': "# 🌱 IVIE: Modo inspiración",
             'PROMPT_LABEL': "Escribí una frase o temática para inspirar la creación del mundo:",
             'TEXTBOX_LABEL': "Frase o temática",
             'CREATE_BUTTON_TEXT': "Crear mundo",
@@ -20,7 +20,7 @@ def get_ui_texts(language):
         }
     else:
         return {
-            'TITLE': "# 🌱 PAYADOR: Inspiration Mode",
+            'TITLE': "# 🌱 IVIE: Inspiration Mode",
             'PROMPT_LABEL': "Write a theme or idea to inspire the world:",
             'TEXTBOX_LABEL': "Theme or idea",
             'CREATE_BUTTON_TEXT': "Create world",

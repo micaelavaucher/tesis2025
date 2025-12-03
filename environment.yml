@@ -1,4 +1,4 @@
-name: payador
+name: ivie
 channels:
   - conda-forge
   - defaults

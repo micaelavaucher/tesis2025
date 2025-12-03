@@ -1,4 +1,4 @@
-"""Incremental world generation pipeline for PAYADOR.
+"""Incremental world generation pipeline for IVIE.
 
 This module implements a step-by-step world generation system,
 dividing the process into logical and sequential phases to improve

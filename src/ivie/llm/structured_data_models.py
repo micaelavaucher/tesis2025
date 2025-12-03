@@ -1,4 +1,4 @@
-"""Structured data models for the PAYADOR world system with semantic connections."""
+"""Structured data models for the IVIE world system with semantic connections."""
 
 #---- Imports -----------------------------------------------------------------
 from pydantic import BaseModel, Field

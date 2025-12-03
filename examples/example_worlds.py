@@ -5,7 +5,7 @@ Includes two example worlds to experiment with different scenarios.
 """
 
 import random
-from src.payador.core.world import Character, Item, Location, Puzzle, World
+from src.ivie.core.world import Character, Item, Location, Puzzle, World
 
 
 def get_world(arg: str, language: str ='en') -> World:

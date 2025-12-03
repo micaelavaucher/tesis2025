@@ -1,4 +1,4 @@
-"""Game logic and world management for PAYADOR.
+"""Game logic and world management for IVIE.
 
 This module contains the core game loop, world state management,
 and game-related utility functions with intelligent memory integration.
