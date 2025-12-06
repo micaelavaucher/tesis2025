@@ -86,8 +86,8 @@ def create_inspiration_interface(
             # Create game loop only once, then reuse it
             if game_loop_ref['game_loop'] is None:
                 game_loop_ref['game_loop'] = create_game_loop(
-                    world_ref['world'], reasoning_model, narrative_model, 
-                    language, log_filename, visited_locations, api_key, enable_rag, ""
+                    world_ref['world'], reasoning_model, narrative_model,
+                    language, visited_locations, api_key, enable_rag, ""
                 )
             
             respuesta = game_loop_ref['game_loop'](message, history)
@@ -106,7 +106,7 @@ def create_inspiration_interface(
 def create_standard_interface(world, starting_narration, language, reasoning_model, narrative_model, log_filename, visited_locations, enable_rag=True):
     """Create the standard game interface for preset/generate modes."""
     api_key = os.getenv("GEMINI_API_KEY")
-    game_loop = create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key, enable_rag, "")
+    game_loop = create_game_loop(world, reasoning_model, narrative_model, language, visited_locations, api_key, enable_rag, "")
     
     return gr.ChatInterface(
         fn=game_loop,

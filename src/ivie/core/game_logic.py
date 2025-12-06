@@ -10,34 +10,31 @@ import time
 import streamlit as st
 
 from ..llm.prompts import prompt_narrate_current_scene, prompt_world_update_structured, prompt_describe_objective
-from .world_builder import inspect_generated_world, generate_world_overview, generate_objective_validation_report
+from .world_builder import generate_world_overview, generate_objective_validation_report
 from .world_utils import create_world_state_summary
 from ..llm.structured_data_models import WorldUpdate
 from ..llm.memory_system import create_memory_system
 from ..database.mongodb_handler import db_handler
 
 def generate_starting_narration(world, language, narrative_model):
-    """Generate the starting narration for a world."""
     system_msg_current_scene, user_msg_current_scene = prompt_narrate_current_scene(
         world.render_world(language=language),
         previous_narrations=world.player.visited_locations[world.player.location.name],
-        language=language, 
-        starting_scene=True
+        language=language,
+        starting_scene=True,
     )
+
     starting_narration = narrative_model.prompt_model(system_msg=system_msg_current_scene, user_msg=user_msg_current_scene)
     world.player.visited_locations[world.player.location.name] += [starting_narration]
-    
-    # Add objective description
+
     if hasattr(world, 'objective') and world.objective:
         system_msg_objective, user_msg_objective = prompt_describe_objective(world.objective, language=language)
         narrated_objective = narrative_model.prompt_model(system_msg=system_msg_objective, user_msg=user_msg_objective)
         try:
             if narrated_objective:
-                # Extract text between # markers if they exist, otherwise use full response
                 objective_texts = re.findall(r'#([^#]*?)#', str(narrated_objective))
                 if objective_texts:
                     narrated_objective = " ".join([t.strip() for t in objective_texts])
-                    # Fallback if objective is too short or incomplete
                     if len(narrated_objective.split()) < 8 or not narrated_objective.strip().endswith(('.', '!', '?')):
                         print("⚠️ Objective seems incomplete, using full LLM response instead.")
                         if not narrated_objective.strip().endswith(('.', '!', '?')):
@@ -46,7 +43,6 @@ def generate_starting_narration(world, language, narrative_model):
                     else:
                         starting_narration += f"\n\n🎯 {narrated_objective}"
                 else:
-                    # No # markers found, use full response
                     if not narrated_objective.strip().endswith(('.', '!', '?')):
                         narrated_objective += '.'
                     starting_narration += f"\n\n🎯 {narrated_objective}"
@@ -59,176 +55,80 @@ def generate_starting_narration(world, language, narrative_model):
             starting_narration += f"\n\n🎯 {narrated_objective}"
     else:
         print("ℹ️ No se encontró un objetivo principal en el mundo generado/cargado.")
-    
-    # Add formatted world state to starting narration
+
     world_state_formatted = world.format_world_state_for_chat(language=language)
     starting_narration += f"\n\n---\n{world_state_formatted}"
-    
     return starting_narration
 
-def create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, world_id=None, inspiration=""):
-    """Create initial game log dictionary."""
+def create_game_log_entry(language, narrative_model_name, reasoning_model_name, world_id=None, inspiration=""):
     game_log_dictionary = {}
     game_log_dictionary["nickname"] = st.session_state.nickname
     game_log_dictionary["language"] = language
-    # Use provided world_id or generate new one
     game_log_dictionary["world_id"] = world_id or f"generated_{int(time.time())}"
     game_log_dictionary["narrative_model_name"] = narrative_model_name
     game_log_dictionary["reasoning_model_name"] = reasoning_model_name
     game_log_dictionary["inspiration"] = inspiration
-    
     return game_log_dictionary
 
-def initialize_game_state(world, language, log_filename, narrative_model_name, reasoning_model_name, starting_narration, inspiration=""):
-    """Initialize game state variables and create initial log entry."""
-    last_player_position = world.player.location
-    number_of_turns = 0
-    
-    # Initialize hints system for the world
-    world.update_hints()
-    
-    game_log_dictionary = create_game_log_entry(world, language, log_filename, narrative_model_name, reasoning_model_name, inspiration=inspiration)
-    game_log_dictionary[0] = {
-        "date": time.ctime(time.time()),
-        "initial_symbolic_world_state": jsonpickle.encode(world, unpicklable=True),
-        "initial_rendered_world_state": world.render_world(language=language),
-        "starting_narration": starting_narration
-    }
-
-    # Prepare the document for MongoDB
-    mongo_document = {
-        "world_id": game_log_dictionary["world_id"],
-        "nickname": game_log_dictionary["nickname"],
-        "language": game_log_dictionary["language"],
-        "narrative_model_name": game_log_dictionary["narrative_model_name"],
-        "reasoning_model_name": game_log_dictionary["reasoning_model_name"],
-        "inspiration": game_log_dictionary["inspiration"],
-        "created_at": time.time(),
-        "turns": {
-            "0": game_log_dictionary[0] # Store the initial state as turn 0
-        }
-    }
-
-    # Save to MongoDB
-    if db_handler:
-        db_handler.initialize_trace(mongo_document)
-    
-    return last_player_position, number_of_turns, game_log_dictionary
-
 def generate_world_overview(world, language):
-    """Generate a comprehensive overview of all locations, connections, items, and NPCs."""
     overview = ""
-    
-    if language == 'es':
-        header = "🌎 Resumen del Mundo 🌍\n\n"
-    else:
-        header = "🌎 World Overview 🌍\n\n"
-    
+    header = "🌎 Resumen del Mundo 🌍\n\n" if language == 'es' else "🌎 World Overview 🌍\n\n"
     overview += header
-    
-    # Get all locations
-    locations = {}
-    if hasattr(world, 'locations') and world.locations:
-        locations = world.locations
-    else:
-        # Fallback: collect locations from player and character positions
-        locations = {world.player.location.name: world.player.location}
-        if hasattr(world, 'characters') and world.characters:
-            for char in world.characters.values():
-                if hasattr(char, 'location') and char.location:
-                    locations[char.location.name] = char.location
-    
-    # Process each location
+
+    locations = world.locations if (hasattr(world, 'locations') and world.locations) else {world.player.location.name: world.player.location}
+    if not (hasattr(world, 'locations') and world.locations) and hasattr(world, 'characters') and world.characters:
+        for char in world.characters.values():
+            if hasattr(char, 'location') and char.location:
+                locations[char.location.name] = char.location
+
     for location_name, location in locations.items():
         overview += f"{location_name}:\n"
-        
-        # Connections
-        connections = []
-        if hasattr(location, 'connecting_locations') and location.connecting_locations:
-            connections = [loc.name for loc in location.connecting_locations]
-        
+
+        connections = [loc.name for loc in location.connecting_locations] if (hasattr(location, 'connecting_locations') and location.connecting_locations) else []
         if connections:
-            if language == 'es':
-                overview += f" - Conecta con:\n"
-            else:
-                overview += f" - Connects to:\n"
+            overview += (" - Conecta con:\n" if language == 'es' else " - Connects to:\n")
             for conn in connections:
                 overview += f"   - {conn}\n"
         else:
-            if language == 'es':
-                overview += f" - Conecta con: Ninguna\n"
-            else:
-                overview += f" - Connects to: None\n"
-        
-        # Items in this location
-        items = []
-        if hasattr(location, 'items') and location.items:
-            items = [item.name for item in location.items]
-        
+            overview += (" - Conecta con: Ninguna\n" if language == 'es' else " - Connects to: None\n")
+
+        items = [item.name for item in location.items] if (hasattr(location, 'items') and location.items) else []
         if items:
-            if language == 'es':
-                overview += f" - Objetos:\n"
-            else:
-                overview += f" - Items:\n"
+            overview += (" - Objetos:\n" if language == 'es' else " - Items:\n")
             for item in items:
                 overview += f"   - {item}\n"
         else:
-            if language == 'es':
-                overview += f" - Objetos: Ninguno\n"
-            else:
-                overview += f" - Items: None\n"
-        
-        # NPCs in this location
+            overview += (" - Objetos: Ninguno\n" if language == 'es' else " - Items: None\n")
+
         npcs_with_inventory = []
         if hasattr(world, 'characters') and world.characters:
             for char in world.characters.values():
-                if (hasattr(char, 'location') and char.location is location and 
-                    char is not world.player):  # Don't include the player
-                    # Get character inventory
-                    char_inventory = []
-                    if hasattr(char, 'inventory') and char.inventory:
-                        char_inventory = [item.name for item in char.inventory]
+                if (hasattr(char, 'location') and char.location is location and char is not world.player):
+                    char_inventory = [item.name for item in char.inventory] if (hasattr(char, 'inventory') and char.inventory) else []
                     npcs_with_inventory.append((char.name, char_inventory))
-        
+
         if npcs_with_inventory:
-            if language == 'es':
-                overview += f" - PNJs:\n"
-            else:
-                overview += f" - NPCs:\n"
+            overview += (" - PNJs:\n" if language == 'es' else " - NPCs:\n")
             for npc_name, npc_inventory in npcs_with_inventory:
                 overview += f"   - {npc_name}"
                 if npc_inventory:
-                    if language == 'es':
-                        overview += f" (Inventario: {', '.join(npc_inventory)})"
-                    else:
-                        overview += f" (Inventory: {', '.join(npc_inventory)})"
+                    overview += (f" (Inventario: {', '.join(npc_inventory)})" if language == 'es' else f" (Inventory: {', '.join(npc_inventory)})")
                 else:
-                    if language == 'es':
-                        overview += f" (Inventario: Vacío)"
-                    else:
-                        overview += f" (Inventory: Empty)"
+                    overview += (" (Inventario: Vacío)" if language == 'es' else " (Inventory: Empty)")
                 overview += "\n"
         else:
-            if language == 'es':
-                overview += f" - PNJs: Ninguno\n"
-            else:
-                overview += f" - NPCs: None\n"
-        
+            overview += (" - PNJs: Ninguno\n" if language == 'es' else " - NPCs: None\n")
+
         overview += "\n"
-    
+
     return overview
 
 def get_objective_info(world, language):
-    """Get formatted objective information for the player."""
     if not hasattr(world, 'objective') or not world.objective:
-        if language == 'es':
-            return "🎯 No se ha definido un objetivo específico para este mundo."
-        else:
-            return "🎯 No specific objective has been defined for this world."
-    
-    # Get the raw objective description
+        return "🎯 No se ha definido un objetivo específico para este mundo." if language == 'es' else "🎯 No specific objective has been defined for this world."
+
     raw_objective = ""
-    
+
     # Handle different objective formats
     if hasattr(world.objective, 'description'):
         # New structured objective format - this should be used for newer worlds
@@ -242,36 +142,26 @@ def get_objective_info(world, language):
             # Special handling for mystery objectives
             mystery_obj = obj_component
             raw_objective = mystery_obj.description
-            
-            # Add progress information
             discovered, total = mystery_obj.get_completion_progress()
             if language == 'es':
                 raw_objective += f"\n\n🔍 **Progreso del Misterio:** {discovered}/{total} pistas descubiertas"
-                
-                # Show discovered clues
                 discovered_clues = mystery_obj.get_discovered_clues()
                 if discovered_clues:
                     raw_objective += "\n\n📚 **Pistas Descubiertas:**"
                     for clue in discovered_clues:
                         raw_objective += f"\n• **{clue.name}:** {clue.description}"
                         raw_objective += f"\n  *Relevancia:* {clue.relevance_to_mystery}"
-                
-                # Show remaining clues count
                 remaining = total - discovered
                 if remaining > 0:
                     raw_objective += f"\n\n🔍 Quedan {remaining} pistas por descubrir. Interactúa con objetos para encontrarlas."
             else:
                 raw_objective += f"\n\n🔍 **Mystery Progress:** {discovered}/{total} clues discovered"
-                
-                # Show discovered clues
                 discovered_clues = mystery_obj.get_discovered_clues()
                 if discovered_clues:
                     raw_objective += "\n\n📚 **Discovered Clues:**"
                     for clue in discovered_clues:
                         raw_objective += f"\n• **{clue.name}:** {clue.description}"
                         raw_objective += f"\n  *Relevance:* {clue.relevance_to_mystery}"
-                
-                # Show remaining clues count
                 remaining = total - discovered
                 if remaining > 0:
                     raw_objective += f"\n\n🔍 {remaining} clues remain to be discovered. Interact with objects to find them."
@@ -353,139 +243,89 @@ def get_objective_info(world, language):
     return raw_objective
 
 def check_character_puzzle_mention(world, message, language):
-    """
-    Check if player input mentions a character that proposes a puzzle.
-    If so, return the character's interaction text and puzzle problem.
-    
-    Args:
-        world: The game world object
-        message: Player's input message
-        language: Language for responses
-        
-    Returns:
-        str or None: Puzzle proposition text if character is mentioned, None otherwise
-    """
     if not message:
         return None
-    
     message_lower = message.lower()
-    
-    # Check each character in the current location
+
     for character in world.characters.values():
         if character.location == world.player.location:
-            # Check if character name is mentioned in the input
             character_name_lower = character.name.lower()
             if character_name_lower in message_lower:
-                # Check if this character has puzzle interaction data
-                if (hasattr(character, 'interaction') and character.interaction and
-                    hasattr(character.interaction, 'proposes_puzzle') and character.interaction.proposes_puzzle):
-                    
-                    puzzle_name = character.interaction.proposes_puzzle
-                    
-                    # Check if puzzle is already solved - if so, let LLM handle interaction
-                    if puzzle_name in world.puzzle_states and world.puzzle_states[puzzle_name] == 'solved':
-                        return None  # Don't intercept - let player interact normally with NPC
-                    
-                    # Check if player is asking for hints or help with the puzzle
-                    hint_keywords = ['hint', 'pista', 'help', 'ayuda', 'clue', 'stuck', 'atascado']
-                    if any(keyword in message_lower for keyword in hint_keywords):
-                        # Let hint system handle this - don't block with full puzzle
-                        return None
-                    
-                    # Check if player is just asking about the puzzle or character (not solving)
-                    question_keywords = ['about', 'sobre', 'tell me', 'dime', 'what', 'qué', 'who', 'quién', 'why', 'por qué']
-                    is_question = any(keyword in message_lower for keyword in question_keywords)
-                    
-                    # Check if player is attempting to solve the puzzle (has "answer", "solve", etc.)
-                    solve_keywords = ['answer', 'respuesta', 'solve', 'resolver', 'solution', 'solución']
-                    is_solving = any(keyword in message_lower for keyword in solve_keywords)
-                    
-                    # If asking questions, allow some interaction but remind about puzzle
-                    if is_question and not is_solving:
-                        return None  # Let LLM handle questions, but it should mention the puzzle
-                    
-                    # Find the puzzle
-                    if puzzle_name in world.puzzles:
-                        puzzle = world.puzzles[puzzle_name]
-                        
-                        # Build the puzzle proposition response
-                        if language == 'es':
-                            response = f"🎭 **{character.name}** se acerca a ti"
-                            
-                            # Add interaction text if available
-                            if hasattr(character.interaction, 'interaction_text') and character.interaction.interaction_text:
-                                response += f" y dice: \"{character.interaction.interaction_text}\""
-                            
-                            response += f"\n\n🧩 **Puzzle: {puzzle.name}**\n"
-                            response += f"📝 **Problema:** {puzzle.problem}\n"
-                            
-                            if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
-                                response += f"💡 **Pistas disponibles:** {len(puzzle.puzzle_hints)} pistas"
-                            
-                            response += f"\n\n⚠️ *Debes resolver este puzzle antes de que {character.name} pueda ayudarte.*"
-                            
-                        else:
-                            response = f"🎭 **{character.name}** approaches you"
-                            
-                            # Add interaction text if available
-                            if hasattr(character.interaction, 'interaction_text') and character.interaction.interaction_text:
-                                response += f" and says: \"{character.interaction.interaction_text}\""
-                            
-                            response += f"\n\n🧩 **Puzzle: {puzzle.name}**\n"
-                            response += f"📝 **Problem:** {puzzle.problem}\n"
-                            
-                            if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
-                                response += f"💡 **Hints available:** {len(puzzle.puzzle_hints)} hints"
-                            
-                            response += f"\n\n⚠️ *You must solve this puzzle before {character.name} can help you.*"
-                        
-                        print(f"🧩 Character puzzle proposition triggered: {character.name} -> {puzzle.name}")
-                        return response
-    
+                if not (hasattr(character, 'interaction') and character.interaction and hasattr(character.interaction, 'proposes_puzzle') and character.interaction.proposes_puzzle):
+                    return None
+
+                puzzle_name = character.interaction.proposes_puzzle
+                if puzzle_name in world.puzzle_states and world.puzzle_states[puzzle_name] == 'solved':
+                    return None
+
+                hint_keywords = ['hint', 'pista', 'help', 'ayuda', 'clue', 'stuck', 'atascado']
+                if any(k in message_lower for k in hint_keywords):
+                    return None
+
+                solve_keywords = ['answer', 'respuesta', 'solve', 'resolver', 'solution', 'solución']
+                question_keywords = ['about', 'sobre', 'tell me', 'dime', 'what', 'qué', 'who', 'quién', 'why', 'por qué']
+                is_question = any(k in message_lower for k in question_keywords)
+                is_solving = any(k in message_lower for k in solve_keywords)
+                if is_question and not is_solving:
+                    return None
+
+                if puzzle_name in world.puzzles:
+                    puzzle = world.puzzles[puzzle_name]
+                    if language == 'es':
+                        response = f"🎭 **{character.name}** se acerca a ti"
+                        if hasattr(character.interaction, 'interaction_text') and character.interaction.interaction_text:
+                            response += f" y dice: \"{character.interaction.interaction_text}\""
+                        response += f"\n\n🧩 **Puzzle: {puzzle.name}**\n"
+                        response += f"📝 **Problema:** {puzzle.problem}\n"
+                        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                            response += f"💡 **Pistas disponibles:** {len(puzzle.puzzle_hints)} pistas"
+                        response += f"\n\n⚠️ *Debes resolver este puzzle antes de que {character.name} pueda ayudarte.*"
+                    else:
+                        response = f"🎭 **{character.name}** approaches you"
+                        if hasattr(character.interaction, 'interaction_text') and character.interaction.interaction_text:
+                            response += f" and says: \"{character.interaction.interaction_text}\""
+                        response += f"\n\n🧩 **Puzzle: {puzzle.name}**\n"
+                        response += f"📝 **Problem:** {puzzle.problem}\n"
+                        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
+                            response += f"💡 **Hints available:** {len(puzzle.puzzle_hints)} hints"
+                        response += f"\n\n⚠️ *You must solve this puzzle before {character.name} can help you.*"
+
+                    print(f"🧩 Character puzzle proposition triggered: {character.name} -> {puzzle.name}")
+                    return response
     return None
 
 def handle_debug_command(message, world, language):
-    """Handle debug inspection commands and hint requests."""
     message_lower = message.lower()
-    
-    # Handle hint requests
     if any(word in message_lower for word in ["hint", "pista", "help", "ayuda", "clue", "piste"]):
         hint = world.get_next_hint()
-        if language == 'es':
-            return f"💡 **Pista:** {hint}"
-        else:
-            return f"💡 **Hint:** {hint}"
-    
+        return f"💡 **Pista:** {hint}" if language == 'es' else f"💡 **Hint:** {hint}"
+
     if message_lower in ["inspect", "inspeccionar", "inspect world", "inspeccionar mundo"]:
-        debug_info = inspect_generated_world(world, language)
+        overview = generate_world_overview(world, language)
+        validation = generate_objective_validation_report(world, language)
+        debug_info = overview + "\n\n" + validation
         return debug_info.replace("<", r"\<").replace(">", r"\>")
-    
-    elif message_lower in ["see world", "ver mundo", "world overview", "resumen mundo", "overview"]:
+
+    if message_lower in ["see world", "ver mundo", "world overview", "resumen mundo", "overview"]:
         world_overview = generate_world_overview(world, language)
         return world_overview.replace("<", r"\<").replace(">", r"\>")
-    
-    elif message_lower in ["validate objective", "validar objetivo", "check objective", "objetivo válido", "objetivo valido", "valid objective"]:
+
+    if message_lower in ["validate objective", "validar objetivo", "check objective", "objetivo válido", "objetivo valido", "valid objective"]:
         validation_report = generate_objective_validation_report(world, language)
         return validation_report.replace("<", r"\<").replace(">", r"\>")
-    
-    elif message_lower in ["objective", "objetivo", "what is my objective", "what is my objective?", 
-                           "cuál es mi objetivo", "cuál es mi objetivo?", "cual es mi objetivo", 
-                           "cual es mi objetivo?", "my objective", "mi objetivo", "goal", "meta"]:
+
+    if message_lower in ["objective", "objetivo", "what is my objective", "what is my objective?", "cuál es mi objetivo", "cuál es mi objetivo?", "cual es mi objetivo", "cual es mi objetivo?", "my objective", "mi objetivo", "goal", "meta"]:
         objective_info = get_objective_info(world, language)
         return objective_info.replace("<", r"\<").replace(">", r"\>")
-    
+
     return None
 
-def process_player_input_structured(world, message, language, reasoning_model,
-                                    number_of_turns, game_log_dictionary, memory_system=None):
-    """Process player input using structured data models for more reliable parsing."""
-    # Log input
+def process_player_input_structured(world, message, language, reasoning_model, number_of_turns, game_log_dictionary, memory_system=None):
     game_log_dictionary[number_of_turns]["date"] = time.ctime(time.time())
     game_log_dictionary[number_of_turns]["previous_symbolic_world_state"] = jsonpickle.encode(world, unpicklable=False)
     game_log_dictionary[number_of_turns]["previous_rendered_world_state"] = world.render_world(language=language)
     game_log_dictionary[number_of_turns]["user_input"] = message
 
-    # Retrieve relevant memories if memory system is available
     relevant_memories_text = ""
     if memory_system:
         try:
@@ -493,72 +333,47 @@ def process_player_input_structured(world, message, language, reasoning_model,
             relevant_memories_text = memory_system.format_memories_for_prompt(relevant_memories, language)
         except Exception as e:
             print(f"⚠️ Error retrieving memories: {e}")
-            relevant_memories_text = ""
 
-    # Get structured world changes with memory augmentation
     system_msg_update, user_msg_update, expected_model = prompt_world_update_structured(
         world.render_world(language=language), message, language=language, relevant_memories=relevant_memories_text
     )
-    
+
     try:
-        # Try to get structured response
         full_prompt = system_msg_update + "\n\n" + user_msg_update
-        # Convert Pydantic model to JSON schema for Gemini
         response_schema = expected_model.model_json_schema()
-        
-        response_json = reasoning_model.prompt_model_structured(
-            prompt=full_prompt,
-            response_schema=response_schema
-        )
-        
+        response_json = reasoning_model.prompt_model_structured(prompt=full_prompt, response_schema=response_schema)
+
         if isinstance(response_json, dict):
-            # Direct dict response
             world_update = WorldUpdate(**response_json)
         elif isinstance(response_json, str):
-            # Parse JSON string if needed
             import json
             response_data = json.loads(response_json)
             world_update = WorldUpdate(**response_data)
         else:
-            # Model instance response
             world_update = response_json
-            
-        # Show predicted outcomes
+
         print("🛠️ Predicted outcomes of the player input 🛠️")
         print(f"> Player input: {message}")
         print(f"{world_update.narration}\n")
-        
-        # Debug: Show puzzles_solved field
         print(f"🔍 DEBUG: WorldUpdate.puzzles_solved = {world_update.puzzles_solved}")
-        
+
         game_log_dictionary[number_of_turns]["predicted_outcomes"] = world_update.narration
         game_log_dictionary[number_of_turns]["structured_update"] = world_update.model_dump()
-        
-        # Update world using structured data
+
         world.update_from_structured(world_update)
-        
-        # Ingest new memory after successful processing
+
         if memory_system:
             try:
-                # Create rich world state summary for better embedding
                 world_state_summary = create_world_state_summary(world, message, language)
-                
-                memory_system.ingest_memory(
-                    turn_number=number_of_turns,
-                    player_action=message,
-                    result_narration=world_update.narration,
-                    world_state_summary=world_state_summary
-                )
+                memory_system.ingest_memory(turn_number=number_of_turns, player_action=message, result_narration=world_update.narration, world_state_summary=world_state_summary)
             except Exception as e:
                 print(f"⚠️ Error ingesting memory: {e}")
-        
+
     except Exception as e:
         print(f"⚠️ Structured processing failed: {e}")
         print("🔄 Falling back to legacy text processing...")
-        
-        # Fallback to legacy processing
         response_update = reasoning_model.prompt_model(system_msg=system_msg_update, user_msg=user_msg_update)
-        
+
         print("🛠️ Predicted outcomes of the player input 🛠️")
         print(f"> Player input: {message}")
         try:
@@ -567,27 +382,16 @@ def process_player_input_structured(world, message, language, reasoning_model,
             game_log_dictionary[number_of_turns]["predicted_outcomes"] = predicted_outcomes
         except Exception as e:
             print(f"Error: {e}")
-        
-        # Update world using legacy method
+
         world.update(response_update)
         game_log_dictionary[number_of_turns]["fallback_response"] = response_update
-        
-        # Try to ingest memory for fallback case too
+
         if memory_system:
             try:
-                # Extract narration from fallback response
                 narration_matches = re.findall(r'#([^#]*?)#', str(response_update))
                 fallback_narration = narration_matches[0] if narration_matches else "Something happened in the world."
-                
-                # Create rich world state summary for better embedding
                 world_state_summary = create_world_state_summary(world, message, language)
-                
-                memory_system.ingest_memory(
-                    turn_number=number_of_turns,
-                    player_action=message,
-                    result_narration=fallback_narration,
-                    world_state_summary=world_state_summary
-                )
+                memory_system.ingest_memory(turn_number=number_of_turns, player_action=message, result_narration=fallback_narration, world_state_summary=world_state_summary)
             except Exception as e:
                 print(f"⚠️ Error ingesting fallback memory: {e}")
 
@@ -597,149 +401,86 @@ def process_player_input_structured(world, message, language, reasoning_model,
     return world_update.narration if 'world_update' in locals() else (response_update if 'response_update' in locals() else "")
 
 def generate_narration(world, last_player_position, response_update, language, narrative_model):
-    """Generate appropriate narration based on player location and actions."""
     answer = ""
-    
     if last_player_position is not world.player.location:
-        # Narrate new scene
-        # Check if this is the first visit to this location
         is_first_visit = not world.player.location.visited
-        
         system_msg_new_scene, user_msg_new_scene = prompt_narrate_current_scene(
             world.render_world(language=language),
             previous_narrations=world.player.visited_locations[world.player.location.name],
             language=language,
-            first_visit=is_first_visit
+            first_visit=is_first_visit,
         )
         new_scene_narration = narrative_model.prompt_model(system_msg=system_msg_new_scene, user_msg=user_msg_new_scene)
         world.player.visited_locations[world.player.location.name] += [new_scene_narration]
         answer += f"\n{new_scene_narration}\n\n"
-        
-        # Mark location as visited on first visit
         if is_first_visit:
             world.player.location.visited = True
-            
         last_player_position = world.player.location
     else:
-        # Narrate actions in current scene
         try:
-            # Check if response_update is empty or None
             if not response_update or not response_update.strip():
-                # Provide fallback narration
-                if language == 'es':
-                    answer += "Algo sucedió en el mundo.\n"
-                else:
-                    answer += "Something happened in the world.\n"
-            # Check if response_update is already clean narration (from structured processing)
+                answer += "Algo sucedió en el mundo.\n" if language == 'es' else "Something happened in the world.\n"
             elif isinstance(response_update, str) and not response_update.startswith(("- Moved object:", "- Blocked passages", "- Your location")):
-                # This looks like clean narration, use it directly
                 answer += f"{response_update}\n"
             else:
-                # Try to extract narration from legacy format
                 narration_matches = re.findall(r'#([^#]*?)#', str(response_update))
-                if narration_matches:
-                    answer += f"{narration_matches[0]}\n"
-                else:
-                    # No narration found in expected format, provide fallback
-                    if language == 'es':
-                        answer += "Algo sucedió en el mundo.\n"
-                    else:
-                        answer += "Something happened in the world.\n"
+                answer += f"{narration_matches[0]}\n" if narration_matches else ("Algo sucedió en el mundo.\n" if language == 'es' else "Something happened in the world.\n")
         except Exception as e:
             print(f"Error extracting narration: {e}")
-            # Provide fallback narration
-            if language == 'es':
-                answer += "Algo sucedió en el mundo.\n"
-            else:
-                answer += "Something happened in the world.\n"
+            answer += "Algo sucedió en el mundo.\n" if language == 'es' else "Something happened in the world.\n"
 
     return answer, last_player_position
 
 def check_objective_completion(world, answer, language):
-    """Check if objective is completed and add completion message."""
     if world.check_objective():
-        if language == 'es':
-            answer += "\n\n🎯¡Completaste el objetivo!"
-        else:
-            answer += "\n\n🎯You have completed your quest!"
-        
-        # Check the objective type using the structured objective_data
+        answer += "\n\n🎯¡Completaste el objetivo!" if language == 'es' else "\n\n🎯You have completed your quest!"
+
         if hasattr(world, 'objective_data') and world.objective_data:
             obj_type = world.objective_data.type.value if hasattr(world.objective_data.type, 'value') else str(world.objective_data.type)
-            
-            # For mystery objectives, reveal the solution
-            if obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
-                if hasattr(world.objective_data, 'mystery_solution') and world.objective_data.mystery_solution:
-                    if language == 'es':
-                        answer += f"\n\n🎭 **Solución del Misterio:**\n{world.objective_data.mystery_solution}"
-                    else:
-                        answer += f"\n\n🎭 **Mystery Solution:**\n{world.objective_data.mystery_solution}"
-            # For non-mystery objectives, show completion_narration if available
-            else:
-                if hasattr(world.objective_data, 'completion_narration') and world.objective_data.completion_narration:
-                    if language == 'es':
-                        answer += f"\n\n📖 **Final:**\n{world.objective_data.completion_narration}"
-                    else:
-                        answer += f"\n\n📖 **Conclusion:**\n{world.objective_data.completion_narration}"
-        # Fallback for legacy objectives (old tuple format without objective_data)
-        elif (hasattr(world, 'objective') and world.objective and 
-              isinstance(world.objective, tuple) and len(world.objective) >= 2):
+            if obj_type in ["SOLVE_MYSTERY", "solve_mystery"] and hasattr(world.objective_data, 'mystery_solution') and world.objective_data.mystery_solution:
+                answer += f"\n\n🎭 **Solución del Misterio:**\n{world.objective_data.mystery_solution}" if language == 'es' else f"\n\n🎭 **Mystery Solution:**\n{world.objective_data.mystery_solution}"
+            elif hasattr(world.objective_data, 'completion_narration') and world.objective_data.completion_narration:
+                answer += f"\n\n📖 **Final:**\n{world.objective_data.completion_narration}" if language == 'es' else f"\n\n📖 **Conclusion:**\n{world.objective_data.completion_narration}"
+
+        elif (hasattr(world, 'objective') and world.objective and isinstance(world.objective, tuple) and len(world.objective) >= 2):
             obj_component = world.objective[1]
-            if (hasattr(obj_component, '__class__') and 
-                obj_component.__class__.__name__ == 'MysteryObjective' and
-                hasattr(obj_component, 'mystery_solution')):
-                
-                if language == 'es':
-                    answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}"
-                else:
-                    answer += f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
-            # For non-mystery objectives, show completion_narration if available
+            if (hasattr(obj_component, '__class__') and obj_component.__class__.__name__ == 'MysteryObjective' and hasattr(obj_component, 'mystery_solution')):
+                answer += f"\n\n🎭 **Solución del Misterio:**\n{obj_component.mystery_solution}" if language == 'es' else f"\n\n🎭 **Mystery Solution:**\n{obj_component.mystery_solution}"
             elif hasattr(obj_component, 'completion_narration') and obj_component.completion_narration:
-                if language == 'es':
-                    answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}"
-                else:
-                    answer += f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
-        
-    
+                answer += f"\n\n📖 **Final:**\n{obj_component.completion_narration}" if language == 'es' else f"\n\n📖 **Conclusion:**\n{obj_component.completion_narration}"
+
     return answer
 
 def save_game_log(game_log_dictionary, number_of_turns, answer):
-    """Save current game state to log file."""
     game_log_dictionary[number_of_turns]["narration"] = answer
-
     world_id = game_log_dictionary.get("world_id")
     current_turn_data = game_log_dictionary.get(number_of_turns)
-
     if db_handler and world_id and current_turn_data:
         db_handler.add_turn_to_trace(world_id, number_of_turns, current_turn_data)
 
-def create_game_loop(world, reasoning_model, narrative_model, language, log_filename, visited_locations, api_key=None, enable_rag=True, inspiration=""):
-    """Create the main game loop function with intelligent memory system."""
+def create_game_loop(world, reasoning_model, narrative_model, language, visited_locations, api_key=None, enable_rag=True, inspiration=""):
     last_player_position = world.player.location
     number_of_turns = 0
     
-    # Ensure hints are initialized for this world
     world.update_hints()
-    
-    # Generate a single persistent world_id for the entire session
     session_world_id = f"generated_{int(time.time())}"
     
     game_log_dictionary = create_game_log_entry(
-        world, language, log_filename, 
-        narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown', 
+        language,
+        narrative_model.model_name if hasattr(narrative_model, 'model_name') else 'unknown',
         reasoning_model.model_name if hasattr(reasoning_model, 'model_name') else 'unknown',
         world_id=session_world_id,
-        inspiration=inspiration
+        inspiration=inspiration,
     )
     
-    # Initialize turn 0 with world state
+    # turn 0 with world state
     game_log_dictionary[0] = {
         "date": time.ctime(time.time()),
         "initial_symbolic_world_state": jsonpickle.encode(world, unpicklable=True),
         "initial_rendered_world_state": world.render_world(language=language),
     }
     
-    # Initialize MongoDB trace document
+    # MongoDB trace document
     if db_handler:
         mongo_document = {
             "world_id": session_world_id,
@@ -759,7 +500,7 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         except Exception as e:
             print(f"⚠️ Failed to initialize MongoDB trace: {e}")
 
-    # Initialize memory system with consistent world_id only if RAG is enabled
+    # Initialize memory system if RAG is enabled
     memory_system = None
     if enable_rag:
         try:
@@ -778,13 +519,10 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
 
     def game_loop(message, history):
         nonlocal last_player_position, number_of_turns, game_log_dictionary
-
-        # Handle debug commands
         debug_response = handle_debug_command(message, world, language)
         if debug_response:
             return debug_response
 
-        # Check for character puzzle mention
         puzzle_response = check_character_puzzle_mention(world, message, language)
         if puzzle_response:
             return puzzle_response
@@ -792,29 +530,20 @@ def create_game_loop(world, reasoning_model, narrative_model, language, log_file
         number_of_turns += 1
         game_log_dictionary[number_of_turns] = {}
 
-        # Track visited locations
         visited_locations.add(world.player.location.name)
 
-        # Process input and update world with memory system
         response_update = process_player_input_structured(
-            world, message, language, reasoning_model, 
-            number_of_turns, game_log_dictionary, memory_system
+            world, message, language, reasoning_model,
+            number_of_turns, game_log_dictionary, memory_system,
         )
 
-        # Generate narration
         answer, last_player_position = generate_narration(world, last_player_position, response_update, language, narrative_model)
-
-        # Check objective completion
         answer = check_objective_completion(world, answer, language)
 
-        # Append formatted world state to answer
         world_state_formatted = world.format_world_state_for_chat(language=language)
         answer += f"\n\n---\n{world_state_formatted}"
 
-        # Print world state
         print(f"\n🌎 World state 🌍\n>Player input: {message}\n{world.render_world(language=language)}\n")
-
-        # Save game log
         save_game_log(game_log_dictionary, number_of_turns, answer)
 
         return answer.replace("<", r"\<").replace(">", r"\>")

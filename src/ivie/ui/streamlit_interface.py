@@ -1183,7 +1183,6 @@ def render_chat_interface():
             reasoning_model, 
             narrative_model,
             st.session_state.language, 
-            log_filename, 
             st.session_state.visited_locations, 
             api_key, 
             enable_rag,
