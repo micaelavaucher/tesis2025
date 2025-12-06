@@ -35,7 +35,7 @@ class ReplicateModel():
         self.model_name = model_name
 
     def prompt_model(self,system_msg: str, user_msg:str) -> str:
-        """Prompt the Replicate model."""
+        
 
         system_instructions = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_msg}<|eot_id|><|start_header_id|>user<|end_header_id|>"
 
@@ -53,19 +53,13 @@ class ReplicateModel():
 
 class GeminiModel():
     def __init__ (self, model_name:str = "gemini-2.0-flash") -> None:
-        """"Initialize the Gemini model using an API key."""
-        # self.safety_settings = [
-        #     types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
-        #     types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
-        #     types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-        #     types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE")
-        # ]
+        
         self.api_key = os.getenv("GEMINI_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = model_name
 
     def prompt_model(self, system_msg: str, user_msg: str, retry_attempts: int = 3, delay_seconds: int = 2) -> str:
-        """Prompt the Gemini model con reintentos automáticos en caso de sobrecarga."""
+        
         full_prompt = system_msg + "\n\n" + user_msg
         for attempt in range(retry_attempts):
             try:
@@ -83,12 +77,10 @@ class GeminiModel():
                 
                 return response_text
             except ServerError as e:
-                # Check if it's an overload error (503) by examining the error message
                 if hasattr(e, 'error') and hasattr(e.error, 'code') and e.error.code == 503:
                     print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{retry_attempts}")
                     time.sleep(delay_seconds)
                 elif str(e).startswith('503 UNAVAILABLE'):
-                    # Alternative way to check for 503 error based on string representation
                     print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{retry_attempts}")
                     time.sleep(delay_seconds)
                 else:
@@ -103,7 +95,7 @@ class GeminiModel():
         return "⚠️ El modelo está sobrecargado o no respondió. Por favor, intentá nuevamente."
     
     def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3, delay_seconds: int = 2):
-        """Prompt the Gemini model with structured output."""
+        
         for attempt in range(max_retries):
             try:
                 response = self.client.models.generate_content(
@@ -142,18 +134,15 @@ class GeminiModel():
             except json.JSONDecodeError as e:
                 print(f"JSON parsing error on attempt {attempt + 1}: {e}")
                 if 'response' in locals():
-                    print(f"Raw response: {response.text[:500]}...")  # Print first 500 chars for debugging
-                
+                    print(f"Raw response: {response.text[:500]}...")
                 if attempt == max_retries - 1:
                     print("Max retries reached. Returning empty result.")
-                    # Return a minimal valid structure based on common schema patterns
                     return self._get_empty_response_for_schema(response_schema)
                 else:
                     print(f"Retrying... ({attempt + 2}/{max_retries})")
                     time.sleep(delay_seconds)
                     
             except ServerError as e:
-                # Check if it's an overload error (503) by examining the error message
                 if str(e).startswith('503 UNAVAILABLE'):
                     print(f"[WARN] Modelo sobrecargado. Intento {attempt+1}/{max_retries}")
                     time.sleep(delay_seconds)
@@ -172,7 +161,6 @@ class GeminiModel():
                     time.sleep(delay_seconds)
 
     def _is_json_complete(self, json_text: str) -> bool:
-        """Check if JSON appears to be complete (basic heuristic)."""
         if not json_text.strip():
             return False
     
@@ -188,8 +176,7 @@ class GeminiModel():
                 json_text.strip().endswith('}'))
 
     def _get_empty_response_for_schema(self, response_schema):
-        """Generate an empty response that matches the expected schema structure."""
-        # This is a fallback method - you might want to customize this based on your specific schemas
+        # Generate an empty response that matches the expected schema structure
         try:
             # If the schema has a 'properties' field (typical for JSON schema)
             if hasattr(response_schema, 'properties') or (isinstance(response_schema, dict) and 'properties' in response_schema):
@@ -205,14 +192,13 @@ class GeminiModel():
 
 class OpenAIModel():
     def __init__(self, model_name: str = "gpt-4o-mini") -> None:
-        """Initialize the OpenAI model using an API key."""
+        
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=self.api_key)
         self.model_name = model_name
         self.temperature = 0.7
 
     def prompt_model(self, system_msg: str, user_msg: str, retry_attempts: int = 3, delay_seconds: int = 2) -> str:
-        """Prompt the OpenAI model with automatic retries on rate limit errors."""
         for attempt in range(retry_attempts):
             try:
                 response = self.client.chat.completions.create(
@@ -247,7 +233,6 @@ class OpenAIModel():
         return "⚠️ The OpenAI model is overloaded or did not respond. Please try again."
 
     def prompt_model_structured(self, prompt: str, response_schema, max_retries: int = 3, delay_seconds: int = 2):
-        """Prompt the OpenAI model with structured output using JSON schema."""
         for attempt in range(max_retries):
             try:
                 response = self.client.responses.parse(
@@ -292,7 +277,6 @@ class OpenAIModel():
                         time.sleep(delay_seconds)
 
     def _fallback_json_mode(self, prompt: str, response_schema, max_retries: int = 3, delay_seconds: int = 2):
-        """Fallback to JSON mode for models that don't support responses.parse."""
         for attempt in range(max_retries):
             try:
                 # Convert Pydantic schema to OpenAI format if needed
@@ -337,7 +321,6 @@ class OpenAIModel():
                 print(f"JSON parsing error on attempt {attempt + 1}: {e}")
                 if 'response' in locals():
                     print(f"Raw response: {response.choices[0].message.content[:500]}...")
-                
                 if attempt == max_retries - 1:
                     print("Max retries reached. Returning empty result.")
                     return self._get_empty_response_for_schema(response_schema)
@@ -359,7 +342,6 @@ class OpenAIModel():
                         time.sleep(delay_seconds)
 
     def _is_json_complete(self, json_text: str) -> bool:
-        """Check if JSON appears to be complete (basic heuristic)."""
         if not json_text.strip():
             return False
     

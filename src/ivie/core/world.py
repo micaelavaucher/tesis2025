@@ -296,7 +296,6 @@ class World:
     return done
 
   def set_objective_from_generated(self, objective_data, items_dict, locations_dict, characters_list, player):
-      """Set the world objective from generated data."""
       try:
           # Store the structured objective data for access to completion_narration and other metadata
           self.objective_data = objective_data
@@ -407,7 +406,6 @@ class World:
           self.objective = None
 
   def add_puzzle(self, puzzle: Puzzle) -> None:
-      """Add a puzzle to the world."""
       if puzzle.name in self.puzzles:
           raise Exception(f"Error: Already exists a puzzle called '{puzzle.name}'")
       else:
@@ -416,52 +414,40 @@ class World:
           self.puzzle_states[puzzle.name] = 'not_proposed'
   
   def add_puzzles(self, puzzles: 'list[Puzzle]') -> None:
-      """Add a set of puzzles to the world."""
       for puzzle in puzzles:
           self.add_puzzle(puzzle)
 
   def add_location (self,location: Location) -> None:
-    """Add a location to the world."""
     if location.name in self.locations:
       raise Exception(f"Error: Already exists a location called '{location.name}'")
     else:
        self.locations[location.name] = location
 
   def add_item (self, item: Item) -> None:
-    """Add an item to the world."""  
     if item.name in self.items:
       raise Exception(f"Error: Already exists an item called '{item.name}'")
     else:
       self.items[item.name] = item
 
   def add_character (self, character: Character) -> None:
-    """Add a character to the world."""
     if character.name in self.characters:
       raise Exception(f"Error: Already exists a character called '{character.name}'")
     else:
       self.characters[character.name] = character
 
   def add_locations (self,locations: 'list[Location]') -> None:
-    """"Add a set of locations to the world."""
     for location in locations:
       self.add_location(location)
 
   def add_items (self, items: 'list[Item]') -> None:
-    """Add a set of items to the world."""
     for item in items:
       self.add_item(item)
 
   def add_characters (self, characters: 'list[Character]') -> None:
-    """Add a set of characters to the world."""
     for character in characters:
       self.add_character(character)
 
   def render_world(self, *, language:str = 'en', detail_components:bool = True) -> str:
-    """Return the fictional world as a natural language description, using simple sentences.
-
-    The components described are only those the player can see in the current location.
-    If detail_components is False, then the descriptions for each component are not included.
-    """
     rendered_world = ''
 
     if language == 'es':
@@ -472,7 +458,6 @@ class World:
     return rendered_world
 
   def format_world_state_for_chat(self, *, language:str = 'en') -> str:
-    """Return a nicely formatted world state for display in chat, without puzzles."""
     player_location = self.player.location
     reachable_locations = [f"**{p.name}**" for p in player_location.connecting_locations]
     blocked_passages = [f"**{p}**" for p in player_location.blocked_locations.keys()]
@@ -557,7 +542,6 @@ class World:
     return formatted_state
   
   def __render_world_spanish(self, *,  detail_components:bool = True) -> str:
-    """Return the fictional world as a natural language description, using simple sentences in Spanish."""
     player_location = self.player.location
     reachable_locations = [f"{p.name}" for p in player_location.connecting_locations]
     blocked_passages = [f"{p} bloqueado por {player_location.blocked_locations[p][1].name}" for p in player_location.blocked_locations.keys()]
@@ -632,11 +616,6 @@ class World:
     return world_description + '\n' + details
 
   def __render_world_english(self, *,  detail_components:bool = True) -> str:
-    """Return the fictional world as a natural language description, using simple sentences in English.
-
-    The components described are only those the player can see in the current location.
-    If detail_components is False, then the descriptions for each component are not included.
-    """
     player_location = self.player.location
     reachable_locations = [f"{p.name}" for p in player_location.connecting_locations]
     blocked_passages = [f"{p} blocked by {player_location.blocked_locations[p][1].name}" for p in player_location.blocked_locations.keys()]
@@ -699,7 +678,6 @@ class World:
     return world_description + '\n' + details
 
   def _check_mystery_clue_discovery(self, item_name: str, language: str = 'en') -> str:
-    """Check if interacting with an item discovers mystery clues and return discovery message."""
     discovery_message = ""
     
     # Check if we have a mystery objective
@@ -737,7 +715,6 @@ class World:
     return discovery_message
 
   def _has_puzzles_in_location(self, location: 'Location' = None) -> bool:
-    """Check if the current location (or specified location) has any puzzles."""
     if location is None:
         location = self.player.location
     
@@ -761,7 +738,6 @@ class World:
     
     return False    
   def _get_objective_hints(self) -> list:
-        """Get hints for the main objective if available."""
         # First, check if we have the structured objective data with hints
         if (hasattr(self, 'objective_data') and self.objective_data and 
             hasattr(self.objective_data, 'objective_hints') and self.objective_data.objective_hints):
@@ -804,7 +780,6 @@ class World:
         return []
 
   def _get_puzzle_hints_for_location(self, location: 'Location' = None) -> list:
-    """Get hints for puzzles available in the current location."""
     if location is None:
         location = self.player.location
     
@@ -867,7 +842,6 @@ class World:
     return puzzle_hints
 
   def update_hints(self):
-    """Update the current hints based on the player's location and game state."""
     current_location = self.player.location
     
     if self._has_puzzles_in_location(current_location):
@@ -888,40 +862,22 @@ class World:
             self.current_hints = self.default_explore_hints.copy()
 
   def update_hints_for_puzzle_activity(self, puzzle_name: str):
-    """Update hints when a puzzle has been given out or interacted with."""
     # Find the puzzle and switch to its specific hints
     if puzzle_name in self.puzzles:
         puzzle = self.puzzles[puzzle_name]
         puzzle_hints = []
-        
-        print(f"🔍 DEBUG: Processing puzzle '{puzzle_name}'")
-        print(f"🔍 DEBUG: Puzzle has puzzle_hints attribute: {hasattr(puzzle, 'puzzle_hints')}")
-        if hasattr(puzzle, 'puzzle_hints'):
-            print(f"🔍 DEBUG: puzzle_hints value: {puzzle.puzzle_hints}")
-            print(f"🔍 DEBUG: puzzle_hints type: {type(puzzle.puzzle_hints)}")
-        
+                
         if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
             for i, hint in enumerate(puzzle.puzzle_hints):
-                print(f"🔍 DEBUG: Processing hint {i}: {hint} (type: {type(hint)})")
                 if hasattr(hint, 'text') and hasattr(hint, 'given'):
                     hint_dict = {"text": hint.text, "given": hint.given}
                     puzzle_hints.append(hint_dict)
-                    print(f"🔍 DEBUG: Added Pydantic hint: {hint_dict}")
                 elif isinstance(hint, dict):
                     puzzle_hints.append(hint)
-                    print(f"🔍 DEBUG: Added dict hint: {hint}")
-                else:
-                    print(f"🔍 DEBUG: Unknown hint format: {hint}")
-        
-        print(f"🔍 DEBUG: Final puzzle_hints list: {puzzle_hints}")
         if puzzle_hints:
             self.current_hints = puzzle_hints
-            print(f"🔍 DEBUG: Updated current_hints to: {self.current_hints}")
-        else:
-            print("🔍 DEBUG: No puzzle hints found, keeping current hints")
 
   def get_next_hint(self) -> str:
-    """Get the next available hint for the player."""
     for hint in self.current_hints:
         if not hint["given"]:
             hint["given"] = True
@@ -931,13 +887,11 @@ class World:
     return "Keep exploring and trying different actions. You're on the right track!"
 
   def reset_hints(self):
-    """Reset all hints to not given."""
     for hint in self.current_hints:
         if isinstance(hint, dict):
             hint["given"] = False
 
   def update_from_structured(self, world_update, language: str = 'en') -> None:
-    """Update world state using structured WorldUpdate object."""
     
     # Handle moved objects
     for moved_obj in world_update.moved_objects:
@@ -1070,9 +1024,7 @@ class World:
         print(f"Error moving player to {world_update.location_changed.new_location}: {e}")
 
     # Handle puzzle solutions
-    print(f"🔍 DEBUG: Checking puzzles_solved - count: {len(world_update.puzzles_solved)}")
     for puzzle_solution in world_update.puzzles_solved:
-      print(f"🔍 DEBUG: Processing puzzle solution: {puzzle_solution.puzzle_name}, answer: {puzzle_solution.answer}, success: {puzzle_solution.success}")
       try:
         if puzzle_solution.success:
           success = self.solve_puzzle(puzzle_solution.puzzle_name, puzzle_solution.answer)
@@ -1146,13 +1098,6 @@ class World:
             break  # Only update for the first puzzle found to avoid conflicts
 
   def update (self, updates: str) -> None:
-    """Does the changes in the world according to the output of the language model.
-
-    The possible changes considered are:
-      - an object was moved
-      - a location is now reachable
-      - the position of the player changed.
-    """
     self.parse_moved_objects(updates)
     self.parse_blocked_passages(updates)
     self.parse_location_change(updates)
@@ -1173,13 +1118,6 @@ class World:
             print(clue_discovery)
 
   def parse_moved_objects (self, updates: str) -> None:
-    """Parse the output of the language model to update the position of objects.
-
-    There are three cases:
-      - the player has a new item
-      - the player gave an item to other character
-      - the player dropped an item.
-    """
     parsed_objects = re.findall(r".*Moved object:\s*(.+)",updates)
     if 'None' not in parsed_objects:
       parsed_objects_split = re.findall(r"<[^<>]*?>.*?<[^<>]*?>",parsed_objects[0])
@@ -1231,7 +1169,6 @@ class World:
           print(e)
 
   def parse_blocked_passages (self, updates: str) -> None:
-    """Parse the output of the language model to update the reachable locations."""
     parsed_blocked_passages = re.findall(r".*Blocked passages now available:\s*(.+)",updates)
     if 'None' not in parsed_blocked_passages:
       parsed_blocked_passages_split = re.findall(r"<([^<>]*?)>",parsed_blocked_passages[0])
@@ -1242,7 +1179,6 @@ class World:
           print (e)
 
   def parse_location_change (self, updates: str) -> None:
-    """Parse the output of the language model to update the position of the player."""
     parsed_location_change = re.findall(r".*Your location changed: (.+)",updates)
     if "None" not in parsed_location_change:
       parsed_location_change_split = re.findall(r"<([^<>]*?)>",parsed_location_change[0])
@@ -1252,7 +1188,6 @@ class World:
         print(e)
 
   def parse_puzzle_solution(self, updates: str) -> None:
-    """Parse the output of the language model to detect puzzle solutions."""
     parsed_puzzle_solutions = re.findall(r".*Puzzle solved:\s*(.+)", updates)
     if 'None' not in parsed_puzzle_solutions and parsed_puzzle_solutions:
         # Formato esperado: "Puzzle solved: <puzzle_name> with answer <answer>"
@@ -1287,7 +1222,6 @@ class World:
                     print(f"Error processing puzzle solution: {e}")
 
   def normalize_answer(self, answer: str) -> str:
-      """Normalize an answer for comparison by removing articles, punctuation, and extra whitespace."""
       import re
       answer = answer.lower().strip()
       # Remove leading articles (a, an, the) - case insensitive
@@ -1301,7 +1235,6 @@ class World:
       return answer
 
   def solve_puzzle(self, puzzle_name: str, answer: str) -> bool:
-      """Attempt to solve a puzzle and apply rewards if successful."""
       # Try exact match first
       puzzle = None
       actual_puzzle_name = None
@@ -1351,7 +1284,6 @@ class World:
       return False
 
   def _apply_puzzle_rewards(self, puzzle: 'Puzzle'):
-      """Apply the rewards for solving a puzzle."""
       for reward in puzzle.rewards:
           try:
               if hasattr(reward, 'reward_type'):
@@ -1394,14 +1326,12 @@ class World:
               print(f"Error applying puzzle reward: {e}")
 
   def _find_item_case_insensitive(self, item_name: str) -> 'Item':
-      """Find an item by name, case insensitive."""
       for name, item in self.items.items():
           if name.lower() == item_name.lower():
               return item
       return None
 
   def find_puzzle_proposed_by_location(self, item_name: str):
-      """Find a puzzle that is proposed by a specific item when investigated."""
       for puzzle_name, puzzle in self.puzzles.items():
           if hasattr(puzzle, 'proposed_by_location') and puzzle.proposed_by_location:
               if puzzle.proposed_by_location.lower() == item_name.lower():
@@ -1409,14 +1339,12 @@ class World:
       return None
 
   def _find_location_case_insensitive(self, location_name: str) -> 'Location':
-      """Find a location by name, case insensitive."""
       for name, location in self.locations.items():
           if name.lower() == location_name.lower():
               return location
       return None
 
   def _find_object_flexible(self, object_name: str):
-      """Find an object by name with flexible matching strategies."""
       # Strategy 1: Exact match (preserves existing behavior)
       if object_name in self.items:
           return self.items[object_name]
@@ -1449,7 +1377,6 @@ class World:
       return None
 
   def _unblock_passages_for_solved_puzzle(self, puzzle_name: str, puzzle: 'Puzzle'):
-      """Automatically unblock passages that are blocked by the solved puzzle."""
       passages_unblocked = []
       
       # Check all locations for blocked passages blocked by this puzzle
@@ -1458,19 +1385,12 @@ class World:
               # Create a list of items to remove (to avoid modifying dict during iteration)
               passages_to_unblock = []
               
-              for blocked_loc_name, (blocked_loc, obstacle, symmetric) in location.blocked_locations.items():
-                  print(f"🔍 DEBUG: Checking blocked passage {location.name} → {blocked_loc_name}")
-                  print(f"🔍 DEBUG: Obstacle type: {type(obstacle)}, Obstacle name: {getattr(obstacle, 'name', 'NO_NAME')}")
-                  print(f"🔍 DEBUG: Looking for puzzle: {puzzle_name}")
-                  
+              for _, (blocked_loc, obstacle, _) in location.blocked_locations.items():
                   # Check if the obstacle is the puzzle we just solved
                   if (isinstance(obstacle, type(puzzle)) and 
                       hasattr(obstacle, 'name') and 
                       obstacle.name == puzzle_name):
-                      print(f"🔍 DEBUG: Found matching puzzle blocking passage!")
                       passages_to_unblock.append(blocked_loc)
-                  else:
-                      print(f"🔍 DEBUG: No match - obstacle is not the solved puzzle")
                       
               # Unblock the passages
               for blocked_loc in passages_to_unblock:

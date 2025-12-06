@@ -16,76 +16,9 @@ from . import prompts
 from ..config import load_config, get_model_names
 import configparser
 
-#---- Debug Functions --------------------------------------------------------
-
-def print_world_structure(world: GeneratedWorld, step_name: str = "Final"):
-    """Print detailed world structure for debugging."""
-    print(f"\n[DEBUG] 🌍 {step_name} World Structure:")
-    print(f"{ '='*60}")
-    
-    # Basic counts
-    print(f"📊 SUMMARY:")
-    print(f"  Locations: {len(world.locations)}")
-    print(f"  Items: {len(world.items)}")
-    print(f"  Characters: {len(world.characters)}")
-    print(f"  Puzzles: {len(world.puzzles)}")
-    
-    # Locations
-    print(f"\n📍 LOCATIONS:")
-    for loc in world.locations:
-        connections = [conn.name for conn in loc.connections] if loc.connections else []
-        print(f"  • {loc.name}: {connections}")
-    
-    # Items
-    print(f"\n🎒 ITEMS:")
-    for item in world.items:
-        location = item.location if hasattr(item, 'location') else "Unknown"
-        gettable = "✓" if item.gettable else "✗"
-        print(f"  • {item.name} [{gettable}] @ {location}")
-    
-    # Characters
-    print(f"\n👥 CHARACTERS:")
-    for char in world.characters:
-        location = char.location if hasattr(char, 'location') else "Unknown"
-        has_interaction = "✓" if hasattr(char, 'interaction') and char.interaction else "✗"
-        inventory = [item for item in char.inventory] if hasattr(char, 'inventory') and char.inventory else []
-        print(f"  • {char.name} [{has_interaction}] @ {location} | Inventory: {inventory}")
-    
-    # Puzzles
-    print(f"\n🧩 PUZZLES:")
-    for puzzle in world.puzzles:
-        hints_count = len(puzzle.puzzle_hints) if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints else 0
-        proposed_by = puzzle.proposed_by_character if hasattr(puzzle, 'proposed_by_character') else "None"
-        print(f"  • {puzzle.name} | Hints: {hints_count} | Proposed by: {proposed_by}")
-        if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
-            for i, hint in enumerate(puzzle.puzzle_hints, 1):
-                print(f"    Hint {i}: {hint[:50]}...")
-    
-    # Objective
-    if world.objective:
-        print(f"\n🎯 OBJECTIVE:")
-        print(f"  Description: {world.objective.description}")
-        if hasattr(world.objective, 'components') and world.objective.components:
-            print(f"  Components: {len(world.objective.components)}")
-            for comp in world.objective.components:
-                print(f"    • {comp.description}")
-    
-    print(f"{ '='*60}\n")
-
 #---- Pipeline Functions -----------------------------------------------------
 
 def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
-    """
-    Generation of the general concept of the world.
-    
-    Args:
-        theme: Base theme or concept for the world
-        language: Language for generation
-        model: Model instance to use (if None, will get from config)
-        
-    Returns:
-        WorldConcept: Validated object with the concept of the world
-    """
     if model is None:
         config = load_config()
         reasoning_model_name, _ = get_model_names(config)
@@ -94,7 +27,6 @@ def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
     print(f"[DEBUG] Generating world concept with theme: '{theme}'")
     concept_response = model.prompt_model_structured(prompt_text, WorldConcept)
 
-    # Convert dict to WorldConcept if needed
     if isinstance(concept_response, dict):
         concept = WorldConcept(**concept_response)
     else:
@@ -108,16 +40,6 @@ def run_step_1_concept(theme: str, language, model=None) -> WorldConcept:
     return concept
 
 def run_step_1_generate_concept(language, model=None) -> WorldConcept:
-    """
-    Generation of the general concept of the world.
-    
-    Args:
-        language: Language for generation
-        model: Model instance to use (if None, will get from config)
-        
-    Returns:
-        WorldConcept: Validated object with the concept of the world
-    """
     if model is None:
         config = load_config()
         reasoning_model_name, _ = get_model_names(config)
@@ -126,7 +48,6 @@ def run_step_1_generate_concept(language, model=None) -> WorldConcept:
     print(f"[DEBUG] Generating a new world concept")
     concept_response = model.prompt_model_structured(prompt_text, WorldConcept)
 
-    # Convert dict to WorldConcept if needed
     if isinstance(concept_response, dict):
         concept = WorldConcept(**concept_response)
     else:
@@ -140,17 +61,6 @@ def run_step_1_generate_concept(language, model=None) -> WorldConcept:
     return concept
 
 def run_step_2_skeleton(concept: WorldConcept, language, model=None) -> WorldSkeleton:
-    """
-    Generation of the skeleton with key entities.
-    
-    Args:
-        concept: World's concept from step from the previous step
-        language: Language for generation
-        model: Model instance to use (if None, will get from config)
-        
-    Returns:
-        WorldSkeleton: Validated object with the key entities
-    """
     if model is None:
         config = load_config()
         reasoning_model_name, _ = get_model_names(config)
@@ -178,23 +88,9 @@ def run_step_2_skeleton(concept: WorldConcept, language, model=None) -> WorldSke
     return skeleton
 
 def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language, model=None) -> GeneratedWorld:
-    """
-    Generation of details and connections of the main route.
-    
-    Args:
-        concept: World's concept from step 1
-        skeleton: Skeleton from the previous step
-        language: Language for generation
-        model: Model instance to use (if None, will get from config)
-        
-    Returns:
-        GeneratedWorld: Partially completed object with the main route
-    """
-    # Validate that concept is not None and has required attributes
     if concept is None:
         raise ValueError("Concept parameter cannot be None. Failed to generate world concept in previous step.")
     
-    # Check if concept has all required attributes with non-None values
     required_attrs = ['title', 'backstory', 'player_concept', 'main_objective']
     for attr in required_attrs:
         if not hasattr(concept, attr) or getattr(concept, attr) is None:
@@ -205,7 +101,6 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language,
         reasoning_model_name, _ = get_model_names(config)
         model = get_llm(reasoning_model_name)
 
-    # Preparar los datos del esqueleto para el prompt
     skeleton_data = f"""
     Ubicaciones clave:
     {chr(10).join([f"- {loc.name}: {loc.purpose}" for loc in skeleton.key_locations])}
@@ -248,17 +143,6 @@ def run_step_3_details(concept: WorldConcept, skeleton: WorldSkeleton, language,
     return world
 
 def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> GeneratedWorld:
-    """
-    Generation of dependency chains with integrated puzzles.
-    
-    Args:
-        world_data: World from the previous step
-        language: Language for generation
-        model: Model instance to use (if None, will get from config)
-        
-    Returns:
-        GeneratedWorld: Modified object with complex dependency chains
-    """
     if model is None:
         config = load_config()
         reasoning_model_name, _ = get_model_names(config)
@@ -285,7 +169,6 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> Gene
     print(f"  Total characters: {len(enhanced_world.characters)}")
     print(f"  Total puzzles: {len(enhanced_world.puzzles)} (was {len(world_data.puzzles)})")
     print(f"  Puzzle names: {[puzzle.name for puzzle in enhanced_world.puzzles]}")
-    # Show puzzle hints if available
     for puzzle in enhanced_world.puzzles:
         print(f"  • {puzzle}:")
         if hasattr(puzzle, 'puzzle_hints') and puzzle.puzzle_hints:
@@ -294,19 +177,6 @@ def run_step_4_puzzles(world_data: GeneratedWorld, language, model=None) -> Gene
     return enhanced_world
 
 def create_world_incrementally(theme: str, language: str, progress_callback=None) -> GeneratedWorld:
-    """
-    Main orchestrator of the incremental generation pipeline.
-    
-    Executes all steps sequentially to create a complete world.
-    
-    Args:
-        theme: Base theme or concept for the world
-        language: Language for generation
-        progress_callback: Optional function to call with progress updates
-        
-    Returns:
-        GeneratedWorld: Fully generated and validated world
-    """
     print(f"⚙️ Iniciando generación incremental del mundo con tema: '{theme}'")
     
     # Get model from config once
@@ -457,15 +327,6 @@ def create_world_incrementally(theme: str, language: str, progress_callback=None
     return world_with_puzzles
 
 def create_world_incrementally_generate(language: str, progress_callback=None) -> GeneratedWorld:
-    """
-    Orchestrator for incremental generation pipeline in 'generate' mode.
-    Uses run_step_1_generate_concept instead of run_step_1_concept.
-    Args:
-        language: Language for generation
-        progress_callback: Optional function to call with progress updates
-    Returns:
-        GeneratedWorld: Fully generated and validated world
-    """
     print(f"⚙️ Iniciando generación incremental del mundo en modo 'generate'")
 
     # Get model from config once
@@ -616,7 +477,6 @@ def create_world_incrementally_generate(language: str, progress_callback=None) -
     return final_world
 
 def validate_world_size(generated_world: GeneratedWorld) -> bool:
-    """Validate if the generated world adheres to the size parameters in config.ini."""
     # Load configuration
     config = configparser.ConfigParser()
     config.read('config.ini')
@@ -650,7 +510,6 @@ def validate_world_size(generated_world: GeneratedWorld) -> bool:
     return is_valid
 
 def verify_pydantic_model(obj, model_class):
-    """Verify that obj is a valid instance of model_class and can be parsed from dict/json."""
     try:
         if isinstance(obj, model_class):
             return True
@@ -666,19 +525,6 @@ def verify_pydantic_model(obj, model_class):
     return False
 
 def verify_location_connectivity(world: GeneratedWorld) -> bool:
-    """
-    Verify that all locations in the world are reachable from each other.
-    
-    Uses depth-first search to check if all locations form a connected graph.
-    Takes into account both normal connections and blocked passages (which are 
-    still connections, just temporarily blocked).
-    
-    Args:
-        world: GeneratedWorld object to verify
-        
-    Returns:
-        bool: True if all locations are reachable, False otherwise
-    """
     if not world.locations or len(world.locations) <= 1:
         return True  # Single or no locations are trivially connected
     
@@ -716,33 +562,9 @@ def verify_location_connectivity(world: GeneratedWorld) -> bool:
     
     # Check if we visited all locations
     all_connected = len(visited) == len(location_names)
-    
-    if not all_connected:
-        print(f"[DEBUG] Location connectivity check failed:")
-        print(f"  Total locations: {len(location_names)}")
-        print(f"  Reachable locations: {len(visited)}")
-        print(f"  Unreachable locations: {location_names - visited}")
-        print(f"  Adjacency map: {dict(adjacency)}")
-    
     return all_connected
 
 def verify_objective_completability(world: GeneratedWorld) -> bool:
-    """
-    Verify that the world's objective can be completed with the existing elements.
-    
-    This validates that:
-    - REACH_LOCATION: Target location exists and is reachable
-    - GET_ITEM: Target item exists and is accessible (either in a location or character inventory)
-    - DELIVER_AN_ITEM: Both item and target (location/character) exist and are accessible
-    - FIND_CHARACTER: Target character exists and is placed in a location
-    - SOLVE_MYSTERY: Mystery clues and associated items exist (already validated in models)
-    
-    Args:
-        world: GeneratedWorld object to verify
-        
-    Returns:
-        bool: True if objective is completable, False otherwise
-    """
     if not world.objective:
         print("[ERROR] World has no objective defined")
         return False
@@ -768,14 +590,6 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
     
     # Player inventory
     accessible_items.update(world.player.inventory)
-    
-    print(f"[DEBUG] Validating objective: {obj_type}")
-    print(f"[DEBUG] Objective components: {[comp.name for comp in objective.components]}")
-    print(f"[DEBUG] Available locations: {location_names}")
-    print(f"[DEBUG] Available items: {item_names}")
-    print(f"[DEBUG] Accessible items: {accessible_items}")
-    print(f"[DEBUG] Available characters: {character_names}")
-    
     if obj_type in ["REACH_LOCATION", "reach_location"]:
         # Find the location component
         for component in objective.components:
@@ -785,7 +599,6 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
                     print(f"[ERROR] REACH_LOCATION objective refers to non-existent location: '{component.name}'")
                     return False
                 # Note: Location reachability is already validated by verify_location_connectivity
-                print(f"[DEBUG] ✅ REACH_LOCATION objective is valid - location '{component.name}' exists")
                 return True
         
         print(f"[ERROR] REACH_LOCATION objective has no location component")
@@ -820,10 +633,7 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
             if target_item and not target_item.gettable:
                 print(f"[ERROR] GET_ITEM objective item '{component.name}' exists but is not gettable")
                 return False
-            
-            print(f"[DEBUG] ✅ GET_ITEM objective item '{component.name}' is valid - exists and is accessible")
-        
-        print(f"[DEBUG] ✅ GET_ITEM objective is fully valid - all {len(item_components)} required items exist and are accessible")
+
         return True
     
     elif obj_type in ["DELIVER_AN_ITEM", "deliver_an_item"]:
@@ -872,7 +682,6 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
                 print(f"[ERROR] DELIVER_AN_ITEM objective refers to non-existent character: '{target_component.name}'")
                 return False
         
-        print(f"[DEBUG] ✅ DELIVER_AN_ITEM objective is valid - item '{item_component.name}' and target '{target_component.name}' exist and are accessible")
         return True
     
     elif obj_type in ["FIND_CHARACTER", "find_character"]:
@@ -891,7 +700,6 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
                         print(f"[ERROR] FIND_CHARACTER objective character '{component.name}' is in non-existent location: '{target_character.location}'")
                         return False
                 
-                print(f"[DEBUG] ✅ FIND_CHARACTER objective is valid - character '{component.name}' exists and is placed in a valid location")
                 return True
         
         print(f"[ERROR] FIND_CHARACTER objective has no character component")
@@ -900,7 +708,6 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
     elif obj_type in ["SOLVE_MYSTERY", "solve_mystery"]:
         # Mystery validation is already handled by the Pydantic models and MysteryClue validation
         # in the structured_data_models.py, so if we get here, it should be valid
-        print(f"[DEBUG] ✅ SOLVE_MYSTERY objective is valid (validated by Pydantic models)")
         return True
     
     else:
@@ -908,41 +715,20 @@ def verify_objective_completability(world: GeneratedWorld) -> bool:
         return False
 
 def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, GeneratedWorld]:
-    """
-    Verify that all puzzle reward items exist in the world, and create them if they don't.
-    
-    For puzzles with ItemRewards:
-    - Check if the reward item exists in world.items
-    - If not, create the item
-    - If the puzzle is proposed by a character, add the item to that character's inventory
-    - Otherwise, add it to the location where the puzzle is found
-    
-    Args:
-        world: GeneratedWorld object to verify and potentially modify
-        
-    Returns:
-        tuple: (bool, GeneratedWorld) - True if validation passed or fixes were applied, modified world
-    """
     from .structured_data_models import GeneratedItem, ItemReward
     
     # Track changes made
     items_created = []
-    modified = False
     
     # Get existing item names for quick lookup
     existing_item_names = {item.name for item in world.items}
     existing_item_names_lower = {name.lower() for name in existing_item_names}
     
-    print(f"[DEBUG] Verifying puzzle rewards...")
-    print(f"[DEBUG] Existing items: {existing_item_names}")
-    
     for puzzle in world.puzzles:
-        print(f"[DEBUG] Checking puzzle '{puzzle.name}' rewards...")
         
         for reward in puzzle.rewards:
             if isinstance(reward, ItemReward):
                 item_name = reward.item_name
-                print(f"[DEBUG] Found ItemReward for '{item_name}'")
                 
                 if item_name.lower() not in existing_item_names_lower:
                     print(f"[WARNING] ItemReward item '{item_name}' does not exist. Creating it...")
@@ -960,7 +746,6 @@ def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, Generate
                     world.items.append(new_item)
                     existing_item_names.add(item_name)
                     items_created.append(item_name)
-                    modified = True
                     
                     # Determine where to place the item
                     # For observation puzzles, the item should be in the location, not on the character
@@ -1012,13 +797,5 @@ def verify_puzzle_rewards_and_fix(world: GeneratedWorld) -> tuple[bool, Generate
                         if world.locations:
                             world.locations[0].items.append(item_name)
                             print(f"[INFO] Added item '{item_name}' to location '{world.locations[0].name}' (fallback)")
-                
-                else:
-                    print(f"[DEBUG] ✅ ItemReward item '{item_name}' exists")
-    
-    if items_created:
-        print(f"[INFO] Created {len(items_created)} missing reward items: {items_created}")
-    else:
-        print(f"[DEBUG] ✅ All puzzle reward items exist")
-    
+        
     return True, world

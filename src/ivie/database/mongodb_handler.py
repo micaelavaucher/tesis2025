@@ -27,7 +27,6 @@ class MongoHandler:
         return cls._instance
 
     def initialize_trace(self, initial_log_entry: dict):
-        """Inserts the initial document for a new world generation trace."""
         try:
             result = self.collection.insert_one(initial_log_entry)
             return result.inserted_id
@@ -36,7 +35,6 @@ class MongoHandler:
             return None
 
     def add_turn_to_trace(self, world_id: str, turn_number: int, turn_data: dict):
-        """Adds a new turn to an existing world trace document using $set."""
         try:
             query = {"world_id": world_id}
             update = {"$set": {f"turns.{turn_number}": turn_data}}
@@ -45,7 +43,6 @@ class MongoHandler:
             print(f"Error adding turn {turn_number} to trace {world_id}: {e}")
 
     def get_trace_by_world_id(self, world_id: str):
-        """Retrieves a full world trace document by its world_id."""
         try:
             return self.collection.find_one({"world_id": world_id})
         except Exception as e:
@@ -53,7 +50,6 @@ class MongoHandler:
             return None
     
     def trace_exists(self, world_id: str) -> bool:
-        """Check if a trace exists for the given world_id."""
         try:
             count = self.collection.count_documents({"world_id": world_id})
             return count > 0

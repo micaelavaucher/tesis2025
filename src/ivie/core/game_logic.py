@@ -355,7 +355,6 @@ def process_player_input_structured(world, message, language, reasoning_model, n
         print("🛠️ Predicted outcomes of the player input 🛠️")
         print(f"> Player input: {message}")
         print(f"{world_update.narration}\n")
-        print(f"🔍 DEBUG: WorldUpdate.puzzles_solved = {world_update.puzzles_solved}")
 
         game_log_dictionary[number_of_turns]["predicted_outcomes"] = world_update.narration
         game_log_dictionary[number_of_turns]["structured_update"] = world_update.model_dump()

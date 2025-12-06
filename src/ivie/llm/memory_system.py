@@ -19,7 +19,6 @@ from ..config import PATH_GAMELOGS
 from src.ivie.core.world_utils import create_world_state_summary
 from ..database.mongodb_handler import db_handler
 
-# Disable ChromaDB telemetry at module level
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 
@@ -36,7 +35,6 @@ class AtomicMemory:
         self.timestamp = time.time()
         
     def to_text(self) -> str:
-        """Convert memory to text format for embedding."""
         memory_text = f"Turn {self.turn_number}:\n"
         memory_text += f"Player Action: {self.player_action}\n"
         memory_text += f"Result: {self.result_narration}"
@@ -47,8 +45,7 @@ class AtomicMemory:
         return memory_text
     
     def to_dict(self) -> Dict:
-        """Convert memory to dictionary for storage."""
-        # Ensure metadata is flattened to primitive types for ChromaDB
+        # Flatten metadata to primitive types for storage
         flattened_metadata = {}
         if self.metadata:
             for key, value in self.metadata.items():
@@ -68,7 +65,6 @@ class AtomicMemory:
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'AtomicMemory':
-        """Create memory from dictionary."""
         # Extract standard fields
         turn_number = data.get("turn_number", 0)
         player_action = data.get("player_action", "")
@@ -105,7 +101,6 @@ class EmbeddingService:
         self.types = types
     
     def generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for given text using Gemini."""
         try:
             result = self.client.models.embed_content(
                 model="gemini-embedding-001",
@@ -156,7 +151,6 @@ class MemoryStore:
             )
     
     def add_memory(self, memory: AtomicMemory, embedding: List[float]):
-        """Add a memory to the vector store."""
         memory_id = f"turn_{memory.turn_number}_{int(memory.timestamp)}"
         
         self.collection.add(
@@ -167,7 +161,6 @@ class MemoryStore:
         )
     
     def search_memories(self, query_embedding: List[float], top_k: int = 3) -> List[AtomicMemory]:
-        """Search for most relevant memories."""
         try:
             results = self.collection.query(
                 query_embeddings=[query_embedding],
@@ -195,7 +188,6 @@ class IntelligentMemorySystem:
     
     def ingest_memory(self, turn_number: int, player_action: str, 
                      result_narration: str, world_state_summary: str = "") -> bool:
-        """Ingest a new memory from a game turn."""
         try:
             # Create atomic memory
             memory = AtomicMemory(
@@ -221,7 +213,6 @@ class IntelligentMemorySystem:
             return False
     
     def retrieve_relevant_memories(self, current_action: str, top_k: int = 3) -> List[AtomicMemory]:
-        """Retrieve memories most relevant to the current action."""
         try:
             # Generate embedding for current action
             query_embedding = self.embedding_service.generate_embedding(current_action)
@@ -243,7 +234,6 @@ class IntelligentMemorySystem:
             return []
     
     def format_memories_for_prompt(self, memories: List[AtomicMemory], language: str = 'en') -> str:
-        """Format retrieved memories for inclusion in LLM prompt."""
         if not memories:
             return ""
         
@@ -262,7 +252,6 @@ class IntelligentMemorySystem:
         return header + "\n".join(formatted_memories) + "\n"
     
     def load_memories_from_db(self, world_id: str) -> int:
-        """Load memories from an existing game trace in the database, re-hydrating world state for rich context."""
         if not db_handler:
             print("⚠️ Database handler not available, cannot load memories.")
             return 0
@@ -290,7 +279,6 @@ class IntelligentMemorySystem:
 
                 if player_action and result_narration and world_state_str:
                     # Re-hydrate the world object from the stored JSON string
-                    # This deserializes the string back into a full Python World object
                     world_at_turn = jsonpickle.decode(world_state_str)
 
                     world_state_summary = create_world_state_summary(
@@ -318,5 +306,4 @@ class IntelligentMemorySystem:
             return 0
 
 def create_memory_system(world_id: str, api_key: str = None) -> IntelligentMemorySystem:
-    """Factory function to create a memory system."""
     return IntelligentMemorySystem(world_id, api_key)
